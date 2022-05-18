@@ -1,0 +1,175 @@
+.App {
+  text-align: center;
+}
+:root {
+  --line-color: rgb(218, 220, 224);
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  #background-color: white;
+  #min-height: 10vh;
+  #display: flex;
+  #flex-direction: column;
+  #align-items: flex-start;
+  padding: 10px 60px 10px 60px;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  #color: white;
+  background-image: url('../public/favicon.ico');
+  background-repeat: no-repeat;
+  background-position: left;
+  margin: 10px 40px;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ms-CommandBar {
+  padding-left: 0;
+}
+.TagList {
+  border-right: var(--line-color) solid 1px;
+  width: 20em;
+  height: auto;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 3px;
+}
+
+.ListView {
+  height: 100%;
+  width: 20em;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1em;
+}
+
+.ListItem {
+  width: 100%;
+  #height: 8em;
+  text-align: left;
+  border-width: 0 0 1px 0;
+}
+
+.ListItem:hover {
+  background-color: rgb(243, 242, 241);
+}
+
+.TitleField {
+  width: 100%;
+  padding: 3px;
+}
+.ms-TextField-fieldGroup {
+  border-radius: 10px;
+  border-color: var(--line-color);
+}
+.BodyField {
+  flex: 1;
+  border-radius: 10px;
+  background-color: var(--line-color);
+  margin: 1em;
+}
+
+.ItemTags>button, .ItemTags .ms-Button {
+  margin: 1px 3px;
+  padding-right: 20px;
+  border-color: var(--line-color);
+  border-radius: 7px;
+  background-image: url("../public/x-symbol.svg");
+  background-position: 90% 50%;
+  background-repeat: no-repeat;
+  background-size: 10px;
+
+}
+
+.MainView {
+  #height: 40em;
+  flex: 1;
+  #padding: 3px;
+  border-top: var(--line-color) solid 1px;
+}
+.footer {
+  text-align: right;
+  border-top: 1px solid gray;
+  padding: 2px;
+}
+.SearchBox {
+  flex: 1;
+  border-radius: 10px;
+  border: none;
+  margin: 0 7em;
+  background-color: var(--line-color);
+  height: 3em;
+}
+
+.Hamburger {
+  width: 3em;
+  height: 3em;
+  border-style: none;
+  margin-right: 10px;
+  margin-left: 20px;
+  background-color: white;
+}
+.DetailCard {
+  flex: 1;
+  border-left: var(--line-color) solid 1px;
+  background-color: #f8f9fa;
+}
+.DateField {
+  min-width: 9em;
+  margin-right: 1em;
+}
+
+.CardRow1 {
+  padding-top: 1em;
+  padding-left: 1em;
+  min-height: 3em;
+  padding-bottom: 0.5em;
+  background-color: white;
+}
+
+.ItemTags {
+  padding-left: 1em;
+  margin-bottom: 0.5em;
+  padding-bottom: 0.5em;
+  padding-top: 0.5em;
+  border-top: var(--line-color) solid 1px;
+  border-bottom: var(--line-color) solid 1px;
+  background-color: white;
+}
+
+.ItemTags .ms-Button {
+  #border-color: var(--line-color);
+}
+
+.NotebookIcon {
+  background-image: url('../public/inbox.svg');
+  background-position: 90% 50%;
+  background-repeat: no-repeat;
+  background-size: 10px;
+}
+
+.TagList .ms-Button-flexContainer {
+  padding-left: 20px;
+}

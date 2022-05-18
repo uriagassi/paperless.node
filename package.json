@@ -1,0 +1,14 @@
+{
+  "name": "paperless.node",
+  "packageManager": "yarn@3.2.1",
+  "dependencies": {
+    "express": "^4.18.1"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "start": "node server/index.js"
+  }
+}
