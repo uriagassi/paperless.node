@@ -3,7 +3,10 @@
 }
 :root {
   --line-color: rgb(218, 220, 224);
+  --selected-color: rgb(237, 235, 233);
+  --selected-bar-color: rgb(0, 120, 212);
 }
+
 
 .App-logo {
   height: 40vmin;
@@ -57,7 +60,7 @@
 }
 
 .ListView {
-  width: 20em;
+  width: 25em;
   overflow-y: auto;
   overflow-x: auto;
   padding: 1em;
@@ -72,6 +75,11 @@
 
 .ListItem:hover {
   background-color: rgb(243, 242, 241);
+  color: var(--selected-bar-color);
+}
+
+.ListItem:hover .ms-DocumentCardTitle {
+  color: var(--selected-bar-color);
 }
 
 .TitleField {
@@ -170,4 +178,14 @@
 
 .TagList .ms-Button-flexContainer {
   padding-left: 20px;
+}
+
+.ListItemTitle {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ListItem.is-selected {
+  background-color: var(--selected-color);
+  border-left: 2px var(--selected-bar-color) solid;
 }

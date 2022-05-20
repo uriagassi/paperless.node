@@ -63,6 +63,7 @@ const _menuItems: ICommandBarItemProps[] = [
 
 export const App: React.FunctionComponent = () => {
   const [selectedFolder, setSelectedFolder] = React.useState<string | undefined>(undefined);
+  const [selectedNote, setSelectedNote] = React.useState<number | undefined>(undefined)
   return (
       <Stack tokens={stackTokens} styles={stackStyles}>
         <Stack horizontal verticalAlign='baseline'>
@@ -79,8 +80,8 @@ export const App: React.FunctionComponent = () => {
         <Stack horizontal className='MainView'>
           <TagList selectedId={selectedFolder}
                    onSelectedIdChanged={(key) => setSelectedFolder(key)}/>
-          <NoteList filterId={selectedFolder}/>
-          <DetailCard/>
+          <NoteList filterId={selectedFolder} selectedId={selectedNote} onSelectedIdChanged={(key) => setSelectedNote(key)}/>
+          <DetailCard noteId={selectedNote}/>
         </Stack>
       </Stack>
   );
