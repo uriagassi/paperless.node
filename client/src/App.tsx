@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   BaseButton,
   CommandBar,
@@ -17,6 +17,7 @@ import {
 import './App.css';
 import {TagList} from "./TagList";
 import {DetailCard} from "./DetailCard";
+import {NoteList} from "./NoteList";
 
 
 // Initialize icons in case this example uses them
@@ -30,7 +31,7 @@ const stackStyles: Partial<IStackStyles> = {
     textAlign: 'center',
     color: '#605e5c',
     display: "flex",
-    height: '100%'
+    maxHeight: '100vh'
   },
 };
 
@@ -61,7 +62,7 @@ const _menuItems: ICommandBarItemProps[] = [
 ]
 
 export const App: React.FunctionComponent = () => {
-
+  const [selectedFolder, setSelectedFolder] = React.useState<string | undefined>(undefined);
   return (
       <Stack tokens={stackTokens} styles={stackStyles}>
         <Stack horizontal verticalAlign='baseline'>
@@ -76,34 +77,9 @@ export const App: React.FunctionComponent = () => {
           <CommandBar className='CommandBar' items={_menuItems}/>
         </Stack>
         <Stack horizontal className='MainView'>
-          <TagList/>
-          <Stack horizontalAlign='start' verticalAlign='start'
-                 className='ListView'>
-            <DocumentCard className='ListItem'>
-              <DocumentCardDetails>
-                <DocumentCardTitle title='Google Paycheck'/>
-                <DocumentCardStatus status="1 Attachment (120kb)"
-                                    statusIcon="attach"/>
-                <DocumentCardActivity activity='Updated: May 23rd 2022'
-                                      people={[{
-                                        name: 'Uri',
-                                        profileImageSrc: ''
-                                      }]}/>
-              </DocumentCardDetails>
-            </DocumentCard>
-            <DocumentCard className='ListItem'>
-              <DocumentCardDetails>
-                <DocumentCardTitle title='Google Paycheck March'/>
-                <DocumentCardStatus status="1 Attachment (220kb)"
-                                    statusIcon="attach"/>
-                <DocumentCardActivity activity='Updated: April 23rd 2022'
-                                      people={[{
-                                        name: 'Uri',
-                                        profileImageSrc: ''
-                                      }]}/>
-              </DocumentCardDetails>
-            </DocumentCard>
-          </Stack>
+          <TagList selectedId={selectedFolder}
+                   onSelectedIdChanged={(key) => setSelectedFolder(key)}/>
+          <NoteList filterId={selectedFolder}/>
           <DetailCard/>
         </Stack>
       </Stack>

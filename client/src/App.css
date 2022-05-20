@@ -51,17 +51,15 @@
 .TagList {
   border-right: var(--line-color) solid 1px;
   width: 20em;
-  height: auto;
   overflow-y: auto;
   overflow-x: auto;
   padding: 3px;
 }
 
 .ListView {
-  height: 100%;
   width: 20em;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   padding: 1em;
 }
 
@@ -104,7 +102,7 @@
 }
 
 .MainView {
-  #height: 40em;
+  height: 90vh;
   flex: 1;
   #padding: 3px;
   border-top: var(--line-color) solid 1px;
