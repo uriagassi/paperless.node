@@ -2,11 +2,6 @@ import React, {useState} from 'react';
 import {
   BaseButton,
   CommandBar,
-  DocumentCard,
-  DocumentCardActivity,
-  DocumentCardDetails,
-  DocumentCardStatus,
-  DocumentCardTitle,
   ICommandBarItemProps,
   initializeIcons,
   IStackStyles,
@@ -15,7 +10,7 @@ import {
   Stack
 } from '@fluentui/react';
 import './App.css';
-import {TagList} from "./TagList";
+import {ITagWithChildren, TagList} from "./TagList";
 import {DetailCard} from "./DetailCard";
 import {NoteList} from "./NoteList";
 
@@ -62,8 +57,18 @@ const _menuItems: ICommandBarItemProps[] = [
 ]
 
 export const App: React.FunctionComponent = () => {
-  const [selectedFolder, setSelectedFolder] = React.useState<string | undefined>(undefined);
-  const [selectedNote, setSelectedNote] = React.useState<number | undefined>(undefined)
+  const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
+  const [selectedNote, setSelectedNote] = useState<number | undefined>(undefined)
+  const [notebooks, setNotebooks] = useState<ITagWithChildren[] | undefined>(undefined)
+  const [tags, setTags] = useState<ITagWithChildren[] | undefined>(undefined)
+  React.useEffect(() => {
+    fetch("/api/notebooks_and_tags")
+        .then((res) => res.json())
+        .then((data : { tags: ITagWithChildren[], notebooks: any[]}) => {
+          setNotebooks(data.notebooks);
+          setTags(data.tags);
+        });
+  }, [])
   return (
       <Stack tokens={stackTokens} styles={stackStyles}>
         <Stack horizontal verticalAlign='baseline'>
@@ -79,9 +84,10 @@ export const App: React.FunctionComponent = () => {
         </Stack>
         <Stack horizontal className='MainView'>
           <TagList selectedId={selectedFolder}
-                   onSelectedIdChanged={(key) => setSelectedFolder(key)}/>
+                   onSelectedIdChanged={(key) => setSelectedFolder(key)}
+                   tags={tags} notebooks={notebooks}/>
           <NoteList filterId={selectedFolder} selectedId={selectedNote} onSelectedIdChanged={(key) => setSelectedNote(key)}/>
-          <DetailCard noteId={selectedNote}/>
+          <DetailCard noteId={selectedNote} availableTags={tags} availableNotebooks={notebooks}/>
         </Stack>
       </Stack>
   );

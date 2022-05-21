@@ -90,23 +90,27 @@
   border-radius: 10px;
   border-color: var(--line-color);
 }
+
 .BodyField {
   flex: 1;
   border-radius: 10px;
   background-color: var(--line-color);
-  margin: 1em;
+  margin: 1em !important;
 }
 
-.ItemTags>button, .ItemTags .ms-Button {
-  margin: 1px 3px;
-  padding-right: 20px;
+.ItemTags .ms-BasePicker-text {
   border-color: var(--line-color);
   border-radius: 7px;
-  background-image: url("../public/x-symbol.svg");
-  background-position: 90% 50%;
-  background-repeat: no-repeat;
-  background-size: 10px;
+}
 
+.ms-Dropdown-title {
+  border-color: var(--line-color);
+  border-radius: 7px;
+}
+
+.ItemTags {
+  flex: 1;
+  padding: 0 1em;
 }
 
 .MainView {
@@ -147,27 +151,13 @@
   margin-right: 1em;
 }
 
-.CardRow1 {
-  padding-top: 1em;
-  padding-left: 1em;
+.CardRow1, .CardRow2 {
+  padding: 0.75em 1em 0.75em 1em;
   min-height: 3em;
-  padding-bottom: 0.5em;
   background-color: white;
-}
-
-.ItemTags {
-  padding-left: 1em;
-  margin-bottom: 0.5em;
-  padding-bottom: 0.5em;
-  padding-top: 0.5em;
-  border-top: var(--line-color) solid 1px;
   border-bottom: var(--line-color) solid 1px;
-  background-color: white;
 }
 
-.ItemTags .ms-Button {
-  #border-color: var(--line-color);
-}
 
 .NotebookIcon {
   background-image: url('../public/inbox.svg');

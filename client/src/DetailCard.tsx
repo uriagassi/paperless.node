@@ -1,23 +1,24 @@
 import React from "react";
 import {
-  BaseButton,
   DatePicker,
   defaultDatePickerStrings,
-  IButtonStyles,
-  IconButton,
+  Dropdown,
+  IBasePickerSuggestionsProps,
   IDatePicker,
-  IOverflowSetItemProps,
-  OverflowSet,
+  IDropdownOption,
+  ITag,
   Stack,
+  TagPicker,
   TextField
 } from "@fluentui/react";
 
-export class DetailCard extends React.Component<{noteId: number | undefined}, { note?: Note }> {
+export class DetailCard extends React.Component<{noteId: number | undefined, availableTags: ITag[] | undefined, availableNotebooks: ITag[] | undefined}, { note?: Note, notebooks: IDropdownOption[] }> {
   private datePickerRef: React.RefObject<IDatePicker>;
   constructor(props: any) {
     super(props);
     this.state = {
-      note: undefined
+      note: undefined,
+      notebooks: []
     };
     this.datePickerRef = React.createRef<IDatePicker>();
   }
@@ -26,10 +27,14 @@ export class DetailCard extends React.Component<{noteId: number | undefined}, { 
     this.loadNote();
   }
 
-  componentDidUpdate(prevProps: Readonly<{ noteId: number | undefined }>, prevState: Readonly<{ note?: Note }>, snapshot?: any) {
+  componentDidUpdate(prevProps: Readonly<{ noteId: number | undefined, availableNotebooks: ITag[] | undefined }>, prevState: Readonly<{ note?: Note }>, snapshot?: any) {
     if (prevProps.noteId != this.props.noteId) {
       this.loadNote();
     }
+    if (prevProps.availableNotebooks != this.props.availableNotebooks || this.state.notebooks.length == 0) {
+      this.setState({...this.state, notebooks: this.props.availableNotebooks?.map(t => { return {key: t.key, text: t.name} }) ?? [{key: 11, text: 'test!'}]})
+    }
+
   }
 
   private loadNote() {
@@ -39,47 +44,43 @@ export class DetailCard extends React.Component<{noteId: number | undefined}, { 
           .then((data : RawNote) => {
             let note: Note = {
               notebookId: data.notebookId,
-              title: data.title,
+              title: data.title ?? '',
               createTime: new Date(Date.parse(data.createTime)),
               tags: []
             }
-            let tagNames = data.tags.split(',')
-            let tagIds = data.tagIds.split(',')
+            console.log(data);
+            let tagNames = data.tags?.split(',') ?? []
+            let tagIds = data.tagIds?.split(',') ?? []
 
             for (let i = 0; i < tagNames.length; i++) {
-              note.tags.push({ name: tagNames[i], id: tagIds[i]})
+              note.tags.push({ name: tagNames[i], key: tagIds[i]})
             }
-            this.setState({note: note});
+            this.setState({...this.state, note: note});
             });
     }
   }
   render() {
-    const onRenderItem = (item: IOverflowSetItemProps): JSX.Element => {
-      return (
-          <BaseButton text={item.name}/>
-      );
-    }
-
-    const onRenderOverflowButton = (overflowItems: any[] | undefined): JSX.Element => {
-      const buttonStyles: Partial<IButtonStyles> = {
-        root: {
-          minWidth: 0,
-          padding: '0 4px',
-          alignSelf: 'stretch',
-          height: 'auto',
-        },
-      };
-      return (
-          <IconButton
-              role="menuitem"
-              title="More options"
-              styles={buttonStyles}
-              menuIconProps={{iconName: 'More'}}
-              menuProps={{items: overflowItems!}}
-          />
-      );
+    const listContainsTagList = (tag: ITag, tagList?: ITag[]) => {
+      if (!tagList || !tagList.length || tagList.length === 0) {
+        return false;
+      }
+      return tagList.some(compareTag => compareTag.key === tag.key);
     };
 
+    const filterSuggestedTags = (filterText: string, tagList?: ITag[]): ITag[] => {
+      return filterText
+          ? this.props.availableTags?.filter(
+              tag => tag.name.toLowerCase().indexOf(filterText.toLowerCase()) === 0 && !listContainsTagList(tag, tagList),
+          ) || []
+          : [];
+    };
+
+    const pickerSuggestionsProps: IBasePickerSuggestionsProps = {
+      suggestionsHeaderText: 'Suggested tags',
+      noResultsFoundText: 'No tags found',
+    };
+
+    const getTextFromItem = (item: ITag) => item.name;
 
     return <Stack className='DetailCard'>
       <Stack horizontalAlign='stretch' verticalAlign='center' horizontal
@@ -100,16 +101,13 @@ export class DetailCard extends React.Component<{noteId: number | undefined}, { 
             strings={defaultDatePickerStrings}
         />
       </Stack>
-      <OverflowSet className="ItemTags" onRenderItem={onRenderItem}
-                   onRenderOverflowButton={onRenderOverflowButton} items={this.state.note?.tags.map(t => this.toProp(t) )}
-        />
-
+      <Stack horizontal className='CardRow2'>
+        <Dropdown className='NotebookDropdown' options={this.state.notebooks} selectedKey={this.state.note?.notebookId}/>
+        <TagPicker onResolveSuggestions={filterSuggestedTags} getTextFromItem={getTextFromItem}
+                   pickerSuggestionsProps={pickerSuggestionsProps} selectedItems={this.state.note?.tags} className="ItemTags"/>
+      </Stack>
       <iframe className='BodyField' src={this.props.noteId ? ('http://localhost:3001/api/body/' + this.props.noteId) : 'text.html'}/>
     </Stack>;
-  }
-
-  private toProp(t: Tag) : IOverflowSetItemProps {
-    return { key: t.id, name: t.name};
   }
 
 }
@@ -118,7 +116,7 @@ interface Note {
   notebookId : number;
   title: string;
   createTime: Date;
-  tags: Tag[];
+  tags: ITag[];
 }
 
 interface RawNote {
@@ -127,9 +125,4 @@ interface RawNote {
   createTime: string;
   tags: string;
   tagIds: string;
-}
-
-interface Tag {
-  name: string;
-  id: string;
 }

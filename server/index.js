@@ -6,11 +6,15 @@ const PORT = process.env.PORT || 3001;
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('/Volumes/MainBackup/Paperless/paperless.sqlite');
 const app = express();
-const tag_query = 'select name as name, tags.tagid as id, parenttagtagid as parent, \
+const tag_query =
+  'select name as name, tags.tagid as key, ifnull(parenttagtagid, 0) as parent, \
   isExpanded as isExpanded, count(*) as notes \
   from tags left join notetags on tags.tagid=notetags.tagid \
   group by tags.tagid order by name';
-const notebooks_query = 'select name as name, notebooks.notebookid as id, count(*) as notes from notebooks left join notes where notes.notebookid=id group by id order by name';
+const notebooks_query =
+  'select name as name, notebooks.notebookid as key, count(*) as notes \
+  from notebooks left join notes where notes.notebookid=key group by key order by name\
+';
 db.connect
 app.get("/api", (req, res) => {
   res.json({ message: "Hello from server!" });
@@ -36,10 +40,12 @@ app.get("/api/notebooks_and_tags", (req, res) => {
   let result = {notebooks: [], tags: []}
   db.each(notebooks_query, (e, r) => {
     result.notebooks.push(r);
-  }).each(tag_query, (e, r) => {
-    r.parent = r.parent || 0
-    result.tags.push(r);
-  }, (e, r) => res.json(result))
+  }, () => {
+    db.each(tag_query, (e, r) => {
+      r.parent = r.parent || 0
+      result.tags.push(r);
+    }, (e, r) => res.json(result))
+  })
 })
 
 const notes_by_notebook_query =
@@ -76,11 +82,13 @@ app.get("/api/tags/:tagId/:limit/:lastItem", (req, res) => {
 const select_note =
   'select NotebookId as notebookId, Title as title, CreateTime as createTime, \
   GROUP_CONCAT(t.Name) tags, GROUP_CONCAT(t.TagId) tagIds \
-  from Notes left join NoteTags nt on NodeId = nt.NoteId join Tags t on t.TagId=nt.TagId \
+  from Notes left join NoteTags nt on NodeId = nt.NoteId left join Tags t on t.TagId=nt.TagId \
   where NodeId = ?'
 ;
 app.get("/api/notes/:noteId", (req, res) => {
-  db.get(select_note, req.params.noteId, (e, r) => res.json(r))
+  db.get(select_note, req.params.noteId, (e, r) => {
+    res.json(r)
+  })
 })
 
 app.get('/api/body/:noteId', (req, res) => {
