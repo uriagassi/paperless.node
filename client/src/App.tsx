@@ -58,6 +58,7 @@ const _menuItems: ICommandBarItemProps[] = [
 
 export const App: React.FunctionComponent = () => {
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
+  const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const [selectedNote, setSelectedNote] = useState<number | undefined>(undefined)
   const [notebooks, setNotebooks] = useState<ITagWithChildren[] | undefined>(undefined)
   const [tags, setTags] = useState<ITagWithChildren[] | undefined>(undefined)
@@ -69,6 +70,11 @@ export const App: React.FunctionComponent = () => {
           setTags(data.tags);
         });
   }, [])
+
+  function doSearch(newValue: string) {
+    setSearchTerm(newValue)
+  }
+
   return (
       <Stack tokens={stackTokens} styles={stackStyles}>
         <Stack horizontal verticalAlign='baseline'>
@@ -79,14 +85,14 @@ export const App: React.FunctionComponent = () => {
             </svg>
           </BaseButton>
           <h1 className='App-header'>Paperless</h1>
-          <SearchBox className='SearchBox' placeholder='Search Paperless'/>
+          <SearchBox className='SearchBox' placeholder='Search Paperless' onSearch={doSearch}/>
           <CommandBar className='CommandBar' items={_menuItems}/>
         </Stack>
         <Stack horizontal className='MainView'>
           <TagList selectedId={selectedFolder}
                    onSelectedIdChanged={(key) => setSelectedFolder(key)}
                    tags={tags} notebooks={notebooks}/>
-          <NoteList filterId={selectedFolder} selectedId={selectedNote} onSelectedIdChanged={(key) => setSelectedNote(key)}/>
+          <NoteList filterId={selectedFolder} searchTerm={searchTerm} selectedId={selectedNote} onSelectedIdChanged={(key) => setSelectedNote(key)}/>
           <DetailCard noteId={selectedNote} availableTags={tags} availableNotebooks={notebooks}/>
         </Stack>
       </Stack>

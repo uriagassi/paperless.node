@@ -27,7 +27,12 @@ const fileTypeToIcon : {[key: string]: string} = {
 
 }
 
-export class NoteList extends React.Component<{filterId: string | undefined, selectedId?: number | undefined, onSelectedIdChanged?: (key?: number) => void, limit?: number}, {noteList: Note[]}> {
+export class NoteList
+    extends React.Component<{filterId: string | undefined,
+      selectedId?: number | undefined,
+      onSelectedIdChanged?: (key?: number) => void,
+      limit?: number,
+      searchTerm: string | undefined}, {noteList: Note[]}> {
   constructor(props: any) {
     super(props);
     this.state = {
@@ -39,8 +44,8 @@ export class NoteList extends React.Component<{filterId: string | undefined, sel
     this.loadNotes();
   }
 
-  componentDidUpdate(prevProps: Readonly<{ filterId: string | undefined; selectedId?: number | undefined; onSelectedIdChanged?: (key?: number) => void }>, prevState: Readonly<{ noteList: Note[] }>, snapshot?: any) {
-    if (this.props.filterId != prevProps.filterId) {
+  componentDidUpdate(prevProps: Readonly<{ filterId: string | undefined; selectedId?: number | undefined; searchTerm: string | undefined }>, prevState: Readonly<{ noteList: Note[] }>, snapshot?: any) {
+    if (this.props.filterId != prevProps.filterId || this.props.searchTerm != prevProps.searchTerm) {
       this.loadNotes();
     } else if (this.props.selectedId != prevProps.selectedId) {
       this.selectNote();
@@ -53,9 +58,12 @@ export class NoteList extends React.Component<{filterId: string | undefined, sel
   }
 
   private loadNotes() {
-    if (this.props.filterId) {
-      console.log("showing notes for " + this.props.filterId + " again")
-      fetch("/api/" + (this.props.filterId ?? '') + '/' + (this.props.limit ?? 100) + '/0')
+    if (this.props.filterId || this.props.searchTerm) {
+      let filter = this.props.filterId ?? ''
+      if (this.props.searchTerm ?? '' != '') {
+        filter = 'search?term=' + encodeURIComponent(this.props.searchTerm ?? '') + '&'
+      }
+      fetch("/api/" + filter + 'limit=' + (this.props.limit ?? 100) + '&lastItem=0')
           .then((res) => res.json())
           .then((data) => {
             let notes: Note[] = [];

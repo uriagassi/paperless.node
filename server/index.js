@@ -54,9 +54,9 @@ const notes_by_notebook_query =
   MIN(a.Mime) as mime, SUM(a.Size) size from notes left join attachments a on NodeId = NoteNodeId \
   where NotebookId = ? and createTime > ? group by NodeId order by createTime desc limit ?'
 
-app.get("/api/notebooks/:notebookId/:limit/:lastItem", (req, res) => {
+app.get("/api/notebooks/:notebookId", (req, res) => {
   let result = {notes: []}
-  db.each(notes_by_notebook_query, req.params.notebookId, req.params.lastItem, req.params.limit, (e, r) => {
+  db.each(notes_by_notebook_query, req.params.notebookId, req.query.lastItem, req.query.limit, (e, r) => {
     if (e) {
       console.log(e)
     }
@@ -72,11 +72,29 @@ const notes_by_tag_query =
   where nt.TagId = ? and nt.NoteId = NodeId and createTime > ? \
   group by NodeId order by createTime desc limit ?'
 
-app.get("/api/tags/:tagId/:limit/:lastItem", (req, res) => {
+app.get("/api/tags/:tagId", (req, res) => {
   let result = {notes: []}
-  db.each(notes_by_tag_query, req.params.tagId, req.params.lastItem, req.params.limit, (e, r) => {
+  db.each(notes_by_tag_query, req.params.tagId, req.query.lastItem, req.query.limit, (e, r) => {
     result.notes.push(r)
   }, (e, r) => res.json(result))
+})
+
+const notes_by_text_query =
+  'select NodeId as id, CreateTime as createTime, Title as title, \
+  GROUP_CONCAT(a.FileName) as attachments, \
+  MIN(a.Mime) as mime, SUM(a.Size) size \
+  from NoteTags nt, notes left join attachments a on NodeId = NoteNodeId \
+  where (nt.TagId in (select TagId from Tags where Name like ?) or title like ?) and nt.NoteId = NodeId and createTime > ? \
+  group by NodeId order by createTime desc limit ?'
+
+app.get("/api/search",(req, res) => {
+  let result = {notes: []}
+  let queryText = req.query.term ? ('%' + req.query.term + '%') : 'nonono!'
+  db.each(notes_by_text_query, queryText, queryText, req.query.lastItem, req.query.limit, (e, r) => {
+    result.notes.push(r)
+  }, (e, r) => {
+    res.json(result)
+  })
 })
 
 const select_note =

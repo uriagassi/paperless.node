@@ -15,7 +15,7 @@ export class TagList extends React.Component<{selectedId: string | undefined, on
       let notebooks: INavLink[] = []
       this.props.tags?.forEach((tag: ITagWithChildren) => {
         tags[tag.key] = {
-          key: 'tags/' + tag.key,
+          key: 'tags/' + tag.key + '?',
           name: tag.name + (tag.notes ? " (" + tag.notes + ")" : ""),
           icon: 'Tag',
           isExpanded: tag.isExpanded,
@@ -33,7 +33,7 @@ export class TagList extends React.Component<{selectedId: string | undefined, on
       });
       this.props.notebooks?.forEach((n: ITagWithChildren) => {
         notebooks.push({
-          key: 'notebooks/' + n.key,
+          key: 'notebooks/' + n.key + '?',
           name: n.name + (n.notes ? " (" + n.notes + ")" : ""),
           icon: "Inbox"
         } as INavLink)
