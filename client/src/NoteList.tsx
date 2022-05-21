@@ -24,8 +24,9 @@ function formatFileSize(bytes : number,decimalPoint?: number) {
 
 const fileTypeToIcon : {[key: string]: string} = {
   'image/jpeg': 'FileImage',
+  'image/png': 'FileImage',
   'application/pdf': 'PDF',
-
+  'text': 'TextDocument'
 }
 
 export class NoteList
@@ -73,17 +74,22 @@ export class NoteList
           .then((res) => res.json())
           .then((data) => {
             let notes: Note[] = [];
+            let selectedFound = false;
             data.notes.forEach((n: Note) => {
               let attachments = n.attachments;
               let count = n.attachments?.match(/,/g)?.length || 0
               if (count > 0) {
                 attachments = '' + (count+1) + ' attachments'
               }
+              selectedFound = selectedFound || (this.props.selectedId == n.id)
               notes.push({...n, attachments: attachments, selected: this.props.selectedId == n.id})
             })
             this.setState({
               noteList: notes
             });
+            if (!selectedFound && data.notes.length > 0) {
+              this.onSelect(data.notes[0].id)
+            }
           });
     } else {
       console.log('clearing list')
@@ -101,7 +107,7 @@ export class NoteList
       let note = this.state.noteList[i]
       let className = note.selected ? 'ListItem is-selected' : 'ListItem'
       notes.push(<DocumentCard key={note.id} className={className} type={DocumentCardType.compact} onClick={() => this.onSelect(note.id)}>
-        <DocumentCardLogo logoIcon={fileTypeToIcon[note.mime] ?? "attach"}/>
+        <DocumentCardLogo logoIcon={fileTypeToIcon[note.mime ?? 'text'] ?? "attach"}/>
         <DocumentCardDetails>
           <DocumentCardTitle title={note.title} className='ListItemTitle'/>
           <DocumentCardTitle title={note.createTime.split(' ')[0]} showAsSecondaryTitle/>

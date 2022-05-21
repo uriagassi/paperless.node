@@ -1,8 +1,7 @@
 import React, {useState} from 'react';
 import {
   BaseButton,
-  CommandBar,
-  ICommandBarItemProps,
+  ICommandBarItemProps, Icon, IconButton,
   initializeIcons,
   IStackStyles,
   IStackTokens,
@@ -14,6 +13,7 @@ import {ITagWithChildren, TagList} from "./TagList";
 import {DetailCard} from "./DetailCard";
 import {NoteList} from "./NoteList";
 import eventBus from "./EventBus";
+import {CommandBar} from "./CommandBar";
 
 
 // Initialize icons in case this example uses them
@@ -82,6 +82,15 @@ export const App: React.FunctionComponent = () => {
     setSearchTerm(newValue)
   }
 
+  function fileImportButton() {
+    return (
+        <>
+        <div className="badge">3</div>
+        <Icon title='File Import' className='CommandButton' iconName='CloudImportExport'/>
+        </>
+    );
+  }
+
   return (
       <Stack tokens={stackTokens} styles={stackStyles}>
         <Stack horizontal verticalAlign='baseline'>
@@ -93,7 +102,7 @@ export const App: React.FunctionComponent = () => {
           </BaseButton>
           <h1 className='App-header'>Paperless</h1>
           <SearchBox className='SearchBox' placeholder='Search Paperless' onSearch={doSearch}/>
-          <CommandBar className='CommandBar' items={_menuItems}/>
+          <CommandBar/>
         </Stack>
         <Stack horizontal className='MainView'>
           <TagList selectedId={selectedFolder}

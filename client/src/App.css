@@ -179,3 +179,25 @@
   background-color: var(--selected-color);
   border-left: 2px var(--selected-bar-color) solid;
 }
+
+.badge {
+  position: absolute;
+  background: blue;
+  color: white;
+  border-radius: 10px;
+  width: 20px;
+  height: 20px;
+  right: -10px;
+  top: 0px;
+}
+
+.CommandButton {
+  font-size: 36px;
+  padding-top: 8px;
+}
+
+.Command {
+  margin-right: 2em;
+  top: 0.8em;
+  width: 36px;
+}

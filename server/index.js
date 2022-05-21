@@ -2,11 +2,16 @@
 
 const express = require("express");
 const bodyParser = require("body-parser");
+const config = require('config')
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || config.get('server.port');
 const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('/Volumes/MainBackup/Paperless/paperless.sqlite');
+const baseDir = config.get('paperless.baseDir')
+const db = new sqlite3.Database(baseDir + '/paperless.sqlite');
 const app = express();
+
+const addNotes = require("./addNotes");
+
 const tag_query =
   'select name as name, tags.tagid as key, ifnull(parenttagtagid, 0) as parent, \
   isExpanded as isExpanded, count(*) as notes \
@@ -125,9 +130,9 @@ app.get('/api/body/:noteId', (req, res) => {
   })
 })
 
-app.use('/api/body/attachments', express.static('/Volumes/MainBackup/Paperless/attachments'))
-app.use('/api/body/css', express.static('/Volumes/MainBackup/Paperless/css'))
-app.use('/api/body/js', express.static('/Volumes/MainBackup/Paperless/js'))
+app.use('/api/body/attachments', express.static(baseDir +'/attachments'))
+app.use('/api/body/css', express.static(baseDir + '/css'))
+app.use('/api/body/js', express.static(baseDir + '/js'))
 
 const update_note = 'update notes set title = $title, createTime = $createTime, notebookId = $notebookId where NodeId = $noteId'
 
@@ -157,6 +162,8 @@ app.delete('/api/notes/:noteId/tags/:tagId', (req, res) =>{
     $tagId: req.params.tagId
   }, (e) => res.json(e ?? 'OK'))
 })
+
+addNotes.start(app, config, db)
 
 app.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);
