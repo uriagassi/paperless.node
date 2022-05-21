@@ -1,6 +1,7 @@
 // server/index.js
 
 const express = require("express");
+const bodyParser = require("body-parser");
 
 const PORT = process.env.PORT || 3001;
 const sqlite3 = require('sqlite3').verbose();
@@ -19,6 +20,9 @@ db.connect
 app.get("/api", (req, res) => {
   res.json({ message: "Hello from server!" });
 });
+
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 app.get("/api/tags", (req, res) => {
   let result = {tags: []}
@@ -124,6 +128,35 @@ app.get('/api/body/:noteId', (req, res) => {
 app.use('/api/body/attachments', express.static('/Volumes/MainBackup/Paperless/attachments'))
 app.use('/api/body/css', express.static('/Volumes/MainBackup/Paperless/css'))
 app.use('/api/body/js', express.static('/Volumes/MainBackup/Paperless/js'))
+
+const update_note = 'update notes set title = $title, createTime = $createTime, notebookId = $notebookId where NodeId = $noteId'
+
+app.post('/api/notes/:noteId', (req, res) => {
+  db.run(update_note, {
+    $noteId: req.params.noteId,
+    $notebookId: req.body.notebookId,
+    $createTime: req.body.createTime,
+    $title: req.body.title
+  }, (e) => res.json(e ?? 'OK'))
+})
+
+const add_tag_to_note = 'insert into NoteTags (NoteId, TagId) values ($noteId, $tagId)'
+
+app.post('/api/notes/:noteId/addTag', (req, res) => {
+  db.run(add_tag_to_note, {
+    $noteId: req.params.noteId,
+    $tagId: req.body.tagId
+  }, (e) => res.json(e ?? 'OK'))
+})
+
+const remove_tag_from_note = 'delete from NoteTags where NoteId=$noteId and TagId=$tagId'
+
+app.delete('/api/notes/:noteId/tags/:tagId', (req, res) =>{
+  db.run(remove_tag_from_note, {
+    $noteId: req.params.noteId,
+    $tagId: req.params.tagId
+  }, (e) => res.json(e ?? 'OK'))
+})
 
 app.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);

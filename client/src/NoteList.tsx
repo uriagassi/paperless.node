@@ -11,6 +11,7 @@ import {
   INavLink,
   Stack
 } from "@fluentui/react";
+import eventBus from "./EventBus";
 
 function formatFileSize(bytes : number,decimalPoint?: number) {
   if(bytes == 0) return '0 Bytes';
@@ -39,9 +40,14 @@ export class NoteList
       noteList: []
     };
     this.onSelect = this.onSelect.bind(this)
+    this.loadNotes = this.loadNotes.bind(this)
+    this.componentDidMount = this.componentDidMount.bind(this)
+    this.checkChange = this.checkChange.bind(this)
   }
   componentDidMount() {
     this.loadNotes();
+    eventBus.on('note-detail-change', this.loadNotes)
+    eventBus.on('note-collection-change', this.checkChange)
   }
 
   componentDidUpdate(prevProps: Readonly<{ filterId: string | undefined; selectedId?: number | undefined; searchTerm: string | undefined }>, prevState: Readonly<{ noteList: Note[] }>, snapshot?: any) {
@@ -117,6 +123,17 @@ export class NoteList
     );
   }
 
+  private checkChange(data: { notebooks?: number[], tags?: number[]}) {
+    if (this.props.filterId?.startsWith('notebook')) {
+      if (data.notebooks?.filter(n => this.props.filterId == 'notebooks/' + n + '?')) {
+        this.loadNotes()
+      }
+    } else if (this.props.filterId?.startsWith('tag')) {
+      if (data.tags?.filter(n => this.props.filterId == 'tags/' + n + '?')) {
+        this.loadNotes()
+      }
+    }
+  }
 }
 
 interface Note {

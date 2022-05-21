@@ -13,6 +13,7 @@ import './App.css';
 import {ITagWithChildren, TagList} from "./TagList";
 import {DetailCard} from "./DetailCard";
 import {NoteList} from "./NoteList";
+import eventBus from "./EventBus";
 
 
 // Initialize icons in case this example uses them
@@ -62,13 +63,19 @@ export const App: React.FunctionComponent = () => {
   const [selectedNote, setSelectedNote] = useState<number | undefined>(undefined)
   const [notebooks, setNotebooks] = useState<ITagWithChildren[] | undefined>(undefined)
   const [tags, setTags] = useState<ITagWithChildren[] | undefined>(undefined)
-  React.useEffect(() => {
+
+  function loadNotebooks() {
     fetch("/api/notebooks_and_tags")
         .then((res) => res.json())
-        .then((data : { tags: ITagWithChildren[], notebooks: any[]}) => {
+        .then((data: { tags: ITagWithChildren[], notebooks: any[] }) => {
           setNotebooks(data.notebooks);
           setTags(data.tags);
         });
+  }
+
+  React.useEffect(() => {
+    loadNotebooks();
+    eventBus.on('note-collection-change', loadNotebooks)
   }, [])
 
   function doSearch(newValue: string) {
