@@ -23,16 +23,23 @@
     })
 
     app.get('/api/files/import', (req, res) => {
-      pendingFileList().forEach((f) => importFromFile(path.join(importDir, f)))
-      res.json('OK')
+      importFiles(pendingFileList(), 0, res)
     })
 
     const pendingFileList = () => {
       return fs.readdirSync(importDir).filter(f => {
-        console.log(path.join(importDir, f))
-        console.log(fs.lstatSync(path.join(importDir, f)).isFile())
         return !f.startsWith('.') && fs.lstatSync(
           path.join(importDir, f)).isFile()
+      })
+    }
+
+    const importFiles = (fileList, i, res) => {
+      importFromFile(path.join(importDir, fileList[i]), i).then(() => {
+        if (i < fileList.length - 1) {
+          importFiles(fileList, i + 1, res)
+        } else {
+          res.json("OK")
+        }
       })
     }
 
@@ -63,52 +70,58 @@
         }
     }
 
-    const importFromFile = (fullName) =>
-    {
-      let stats = fs.lstatSync(fullName)
-      if (stats.isFile()) {
-        let attachment = {
-          $fileName : path.basename(fullName).replaceAll(/[\/:" *?<>|&=;]+/g, '_'),
-          $mime : mime.lookup(fullName),
-          $hash : md5(fs.readFileSync(fullName)),
-          $size : stats.size
-        }
-        console.log(attachment)
-        let baseName = path.parse(attachment.$fileName).name;
-        let uniqueFilename = attachment.$fileName
-        let tick = 0;
-        while (fs.existsSync(path.join(attachmentsDir, uniqueFilename))) {
-          tick++;
-          uniqueFilename = baseName + tick + path.extname(fullName)
-        }
-        fs.copyFileSync(fullName, path.join(attachmentsDir, uniqueFilename))
-        attachment.$uniqueFilename = uniqueFilename
-        let newNote = {
-          $notebookName : config.get("paperless.defaultNotebook"),
-          $createTime : stats.ctime.toISOString().replace(/T.*/, ''),
-          $title: path.basename(fullName),
-          $noteData: getHtmlForAttachment(attachment)
-        }
+    const importFromFile = (fullName, i) => {
+      return new Promise((resolve, reject) => {
+        console.log("starting " + i)
+        let stats = fs.lstatSync(fullName)
+        if (stats.isFile()) {
+          let attachment = {
+            $fileName: path.basename(fullName).replaceAll(/[\/:" *?<>|&=;]+/g,
+              '_'),
+            $mime: mime.lookup(fullName),
+            $hash: md5(fs.readFileSync(fullName)),
+            $size: stats.size
+          }
+          console.log(attachment)
+          let baseName = path.parse(attachment.$fileName).name;
+          let uniqueFilename = attachment.$fileName
+          let tick = 0;
+          while (fs.existsSync(path.join(attachmentsDir, uniqueFilename))) {
+            tick++;
+            uniqueFilename = baseName + tick + path.extname(fullName)
+          }
+          fs.copyFileSync(fullName, path.join(attachmentsDir, uniqueFilename))
+          attachment.$uniqueFilename = uniqueFilename
+          let newNote = {
+            $notebookName: config.get("paperless.defaultNotebook"),
+            $createTime: stats.ctime.toISOString().replace(/T.*/, ''),
+            $title: path.basename(fullName),
+            $noteData: getHtmlForAttachment(attachment)
+          }
 
-        db.run(add_note, newNote, (e) => {
-          console.log(e)
-          db.get(get_auto_id, (e, r) => {
-            if (r.id != '0') {
-              attachment.$noteId = r.id;
-              console.log(attachment)
-              add_attachment.run(attachment, (e) => {
+          db.run(add_note, newNote, (e) => {
+            console.log(e)
+            db.get(get_auto_id, (e, r) => {
+              if (r.id != '0') {
+                attachment.$noteId = r.id;
+                console.log(attachment)
+                add_attachment.run(attachment, (e) => {
+                  console.log(e)
+                  fs.unlinkSync(fullName)
+                })
+                console.log("resolving " + i)
+                resolve("OK")
+              } else {
                 console.log(e)
-                fs.unlinkSync(fullName)
-              })
-            } else {
-              console.log(e)
-              console.log(r)
-            }
-          })
+                console.log(r)
+                reject(e)
+              }
 
-        });
-      }
+            })
 
+          });
+        }
+      })
     }
 
   }
