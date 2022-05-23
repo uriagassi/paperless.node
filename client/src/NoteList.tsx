@@ -1,4 +1,9 @@
-import React from "react";
+import React, {
+  createRef,
+  KeyboardEventHandler,
+  RefObject, useEffect, useRef,
+  useState
+} from "react";
 import {
   CommandBarButton,
   DocumentCard,
@@ -7,7 +12,7 @@ import {
   DocumentCardLogo,
   DocumentCardPreview,
   DocumentCardStatus,
-  DocumentCardTitle, DocumentCardType,
+  DocumentCardTitle, DocumentCardType, IDocumentCard,
   INavLink,
   Stack
 } from "@fluentui/react";
@@ -28,49 +33,53 @@ const fileTypeToIcon : {[key: string]: string} = {
   'application/pdf': 'PDF',
   'text': 'TextDocument'
 }
-
-export class NoteList
-    extends React.Component<{filterId: string | undefined,
-      selectedId?: number | undefined,
-      onSelectedIdChanged?: (key?: number) => void,
-      limit?: number,
-      searchTerm: string | undefined}, {noteList: Note[]}> {
-  constructor(props: any) {
-    super(props);
-    this.state = {
-      noteList: []
-    };
-    this.onSelect = this.onSelect.bind(this)
-    this.loadNotes = this.loadNotes.bind(this)
-    this.componentDidMount = this.componentDidMount.bind(this)
-    this.checkChange = this.checkChange.bind(this)
-  }
-  componentDidMount() {
-    this.loadNotes();
-    eventBus.on('note-detail-change', this.loadNotes)
-    eventBus.on('note-collection-change', this.checkChange)
-  }
-
-  componentDidUpdate(prevProps: Readonly<{ filterId: string | undefined; selectedId?: number | undefined; searchTerm: string | undefined }>, prevState: Readonly<{ noteList: Note[] }>, snapshot?: any) {
-    if (this.props.filterId != prevProps.filterId || this.props.searchTerm != prevProps.searchTerm) {
-      this.loadNotes();
-    } else if (this.props.selectedId != prevProps.selectedId) {
-      this.selectNote();
+export const NoteList: React.FunctionComponent<{filterId: string | undefined,
+  selectedId?: number | undefined,
+  onSelectedIdChanged?: (key?: number) => void,
+  limit?: number,
+  searchTerm: string | undefined, tabIndex: number | undefined}> = (props: {filterId: string | undefined,
+  selectedId?: number | undefined,
+  onSelectedIdChanged?: (key?: number) => void,
+  limit?: number,
+  searchTerm: string | undefined, tabIndex: number | undefined}) =>
+{
+  const [noteList, setNoteList] = useState<Note[]>([])
+  useEffect(() => {
+    loadNotes();
+    eventBus.on('note-detail-change', loadNotes)
+    eventBus.on('note-collection-change', checkChange)
+    return () => {
+      eventBus.remove('note-detail-change', loadNotes)
+      eventBus.remove('note-collection-change', checkChange)
     }
+  },[])
+
+  useEffect(() => {
+    console.log("loading nodes")
+    loadNotes()
+  }, [props.filterId, props.searchTerm])
+
+  useEffect(() => {
+    console.log("selecting note " + props.selectedId)
+    selectNote();
+  }, [props.selectedId])
+
+
+  const selectNote = () => {
+    let newNotes = [...noteList]
+    noteList.forEach((n: Note) => {
+      n.selected = props.selectedId == n.id;
+    })
+    setNoteList(newNotes)
   }
 
-  private selectNote() {
-    this.state.noteList.forEach((n: Note) => n.selected = this.props.selectedId == n.id)
-    this.setState({noteList: this.state.noteList})
-  }
-
-  private loadNotes() {
-    if (this.props.filterId || this.props.searchTerm) {
-      let filter = this.props.filterId ?? ''
-      if (this.props.searchTerm ?? '' != '') {
-        filter = 'search?term=' + encodeURIComponent(this.props.searchTerm ?? '') + '&'
+  const loadNotes = () => {
+    if (props.filterId || props.searchTerm) {
+      let filter = props.filterId ?? ''
+      if (props.searchTerm ?? '' != '') {
+        filter = 'search?term=' + encodeURIComponent(props.searchTerm ?? '') + '&'
       }
-      fetch("/api/" + filter + 'limit=' + (this.props.limit ?? 100) + '&lastItem=0')
+      fetch("/api/" + filter + 'limit=' + (props.limit ?? 100) + '&lastItem=0')
           .then((res) => res.json())
           .then((data) => {
             let notes: Note[] = [];
@@ -81,66 +90,64 @@ export class NoteList
               if (count > 0) {
                 attachments = '' + (count+1) + ' attachments'
               }
-              selectedFound = selectedFound || (this.props.selectedId == n.id)
-              notes.push({...n, attachments: attachments, selected: this.props.selectedId == n.id})
+              selectedFound = selectedFound || (props.selectedId == n.id)
+              notes.push({...n,
+                attachments: attachments,
+                selected: props.selectedId == n.id})
             })
-            this.setState({
-              noteList: notes
-            });
+            setNoteList(notes);
             if (!selectedFound && data.notes.length > 0) {
-              this.onSelect(data.notes[0].id)
+              props.onSelectedIdChanged?.(data.notes[0].id);
             }
           });
     } else {
       console.log('clearing list')
-      this.setState({noteList: []})
+      setNoteList([])
     }
   }
 
-  onSelect(key: number) {
-    this.props.onSelectedIdChanged?.(key)
+  const checkChange = (data: { notebooks?: number[], tags?: number[]}) => {
+    if (props.filterId?.startsWith('notebook')) {
+      if (data.notebooks?.filter(n => props.filterId == 'notebooks/' + n + '?')) {
+        loadNotes()
+      }
+    } else if (props.filterId?.startsWith('tag')) {
+      if (data.tags?.filter(n => props.filterId == 'tags/' + n + '?')) {
+        loadNotes()
+      }
+    }
   }
 
-  render() {
-    let notes = [];
-    for (let i = 0; i < this.state.noteList.length; i++) {
-      let note = this.state.noteList[i]
-      let className = note.selected ? 'ListItem is-selected' : 'ListItem'
-      notes.push(<DocumentCard key={note.id} className={className} type={DocumentCardType.compact} onClick={() => this.onSelect(note.id)}>
-        <DocumentCardLogo logoIcon={fileTypeToIcon[note.mime ?? 'text'] ?? "attach"}/>
-        <DocumentCardDetails>
-          <DocumentCardTitle title={note.title} className='ListItemTitle'/>
-          <DocumentCardTitle title={note.createTime.split(' ')[0]} showAsSecondaryTitle/>
-          <DocumentCardStatus status={note.attachments + ' ' + formatFileSize(note.size)}
-                              statusIcon={fileTypeToIcon[note.mime] ?? "attach"}/>
-        </DocumentCardDetails>
-      </DocumentCard>)
-    }
-    if (this.state.noteList.length >= (this.props.limit ?? 100)) {
-      notes.push(
-          <CommandBarButton text='More...'/>
-      )
-    }
-    return (
-        <Stack key={this.props.filterId} horizontalAlign='start' verticalAlign='start'
-               className='ListView'>
+  let notes = [];
+  for (let i = 0; i < noteList.length; i++) {
+    let note = noteList[i]
+    let className = note.selected ? 'ListItem is-selected' : 'ListItem'
+    notes.push(<DocumentCard key={note.id} className={className}
+                             type={DocumentCardType.compact}
+                             onClick={() => props.onSelectedIdChanged?.(note.id)}>
+      <DocumentCardLogo logoIcon={fileTypeToIcon[note.mime ?? 'text'] ?? "attach"}/>
+      <DocumentCardDetails>
+        <DocumentCardTitle title={note.title} className='ListItemTitle'/>
+        <DocumentCardTitle title={note.createTime.split(' ')[0]} showAsSecondaryTitle/>
+        <DocumentCardStatus status={note.attachments + ' ' + formatFileSize(note.size)}
+                            statusIcon={fileTypeToIcon[note.mime] ?? "attach"}/>
+      </DocumentCardDetails>
+    </DocumentCard>)
+  }
+  if (noteList.length >= (props.limit ?? 100)) {
+    notes.push(
+        <CommandBarButton text='More...'/>
+    )
+  }
+  return (
+      <div className='ListView'>
+        <Stack tabIndex={props.tabIndex} key={props.filterId} horizontalAlign='start' verticalAlign='start'>
           {notes}
         </Stack>
-    );
-  }
+      </div>
+  );
+};
 
-  private checkChange(data: { notebooks?: number[], tags?: number[]}) {
-    if (this.props.filterId?.startsWith('notebook')) {
-      if (data.notebooks?.filter(n => this.props.filterId == 'notebooks/' + n + '?')) {
-        this.loadNotes()
-      }
-    } else if (this.props.filterId?.startsWith('tag')) {
-      if (data.tags?.filter(n => this.props.filterId == 'tags/' + n + '?')) {
-        this.loadNotes()
-      }
-    }
-  }
-}
 
 interface Note {
   id : number;

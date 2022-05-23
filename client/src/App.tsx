@@ -1,7 +1,6 @@
 import React, {useState} from 'react';
 import {
   BaseButton,
-  ICommandBarItemProps, Icon, IconButton,
   initializeIcons,
   IStackStyles,
   IStackTokens,
@@ -30,33 +29,6 @@ const stackStyles: Partial<IStackStyles> = {
     maxHeight: '100vh'
   },
 };
-
-const _menuItems: ICommandBarItemProps[] = [
-  {
-    key: 'file',
-    text: 'File',
-    subMenuProps: {
-      items: [
-        {key: 'open', text: 'Open'},
-        {key: 'save', text: 'Save'},
-        {key: 'quit', text: 'Quit'}
-      ]
-    },
-  },
-  { key: 'note',
-  text: 'Note',
-  subMenuProps: {items: []}
-  },
-  {
-    key: 'help',
-    text: 'Help',
-    subMenuProps: {
-      items: [{key: 'about', text: 'About...'}]
-    }
-  }
-
-]
-
 export const App: React.FunctionComponent = () => {
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
@@ -82,14 +54,6 @@ export const App: React.FunctionComponent = () => {
     setSearchTerm(newValue)
   }
 
-  function fileImportButton() {
-    return (
-        <>
-        <div className="badge">3</div>
-        <Icon title='File Import' className='CommandButton' iconName='CloudImportExport'/>
-        </>
-    );
-  }
 
   return (
       <Stack tokens={stackTokens} styles={stackStyles}>
@@ -101,15 +65,15 @@ export const App: React.FunctionComponent = () => {
             </svg>
           </BaseButton>
           <h1 className='App-header'>Paperless</h1>
-          <SearchBox className='SearchBox' placeholder='Search Paperless' onSearch={doSearch}/>
+          <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch}/>
           <CommandBar/>
         </Stack>
         <Stack horizontal className='MainView'>
-          <TagList selectedId={selectedFolder}
+          <TagList  selectedId={selectedFolder}
                    onSelectedIdChanged={(key) => setSelectedFolder(key)}
                    tags={tags} notebooks={notebooks}/>
-          <NoteList filterId={selectedFolder} searchTerm={searchTerm} selectedId={selectedNote} onSelectedIdChanged={(key) => setSelectedNote(key)}/>
-          <DetailCard noteId={selectedNote} availableTags={tags} availableNotebooks={notebooks}/>
+          <NoteList tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={selectedNote} onSelectedIdChanged={(key) => setSelectedNote(key)}/>
+          <DetailCard  noteId={selectedNote} availableTags={tags} availableNotebooks={notebooks}/>
         </Stack>
       </Stack>
   );
