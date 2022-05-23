@@ -18,8 +18,8 @@ const tag_query =
   from tags left join notetags on tags.tagid=notetags.tagid \
   group by tags.tagid order by name';
 const notebooks_query =
-  'select name as name, notebooks.notebookid as key, count(*) as notes \
-  from notebooks left join notes where notes.notebookid=key group by key order by name\
+  'select name as name, notebooks.notebookid as key, type as type, count(*) as notes \
+  from notebooks left join notes where notes.notebookid=key group by key order by type="D", name\
 ';
 db.connect
 app.get("/api", (req, res) => {
@@ -145,7 +145,7 @@ app.post('/api/notes/:noteId', (req, res) => {
   }, (e) => res.json(e ?? 'OK'))
 })
 
-const delete_note = 'update notes set notebookId = (select notebookId from notebooks where name = "Deleted") where NodeId = $noteId'
+const delete_note = 'update notes set notebookId = (select notebookId from notebooks where Type = "D") where NodeId = $noteId'
 
 app.delete('/api/notes/:noteId', (req, res) => {
   db.run(delete_note, {

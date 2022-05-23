@@ -36,7 +36,7 @@ export const TagList: React.FunctionComponent<{
       notebooks.push({
         key: 'notebooks/' + n.key + '?',
         name: n.name + (n.notes ? " (" + n.notes + ")" : ""),
-        icon: "Inbox"
+        icon: n.type == 'D' ? "Delete" : "Inbox"
       } as INavLink)
     })
     let selectedId = props.selectedId || notebooks[0]?.key
@@ -72,4 +72,5 @@ export interface ITagWithChildren extends ITag {
   notes: number;
   parent?: number;
   isExpanded?: boolean;
+  type?: string;
 }

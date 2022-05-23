@@ -45,7 +45,7 @@
 
     const add_note = "insert into Notes \
       (NotebookId, CreateTime, UpdateTime, Title, NoteData) values \
-      ((select notebookId from Notebooks where name = $notebookName), $createTime, date('now'), $title, $noteData)"
+      ((select notebookId from Notebooks where Type = 'I'), $createTime, date('now'), $title, $noteData)"
 
     const add_attachment = db.prepare('insert into Attachments \
      (FileName, UniqueFilename, Mime, Hash, Size, NoteNodeId) values \
@@ -93,7 +93,6 @@
           fs.copyFileSync(fullName, path.join(attachmentsDir, uniqueFilename))
           attachment.$uniqueFilename = uniqueFilename
           let newNote = {
-            $notebookName: config.get("paperless.defaultNotebook"),
             $createTime: stats.ctime.toISOString().replace(/T.*/, ''),
             $title: path.basename(fullName),
             $noteData: getHtmlForAttachment(attachment)
