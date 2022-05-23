@@ -4,6 +4,7 @@
 :root {
   --line-color: rgb(218, 220, 224);
   --selected-color: rgb(237, 235, 233);
+  --selected-focus: rgb(220, 218, 216);
   --selected-bar-color: rgb(0, 120, 212);
 }
 

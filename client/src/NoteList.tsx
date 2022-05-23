@@ -1,19 +1,14 @@
 import React, {
-  createRef,
-  KeyboardEventHandler,
-  RefObject, useEffect, useRef,
+   useEffect,
   useState
 } from "react";
 import {
   CommandBarButton,
   DocumentCard,
-  DocumentCardActivity,
   DocumentCardDetails,
   DocumentCardLogo,
-  DocumentCardPreview,
   DocumentCardStatus,
-  DocumentCardTitle, DocumentCardType, IDocumentCard,
-  INavLink,
+  DocumentCardTitle, DocumentCardType, FocusZone,
   Stack
 } from "@fluentui/react";
 import eventBus from "./EventBus";
@@ -106,16 +101,38 @@ export const NoteList: React.FunctionComponent<{filterId: string | undefined,
     }
   }
 
-  const checkChange = (data: { notebooks?: number[], tags?: number[]}) => {
+  const checkChange = (data: CustomEvent<{ notebooks?: number[], tags?: number[]}>) => {
     if (props.filterId?.startsWith('notebook')) {
-      if (data.notebooks?.filter(n => props.filterId == 'notebooks/' + n + '?')) {
+      if (data.detail.notebooks?.filter(n => props.filterId == 'notebooks/' + n + '?')) {
         loadNotes()
       }
     } else if (props.filterId?.startsWith('tag')) {
-      if (data.tags?.filter(n => props.filterId == 'tags/' + n + '?')) {
+      if (data.detail.tags?.filter(n => props.filterId == 'tags/' + n + '?')) {
         loadNotes()
       }
     }
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>, id: number) => {
+    if (e.key == 'Delete') {
+      deleteNote(id)
+    }
+  }
+
+  const deleteNote = (id: number) => {
+    const requestOptions = {
+      method: 'DELETE' }
+    fetch('api/notes/' + id, requestOptions).then(() => {
+      let affectedList = { notebooks : [3], tags: [0]}
+      if (props.filterId) {
+        if (props.filterId.split('/')[0] == 'notebooks') {
+          affectedList.notebooks.push(Number(props.filterId.split('/')[1]))
+        } else {
+          affectedList.tags = [Number(props.filterId.split('/')[1])];
+        }
+      }
+      eventBus.dispatch('note-collection-change', affectedList)
+    })
   }
 
   let notes = [];
@@ -124,10 +141,12 @@ export const NoteList: React.FunctionComponent<{filterId: string | undefined,
     let className = note.selected ? 'ListItem is-selected' : 'ListItem'
     notes.push(<DocumentCard key={note.id} className={className}
                              type={DocumentCardType.compact}
-                             onClick={() => props.onSelectedIdChanged?.(note.id)}>
+                             onFocus={(e) => props.onSelectedIdChanged?.(note.id)}
+                             onKeyDown={(e) => onKeyDown(e, note.id) }
+                             data-is-focusable>
       <DocumentCardLogo logoIcon={fileTypeToIcon[note.mime ?? 'text'] ?? "attach"}/>
       <DocumentCardDetails>
-        <DocumentCardTitle title={note.title} className='ListItemTitle'/>
+        <DocumentCardTitle title={note.title} className='ListItemTitle' data-is-not-focusable/>
         <DocumentCardTitle title={note.createTime.split(' ')[0]} showAsSecondaryTitle/>
         <DocumentCardStatus status={note.attachments + ' ' + formatFileSize(note.size)}
                             statusIcon={fileTypeToIcon[note.mime] ?? "attach"}/>
@@ -140,11 +159,11 @@ export const NoteList: React.FunctionComponent<{filterId: string | undefined,
     )
   }
   return (
-      <div className='ListView'>
+      <FocusZone className='ListView' >
         <Stack tabIndex={props.tabIndex} key={props.filterId} horizontalAlign='start' verticalAlign='start'>
           {notes}
         </Stack>
-      </div>
+      </FocusZone>
   );
 };
 

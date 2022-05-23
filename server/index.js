@@ -145,6 +145,14 @@ app.post('/api/notes/:noteId', (req, res) => {
   }, (e) => res.json(e ?? 'OK'))
 })
 
+const delete_note = 'update notes set notebookId = (select notebookId from notebooks where name = "Deleted") where NodeId = $noteId'
+
+app.delete('/api/notes/:noteId', (req, res) => {
+  db.run(delete_note, {
+    $noteId : req.params.noteId
+  }, (e) => res.json(e ?? 'OK'))
+})
+
 const add_tag_to_note = 'insert into NoteTags (NoteId, TagId) values ($noteId, $tagId)'
 
 app.post('/api/notes/:noteId/addTag', (req, res) => {
