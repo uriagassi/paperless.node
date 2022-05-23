@@ -171,6 +171,21 @@ app.delete('/api/notes/:noteId/tags/:tagId', (req, res) =>{
   }, (e) => res.json(e ?? 'OK'))
 })
 
+const add_new_tag = 'insert into Tags (Name, IsExpanded) values ($name, false)'
+const get_new_tag_id = 'select last_insert_rowid() as key'
+
+app.put('/api/tags/new', (req, res) => {
+  db.run(add_new_tag, { $name: req.body.name }, (e) => {
+    console.log(e)
+      db.get(get_new_tag_id, (e, r) => {
+        console.log(e)
+        console.log(r)
+        res.json(r)
+    })
+    }
+  )
+})
+
 addNotes.start(app, config, db)
 
 app.listen(PORT, () => {

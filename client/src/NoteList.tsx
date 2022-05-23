@@ -41,16 +41,21 @@ export const NoteList: React.FunctionComponent<{filterId: string | undefined,
   const [noteList, setNoteList] = useState<Note[]>([])
   useEffect(() => {
     loadNotes();
-    eventBus.on('note-detail-change', loadNotes)
-    eventBus.on('note-collection-change', checkChange)
-    return () => {
-      eventBus.remove('note-detail-change', loadNotes)
-      eventBus.remove('note-collection-change', checkChange)
-    }
   },[])
 
   useEffect(() => {
-    console.log("loading nodes")
+        let eventLoadNotes = () => loadNotes()
+        let eventCheckChange = (e: CustomEvent<{ notebooks?: number[], tags?: number[]}>) => checkChange(e.detail)
+        eventBus.on('note-detail-change', eventLoadNotes)
+        eventBus.on('note-collection-change', eventCheckChange)
+        return () => {
+          eventBus.remove('note-detail-change', eventLoadNotes)
+          eventBus.remove('note-collection-change', eventCheckChange)
+        }
+      }
+  )
+
+  useEffect(() => {
     loadNotes()
   }, [props.filterId, props.searchTerm])
 
@@ -101,13 +106,13 @@ export const NoteList: React.FunctionComponent<{filterId: string | undefined,
     }
   }
 
-  const checkChange = (data: CustomEvent<{ notebooks?: number[], tags?: number[]}>) => {
+  const checkChange = (data: { notebooks?: number[], tags?: number[]}) => {
     if (props.filterId?.startsWith('notebook')) {
-      if (data.detail.notebooks?.filter(n => props.filterId == 'notebooks/' + n + '?')) {
+      if (data.notebooks?.filter(n => props.filterId == 'notebooks/' + n + '?')) {
         loadNotes()
       }
     } else if (props.filterId?.startsWith('tag')) {
-      if (data.detail.tags?.filter(n => props.filterId == 'tags/' + n + '?')) {
+      if (data.tags?.filter(n => props.filterId == 'tags/' + n + '?')) {
         loadNotes()
       }
     }

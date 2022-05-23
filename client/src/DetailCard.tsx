@@ -52,16 +52,36 @@ export const DetailCard: React.FunctionComponent<
             let tagIds = data.tagIds?.split(',') ?? []
 
             for (let i = 0; i < tagNames.length; i++) {
-              note.tags.push({name: tagNames[i], key: tagIds[i]})
+              note.tags.push({name: tagNames[i], key: Number(tagIds[i])})
             }
             setNote(note);
           });
     }
   }
 
+  const addNewTags = (newTags: ITag[], callback: () => any, i : number = 0) => {
+    if (newTags.length > i) {
+      const requestOptions = {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: newTags[i].name})
+      }
+      fetch('/api/tags/new', requestOptions).then((r) => r.json()).then((r) => {
+        newTags[i].key = r.key
+        addNewTags(newTags, callback, i + 1)
+      })
+    } else {
+      callback()
+    }
+  }
+
 
   const onTagsChanged = (newTags: ITag[] | undefined) => {
-    if (note && note.tags != newTags) {
+    let newlyCreatedTags = newTags?.filter(t => t.key == '-1') ?? [];
+    if (newlyCreatedTags.length > 0) {
+      addNewTags(newlyCreatedTags, () => onTagsChanged(newTags))
+      eventBus.dispatch('note-collection-change', {})
+    } else if (note && note.tags != newTags) {
       let removedTags: ITag[] = []
       let addedTags: ITag[] = []
       if (!newTags) {
@@ -139,11 +159,15 @@ export const DetailCard: React.FunctionComponent<
   };
 
   const filterSuggestedTags = (filterText: string, tagList?: ITag[]): ITag[] => {
+    let newTagList : ITag[] = []
+    if (!props.availableTags?.some(t => t.name == filterText)) {
+      newTagList = [{key: '-1', name: filterText}]
+    }
     return filterText
-        ? props.availableTags?.filter(
+        ?  [...props.availableTags?.filter(
         tag => tag.name.toLowerCase().indexOf(filterText.toLowerCase()) === 0 &&
             !listContainsTagList(tag, tagList),
-    ) || []
+    ) || [], ...newTagList]
         : [];
   };
 
