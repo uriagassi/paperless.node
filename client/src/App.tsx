@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {
   BaseButton,
+  Icon,
   initializeIcons,
   IStackStyles,
   IStackTokens,
@@ -10,12 +11,12 @@ import {
 import './App.css';
 import {ITagWithChildren, TagList} from "./TagList";
 import {DetailCard} from "./DetailCard";
-import {NoteList} from "./NoteList";
+import {KeyState, NoteList} from "./NoteList";
 import eventBus from "./EventBus";
 import {CommandBar} from "./CommandBar";
+import {MultiNoteScreen} from "./MultiNoteScreen";
 
 
-// Initialize icons in case this example uses them
 initializeIcons();
 
 const stackTokens: IStackTokens = { childrenGap: 15 };
@@ -32,9 +33,11 @@ const stackStyles: Partial<IStackStyles> = {
 export const App: React.FunctionComponent = () => {
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
-  const [selectedNote, setSelectedNote] = useState<number | undefined>(undefined)
+  const [activeNote, setActiveNote] = useState<number | undefined>(undefined)
+  const [selectedNotes, setSelectedNotes] = useState<Set<number>>(new Set())
   const [notebooks, setNotebooks] = useState<ITagWithChildren[] | undefined>(undefined)
   const [tags, setTags] = useState<ITagWithChildren[] | undefined>(undefined)
+  const [keyState, setKeyState] = useState<KeyState>({})
 
   function loadNotebooks() {
     fetch("/api/notebooks_and_tags")
@@ -56,13 +59,11 @@ export const App: React.FunctionComponent = () => {
 
 
   return (
-      <Stack tokens={stackTokens} styles={stackStyles}>
+      <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={(e) => { setKeyState({ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, metaKey: e.metaKey})}}
+             onKeyUp={(e) => { setKeyState({ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, metaKey: e.metaKey})}}>
         <Stack horizontal verticalAlign='baseline'>
           <BaseButton className='Hamburger'>
-            <svg viewBox="0 0 18 18" width="100%"
-                 preserveAspectRatio="xMidYMid meet" focusable="false">
-              <path d="M2 13.5h14V12H2v1.5zm0-4h14V8H2v1.5zM2 4v1.5h14V4H2z"/>
-            </svg>
+            <Icon iconName= 'GlobalNavButton'/>
           </BaseButton>
           <h1 className='App-header'>Paperless</h1>
           <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch}/>
@@ -72,8 +73,15 @@ export const App: React.FunctionComponent = () => {
           <TagList  selectedId={selectedFolder}
                    onSelectedIdChanged={(key) => setSelectedFolder(key)}
                    tags={tags} notebooks={notebooks}/>
-          <NoteList tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={selectedNote} onSelectedIdChanged={(key) => setSelectedNote(key)}/>
-          <DetailCard  noteId={selectedNote} availableTags={tags} availableNotebooks={notebooks}/>
+          <NoteList tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={activeNote}
+                    selectedNotes={selectedNotes}
+                    onSelectedIdChanged={(key, selectedKeys) => {
+            setActiveNote(key);
+            setSelectedNotes(selectedKeys)
+          }} keyState={keyState}/>
+          {selectedNotes.size > 1 ?
+              <MultiNoteScreen selectedNotes={selectedNotes} availableNotebooks={notebooks} filterId={selectedFolder}/>
+              : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks}/>}
         </Stack>
       </Stack>
   );

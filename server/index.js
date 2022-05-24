@@ -12,6 +12,8 @@ const app = express();
 
 const addNotes = require("./addNotes");
 
+db.on('trace', (e) => console.log(e))
+
 const tag_query =
   'select name as name, tags.tagid as key, ifnull(parenttagtagid, 0) as parent, \
   isExpanded as isExpanded, count(*) as notes \
@@ -146,11 +148,27 @@ app.post('/api/notes/:noteId', (req, res) => {
 })
 
 const delete_note = 'update notes set notebookId = (select notebookId from notebooks where Type = "D") where NodeId = $noteId'
+const delete_notes = 'update notes set notebookId = (select notebookId from notebooks where Type = "D") where NodeId in (#noteIds)'
 
 app.delete('/api/notes/:noteId', (req, res) => {
-  db.run(delete_note, {
-    $noteId : req.params.noteId
-  }, (e) => res.json(e ?? 'OK'))
+  if (req.params.noteId.includes(',')) {
+    let ids = req.params.noteId.split(',')
+    db.run(delete_notes.replace(/#noteIds/, ids.map(() => '?').join(',')), ids
+      , e => res.json(e ?? 'OK'))
+  } else {
+    db.run(delete_note, {
+      $noteId: req.params.noteId
+    }, (e) => res.json(e ?? 'OK'))
+  }
+})
+
+const move_notes = 'update notes set notebookId = ? where NodeId in (#noteIds)'
+
+app.post('/api/notes/:noteIds/notebook/:notebookId', (req, res) => {
+  let ids = req.params.noteIds.split(',')
+  db.run(move_notes.replace(/#noteIds/, ids.map(() => '?').join(',')), [
+    req.params.notebookId, ...ids
+  ], e => res.json(e ?? 'OK'))
 })
 
 const add_tag_to_note = 'insert into NoteTags (NoteId, TagId) values ($noteId, $tagId)'

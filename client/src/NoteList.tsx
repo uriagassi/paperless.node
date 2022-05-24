@@ -1,5 +1,5 @@
 import React, {
-   useEffect,
+  useEffect,
   useState
 } from "react";
 import {
@@ -15,7 +15,7 @@ import eventBus from "./EventBus";
 
 function formatFileSize(bytes : number,decimalPoint?: number) {
   if(bytes == 0) return '0 Bytes';
-  var k = 1000,
+  const k = 1000,
       dm = decimalPoint || 2,
       sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
       i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -30,13 +30,13 @@ const fileTypeToIcon : {[key: string]: string} = {
 }
 export const NoteList: React.FunctionComponent<{filterId: string | undefined,
   selectedId?: number | undefined,
-  onSelectedIdChanged?: (key?: number) => void,
+  onSelectedIdChanged?: (key: number, selectedKeys: Set<number>) => void,
   limit?: number,
-  searchTerm: string | undefined, tabIndex: number | undefined}> = (props: {filterId: string | undefined,
+  searchTerm: string | undefined, tabIndex: number | undefined, selectedNotes: Set<number>, keyState: KeyState}> = (props: {filterId: string | undefined,
   selectedId?: number | undefined,
-  onSelectedIdChanged?: (key?: number) => void,
+  onSelectedIdChanged?: (key: number, selectedKeys: Set<number>) => void,
   limit?: number,
-  searchTerm: string | undefined, tabIndex: number | undefined}) =>
+  searchTerm: string | undefined, tabIndex: number | undefined, selectedNotes: Set<number>, keyState: KeyState}) =>
 {
   const [noteList, setNoteList] = useState<Note[]>([])
   useEffect(() => {
@@ -60,15 +60,16 @@ export const NoteList: React.FunctionComponent<{filterId: string | undefined,
   }, [props.filterId, props.searchTerm])
 
   useEffect(() => {
-    console.log("selecting note " + props.selectedId)
+    console.log("selecting note " + props.selectedId + "(" + Array.from(props.selectedNotes) + ")")
     selectNote();
-  }, [props.selectedId])
+  }, [props.selectedId, props.selectedNotes])
 
 
   const selectNote = () => {
     let newNotes = [...noteList]
     noteList.forEach((n: Note) => {
-      n.selected = props.selectedId == n.id;
+      n.active = props.selectedId == n.id;
+      n.selected = props.selectedNotes?.has(n.id)
     })
     setNoteList(newNotes)
   }
@@ -93,11 +94,11 @@ export const NoteList: React.FunctionComponent<{filterId: string | undefined,
               selectedFound = selectedFound || (props.selectedId == n.id)
               notes.push({...n,
                 attachments: attachments,
-                selected: props.selectedId == n.id})
+                active: props.selectedId == n.id})
             })
             setNoteList(notes);
             if (!selectedFound && data.notes.length > 0) {
-              props.onSelectedIdChanged?.(data.notes[0].id);
+              props.onSelectedIdChanged?.(data.notes[0].id, new Set([data.notes[0].id]));
             }
           });
     } else {
@@ -140,13 +141,57 @@ export const NoteList: React.FunctionComponent<{filterId: string | undefined,
     })
   }
 
+  const onFocusChange = (note: Note) => {
+    let noteId = note.id
+    let keyState = props.keyState
+    console.log(keyState)
+    if (keyState.ctrlKey || keyState.metaKey) {
+      const index = props.selectedNotes?.has(noteId);
+      const selected = new Set(props.selectedNotes);
+      if (index) {
+        selected.delete(noteId)
+      } else {
+        selected.add(noteId)
+      }
+      props.onSelectedIdChanged?.(noteId, selected)
+
+    } else if (keyState.shiftKey) {
+      if (props?.selectedId) {
+        let startIndex = noteList.indexOf(note)
+        let endIndex = noteList.findIndex((n) => n.id == props.selectedId)
+        if (endIndex < startIndex) {
+          [startIndex, endIndex] = [endIndex, startIndex]
+        }
+        console.log("range is [" + startIndex + "," + endIndex + ")")
+        let selected = new Set(props.selectedNotes)
+          console.log("finding range")
+          if (startIndex > -1) {
+            for (let i = startIndex; i <= endIndex; i++) {
+              console.log("looking for id " + noteList[i].id + " [" + i + "]")
+              if (!note.selected) {
+                selected.add(noteList[i].id)
+              } else {
+                selected.delete(noteList[i].id)
+              }
+            }
+            selected.add(noteId)
+            console.log("setting selected " + selected)
+            props.onSelectedIdChanged?.(noteId, selected)
+          }
+      }
+    } else {
+      props.onSelectedIdChanged?.(noteId, new Set([noteId]))
+    }
+  }
+
   let notes = [];
   for (let i = 0; i < noteList.length; i++) {
     let note = noteList[i]
-    let className = note.selected ? 'ListItem is-selected' : 'ListItem'
+    let className = note.active ? 'ListItem is-active' : 'ListItem'
+    if (note.selected) className += ' is-selected'
     notes.push(<DocumentCard key={note.id} className={className}
                              type={DocumentCardType.compact}
-                             onFocus={(e) => props.onSelectedIdChanged?.(note.id)}
+                             onFocus={() => onFocusChange(note) }
                              onKeyDown={(e) => onKeyDown(e, note.id) }
                              data-is-focusable>
       <DocumentCardLogo logoIcon={fileTypeToIcon[note.mime ?? 'text'] ?? "attach"}/>
@@ -180,5 +225,12 @@ interface Note {
   attachments: string;
   size: number;
   mime: string;
-  selected: boolean;
+  active: boolean;
+  selected: boolean | undefined;
+}
+
+export interface KeyState {
+  metaKey? : boolean;
+  ctrlKey? : boolean;
+  shiftKey? : boolean;
 }
