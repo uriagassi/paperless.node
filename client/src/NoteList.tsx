@@ -44,16 +44,20 @@ export const NoteList: React.FunctionComponent<{filterId: string | undefined,
   },[])
 
   useEffect(() => {
-        let eventLoadNotes = () => loadNotes()
-        let eventCheckChange = (e: CustomEvent<{ notebooks?: number[], tags?: number[]}>) => checkChange(e.detail)
-        eventBus.on('note-detail-change', eventLoadNotes)
-        eventBus.on('note-collection-change', eventCheckChange)
-        return () => {
-          eventBus.remove('note-detail-change', eventLoadNotes)
-          eventBus.remove('note-collection-change', eventCheckChange)
-        }
-      }
-  )
+    let eventLoadNotes = () => loadNotes()
+    eventBus.on('note-detail-change', eventLoadNotes)
+    return () => {
+      eventBus.remove('note-detail-change', eventLoadNotes)
+    }
+  }, [props.filterId, props.searchTerm, props.selectedId, props.limit, props.onSelectedIdChanged])
+
+  useEffect(() => {
+    let eventCheckChange = (e: CustomEvent<{ notebooks?: number[], tags?: number[]}>) => checkChange(e.detail)
+    eventBus.on('note-collection-change', eventCheckChange)
+    return () => {
+      eventBus.remove('note-collection-change', eventCheckChange)
+    }
+  }, [props.filterId])
 
   useEffect(() => {
     loadNotes()
@@ -164,20 +168,20 @@ export const NoteList: React.FunctionComponent<{filterId: string | undefined,
         }
         console.log("range is [" + startIndex + "," + endIndex + ")")
         let selected = new Set(props.selectedNotes)
-          console.log("finding range")
-          if (startIndex > -1) {
-            for (let i = startIndex; i <= endIndex; i++) {
-              console.log("looking for id " + noteList[i].id + " [" + i + "]")
-              if (!note.selected) {
-                selected.add(noteList[i].id)
-              } else {
-                selected.delete(noteList[i].id)
-              }
+        console.log("finding range")
+        if (startIndex > -1) {
+          for (let i = startIndex; i <= endIndex; i++) {
+            console.log("looking for id " + noteList[i].id + " [" + i + "]")
+            if (!note.selected) {
+              selected.add(noteList[i].id)
+            } else {
+              selected.delete(noteList[i].id)
             }
-            selected.add(noteId)
-            console.log("setting selected " + selected)
-            props.onSelectedIdChanged?.(noteId, selected)
           }
+          selected.add(noteId)
+          console.log("setting selected " + selected)
+          props.onSelectedIdChanged?.(noteId, selected)
+        }
       }
     } else {
       props.onSelectedIdChanged?.(noteId, new Set([noteId]))
