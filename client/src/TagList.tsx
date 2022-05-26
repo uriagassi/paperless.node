@@ -1,12 +1,14 @@
 import React, {useEffect, useState} from "react";
 import {INavLink, INavLinkGroup, ITag, Nav} from "@fluentui/react";
+import {TagContextMenu} from "./TagContextMenu";
 
 export const TagList: React.FunctionComponent<{
   selectedId: string | undefined,
   onSelectedIdChanged: (key?: string) => void,
   tags: ITagWithChildren[] | undefined,
-  notebooks: ITagWithChildren[] | undefined }> =
-    (props: { selectedId: string | undefined, onSelectedIdChanged: (key?: string) => void, tags: ITagWithChildren[] | undefined, notebooks: ITagWithChildren[] | undefined }) => {
+  notebooks: ITagWithChildren[] | undefined, updateTag: (tag : ITagWithChildren) => any }> =
+    (props: { selectedId: string | undefined, onSelectedIdChanged: (key?: string) => void, tags: ITagWithChildren[] | undefined,
+      notebooks: ITagWithChildren[] | undefined, updateTag: (tag : ITagWithChildren) => any }) => {
 
   const [tagList, setTagList] = useState<INavLinkGroup[]>([])
 
@@ -57,13 +59,38 @@ export const TagList: React.FunctionComponent<{
     props.onSelectedIdChanged(item?.key)
   }
 
+  const [doUpdate, setDoUpdate] = useState<{target: Element, tag: ITagWithChildren} | undefined>();
+
+  const onContextMenuDismiss = () => {
+    setDoUpdate(undefined);
+  }
+
+      const onShowContextualMenu = (ev: React.MouseEvent<HTMLElement>) => {
+        let tagItem = (ev.target as HTMLElement).closest('.ms-Button-flexContainer')
+        console.log(tagItem ?? ev.target)
+        if (tagItem) {
+          if (tagItem.querySelector('.ms-Icon')?.attributes?.getNamedItem('data-icon-name')?.textContent == 'Tag') {
+            const textContent = tagItem.querySelector('.ms-Nav-linkText')?.textContent?.match(/(.*?)( \(\d+\))?$/)
+            console.log(textContent)
+            if (textContent) {
+              const found = props.tags?.find(t => t.name == textContent[1]);
+              if (found) {
+                ev.preventDefault();
+                setDoUpdate({target: tagItem, tag: found as ITagWithChildren})
+              }
+            }
+          }
+        }
+      }
+
   return (
-      <div className='TagList'>
+      <div className='TagList' onContextMenu={onShowContextualMenu}>
         <Nav
             selectedKey={props.selectedId}
             groups={tagList ?? []}
             onLinkClick={onSelect}
         />
+        <TagContextMenu updateTag={props.updateTag} availableTags={props.tags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
       </div>
   );
 }

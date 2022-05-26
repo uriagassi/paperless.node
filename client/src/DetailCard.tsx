@@ -8,19 +8,20 @@ import {
   Dropdown,
   IBasePickerSuggestionsProps,
   IDatePicker,
-  IDropdownOption, IPickerItemProps,
-  ITag,
+  IDropdownOption, ITag,
   Stack,
   TagPicker,
   TextField
 } from "@fluentui/react";
+import {ITagWithChildren} from "./TagList";
+import {TagContextMenu} from "./TagContextMenu";
 
 export const DetailCard: React.FunctionComponent<
     { noteId: number | undefined,
       availableTags: ITag[] | undefined,
-      availableNotebooks: ITag[] | undefined }> =
+      availableNotebooks: ITag[] | undefined, updateTag: (tag : ITagWithChildren) => any }> =
     (props: { noteId: number | undefined, availableTags: ITag[] | undefined,
-      availableNotebooks: ITag[] | undefined }) => {
+      availableNotebooks: ITag[] | undefined, updateTag: (tag : ITagWithChildren) => any }) => {
       const datePickerRef = React.createRef<IDatePicker>();
       const [note, setNote] = useState<Note | undefined>();
       const [notebooks, setNotebooks] = useState<IDropdownOption[]>([]);
@@ -28,7 +29,7 @@ export const DetailCard: React.FunctionComponent<
 
       useEffect(() => {
         loadNote();
-      }, [props.noteId])
+      }, [props.noteId, props.availableTags])
 
 
       useEffect(() => {
@@ -199,6 +200,23 @@ export const DetailCard: React.FunctionComponent<
 
       const getTextFromItem = (item: ITag) => item.name;
 
+      const [doUpdate, setDoUpdate] = useState<{target: Element, tag: ITagWithChildren} | undefined>();
+
+      const onShowContextualMenu = (ev: React.MouseEvent<HTMLElement>) => {
+        let tagItem = (ev.target as HTMLElement).closest('.ms-TagItem')
+        if (tagItem) {
+          const textContent = tagItem.querySelector('.ms-TagItem-text')?.textContent;
+          console.log(textContent)
+          const found = props.availableTags?.find(t => t.name == textContent);
+          console.log(found)
+          setDoUpdate({target: tagItem, tag: found as ITagWithChildren})
+        }
+      }
+
+      const onContextMenuDismiss = () => {
+        setDoUpdate(undefined);
+      }
+
       return <Stack className='DetailCard'>
         <Stack horizontalAlign='stretch' verticalAlign='center' horizontal
                className='CardRow1'>
@@ -216,7 +234,7 @@ export const DetailCard: React.FunctionComponent<
               strings={defaultDatePickerStrings}
           />
         </Stack>
-        <Stack horizontal className='CardRow2'>
+        <Stack horizontal className='CardRow2' onContextMenu={onShowContextualMenu}>
           <Dropdown className='NotebookDropdown' options={notebooks}
                     selectedKey={note?.notebookId} onChange={onNotebookChanged}/>
           <TagPicker onResolveSuggestions={filterSuggestedTags}
@@ -224,6 +242,7 @@ export const DetailCard: React.FunctionComponent<
                      pickerSuggestionsProps={pickerSuggestionsProps}
                      selectedItems={note?.tags} className="ItemTags"
                      onChange={onTagsChanged}/>
+          <TagContextMenu updateTag={props.updateTag} availableTags={props.availableTags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
         </Stack>
         <iframe className='BodyField'
                 src={props.noteId ? ('http://localhost:3001/api/body/' + props.noteId) : 'text.html'}/>

@@ -215,3 +215,7 @@
 .MultiFolderIcon {
   width: 5em;
 }
+
+.TagDialog div  {
+  overflow-y: visible !important;
+}

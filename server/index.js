@@ -16,7 +16,7 @@ db.on('trace', (e) => console.log(e))
 
 const tag_query =
   'select name as name, tags.tagid as key, ifnull(parenttagtagid, 0) as parent, \
-  isExpanded as isExpanded, count(*) as notes \
+  isExpanded as isExpanded, count(notetags.tagid) as notes \
   from tags left join notetags on tags.tagid=notetags.tagid \
   group by tags.tagid order by name';
 const notebooks_query =
@@ -202,6 +202,18 @@ app.put('/api/tags/new', (req, res) => {
     })
     }
   )
+})
+
+const update_tag = 'update Tags set Name = $name, ParentTagTagId = $parent where TagId = $tagId'
+
+app.post('/api/tags/:tagId', (req, res) => {
+  db.run(update_tag, {
+    $tagId: req.params.tagId,
+    $name: req.body.name,
+    $parent: req.body.parent
+  }, (e) => {
+    res.json(e ?? 'OK')
+  })
 })
 
 addNotes.start(app, config, db)
