@@ -16,7 +16,7 @@ import {
 import {ITagWithChildren} from "./TagList";
 import {TagContextMenu} from "./TagContextMenu";
 import {ServerAPI} from "./ServerAPI";
-import {SynologySSO} from "./SynologySSO";
+import {ISSO} from "./sso/ISSO";
 
 export const DetailCard: React.FunctionComponent<
     DetailCardProps> =
@@ -242,7 +242,7 @@ export const DetailCard: React.FunctionComponent<
           <TagContextMenu updateTag={props.updateTag} availableTags={props.availableTags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
         </Stack>
         <iframe className='BodyField'
-                src={props.sso.authenticate(props.noteId ? ('/api/body/' + props.noteId) : 'text.html')}/>
+                src={props.sso?.authenticate(props.noteId ? ('/api/body/' + props.noteId) : 'text.html')}/>
       </Stack>;
 
     }
@@ -260,5 +260,5 @@ interface DetailCardProps {
   availableNotebooks: ITag[] | undefined,
   updateTag: (tag : ITagWithChildren) => any,
   api: ServerAPI,
-  sso: SynologySSO
+  sso: ISSO | undefined
 }

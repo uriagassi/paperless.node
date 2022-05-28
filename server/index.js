@@ -9,7 +9,7 @@ const sqlite3 = require('sqlite3').verbose();
 const baseDir = config.get('paperless.baseDir')
 const db = new sqlite3.Database(baseDir + '/paperless.sqlite');
 const app = express();
-const sso = require('./syn_login')
+const sso = require(config.get('sso.handler'))
 const cookieParser = require('cookie-parser')
 
 const addNotes = require("./addNotes");

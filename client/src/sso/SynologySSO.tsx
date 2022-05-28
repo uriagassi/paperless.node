@@ -1,6 +1,5 @@
-import {useEffect} from "react";
 
-export class SynologySSO {
+export class SSO {
   access_token : string | null = null;
   constructor() {
     const queryParams = new URLSearchParams(window.location.hash.replace(/^#/, '?'));

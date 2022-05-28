@@ -17,9 +17,10 @@ import {CommandBar} from "./CommandBar";
 import {MultiNoteScreen} from "./MultiNoteScreen";
 import {UpdateTagDialog} from "./UpdateTagDialog";
 import 'semantic-ui-css/semantic.css'
-import {SynologySSO} from "./SynologySSO";
+import {ISSO} from "./sso/ISSO";
 import {ServerAPI} from "./ServerAPI";
 
+const SSO = import('./sso/' + (process.env.REACT_APP_SSO_HANDLER ?? 'EmptySSO') + '.tsx');
 initializeIcons();
 
 const stackTokens: IStackTokens = { childrenGap: 15 };
@@ -34,7 +35,6 @@ const stackStyles: Partial<IStackStyles> = {
   },
 };
 
-const auth = new SynologySSO()
 const serverAPI = new ServerAPI()
 export const App: React.FunctionComponent = () => {
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
@@ -46,6 +46,12 @@ export const App: React.FunctionComponent = () => {
   const [keyState, setKeyState] = useState<KeyState>({})
   const [tagToUpdate, setTagToUpdate] = useState<ITagWithChildren | undefined>()
   const [loggedInUser, setLoggedInUser] = useState<{imageInitials: string, text: string, secondaryText?: string}>()
+  const [auth, setAuth] = useState<ISSO>()
+
+  useEffect(() => {
+    SSO.then(m => setAuth(new m.SSO()))
+      }
+  ,[])
 
   function loadNotebooks() {
     serverAPI.loadNotebooks().then((data: { tags: ITagWithChildren[], notebooks: any[] }) => {
@@ -55,13 +61,18 @@ export const App: React.FunctionComponent = () => {
   }
 
   useEffect(() => {
-    serverAPI.setHeader({key: 'x-access-token', value: auth.login()})
-    serverAPI.user().then(u => {
-      setLoggedInUser({text: u.user_name, imageInitials: Array.from(u.user_name.matchAll(/\b\w/g)).join(' ')})
-    })
-    loadNotebooks();
-    eventBus.on('note-collection-change', loadNotebooks)
-  }, [])
+    if (auth) {
+      serverAPI.setHeader({key: 'x-access-token', value: auth.login()})
+      serverAPI.user().then(u => {
+        setLoggedInUser({
+          text: u.user_name,
+          imageInitials: Array.from(u.user_name.matchAll(/\b\w/g)).join(' ')
+        })
+      })
+      loadNotebooks();
+      eventBus.on('note-collection-change', loadNotebooks)
+    }
+  }, [auth])
 
   function doSearch(newValue: string) {
     setSearchTerm(newValue)
