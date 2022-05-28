@@ -13,6 +13,7 @@ const sso = require(config.get('sso.handler'))
 const cookieParser = require('cookie-parser')
 
 const addNotes = require("./addNotes");
+const gmail = require('./gmail')
 
 db.on('trace', (e) => console.log(e))
 
@@ -230,6 +231,8 @@ app.get('/api/user', (req, res) => {
 )
 
 addNotes.start(app, config, db)
+
+gmail.start(app, config, db)
 
 app.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);

@@ -2,13 +2,13 @@ import React from "react";
 import {Icon, IconButton, Persona, PersonaSize, Stack} from "@fluentui/react";
 import eventBus from "./EventBus";
 
-const MINUTE_MS = 60000;
+const MINUTE_MS = 600000;
 
 
-export class CommandBar extends React.Component<{loggedIn: {imageInitials: string, text: string}}, { pendingImport: number}> {
+export class CommandBar extends React.Component<{loggedIn: {imageInitials: string, text: string}}, { pendingImport: number, pendingMail: number }> {
   constructor(props: any) {
     super(props);
-    this.state = { pendingImport: 0}
+    this.state = { pendingImport: 0, pendingMail: 0}
     this.fileImportButton = this.fileImportButton.bind(this)
     this.refreshPendingCount = this.refreshPendingCount.bind(this)
     this.importFiles = this.importFiles.bind(this)
@@ -16,6 +16,17 @@ export class CommandBar extends React.Component<{loggedIn: {imageInitials: strin
 
 
   componentDidMount() {
+    if (window.location.pathname == '/gmail') {
+      const queryParams = new URLSearchParams(window.location.search)
+      fetch('/api/mail/auth?access_token=' + (queryParams.get('code') ?? '')).then((res) => {
+            if (res.status == 200) {
+              window.location.pathname = '/';
+            } else {
+              console.log(res.body)
+            }
+          }
+      )
+    }
     this.refreshPendingCount()
     const interval = setInterval(() => {
       this.refreshPendingCount()
@@ -25,7 +36,8 @@ export class CommandBar extends React.Component<{loggedIn: {imageInitials: strin
 
   render() {
     return <Stack horizontal verticalAlign='baseline'>
-      <IconButton className="Command" title='File Import' iconProps={{'iconName':'CloudImportExport'}} text='File Import' onRenderIcon={this.fileImportButton} onMouseEnter={() => this.refreshPendingCount()} onClick={() => this.importFiles()}/>
+      <IconButton className="Command" title="Mail Import" iconProps={{'iconName': 'Mail'}} text="Mail Import" onRenderIcon={() => this.fileImportButton('Mail', this.state.pendingMail)} onClick={() => this.importMail()}/>
+      <IconButton className="Command" title='File Import' iconProps={{'iconName':'CloudImportExport'}} text='File Import' onRenderIcon={() => this.fileImportButton('CloudImportExport', this.state.pendingImport)} onMouseEnter={() => this.refreshPendingCount()} onClick={() => this.importFiles()}/>
       <Persona {...this.props.loggedIn} size={PersonaSize.size40}/>
     </Stack>;
   }
@@ -37,17 +49,32 @@ export class CommandBar extends React.Component<{loggedIn: {imageInitials: strin
     })
   }
 
-  private fileImportButton(props : any) {
-    return (
-        <>
-          <div className="badge" style={{'visibility': this.state.pendingImport==0 ? 'hidden' : 'visible'}} >{this.state.pendingImport}</div>
-          <Icon title='File Import' className='CommandButton' iconName='CloudImportExport'/>
-        </>
-    );
+  private importMail() {
+    fetch('/api/mail/import').then(r => r.json()).then(r => {
+      if (r.authenticate) {
+        window.location.href = r.authenticate
+      }
+    })
   }
 
   private refreshPendingCount() {
     fetch('/api/files/checkStatus').then(result => result.json())
-        .then(r => this.setState({pendingImport: r.pending}))
+        .then(r => this.setState({...this.state, pendingImport: r.pending}))
+    fetch('/api/mail/pending').then(r => r.json())
+        .then(r => {
+          if (r.authenticate) {
+            window.location.href = r.authenticate
+          }
+          this.setState({...this.state, pendingMail: r.pendingThreads })
+        })
+  }
+
+  private fileImportButton(iconName : string, pending : number) {
+    return (
+        <>
+          <div className="badge" style={{'visibility': pending==0 ? 'hidden' : 'visible'}} >{pending}</div>
+          <Icon title='File Import' className='CommandButton' iconName={iconName}/>
+        </>
+    );
   }
 }
