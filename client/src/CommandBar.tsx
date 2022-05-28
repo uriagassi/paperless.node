@@ -1,14 +1,14 @@
 import React from "react";
-import {Icon, IconButton} from "@fluentui/react";
+import {Icon, IconButton, Persona, PersonaSize, Stack} from "@fluentui/react";
 import eventBus from "./EventBus";
 
 const MINUTE_MS = 60000;
 
 
-export class CommandBar extends React.Component<{}, { pendingImport: number }> {
+export class CommandBar extends React.Component<{loggedIn: {imageInitials: string, text: string}}, { pendingImport: number}> {
   constructor(props: any) {
     super(props);
-    this.state = { pendingImport: 0 }
+    this.state = { pendingImport: 0}
     this.fileImportButton = this.fileImportButton.bind(this)
     this.refreshPendingCount = this.refreshPendingCount.bind(this)
     this.importFiles = this.importFiles.bind(this)
@@ -24,7 +24,10 @@ export class CommandBar extends React.Component<{}, { pendingImport: number }> {
   }
 
   render() {
-    return <IconButton className="Command" title='File Import' iconProps={{'iconName':'CloudImportExport'}} text='File Import' onRenderIcon={this.fileImportButton} onMouseEnter={() => this.refreshPendingCount()} onClick={() => this.importFiles()}/>;
+    return <Stack horizontal verticalAlign='baseline'>
+      <IconButton className="Command" title='File Import' iconProps={{'iconName':'CloudImportExport'}} text='File Import' onRenderIcon={this.fileImportButton} onMouseEnter={() => this.refreshPendingCount()} onClick={() => this.importFiles()}/>
+      <Persona {...this.props.loggedIn} size={PersonaSize.size40}/>
+    </Stack>;
   }
 
   private importFiles() {

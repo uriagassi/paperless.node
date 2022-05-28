@@ -15,13 +15,12 @@ import {
 } from "@fluentui/react";
 import {ITagWithChildren} from "./TagList";
 import {TagContextMenu} from "./TagContextMenu";
+import {ServerAPI} from "./ServerAPI";
+import {SynologySSO} from "./SynologySSO";
 
 export const DetailCard: React.FunctionComponent<
-    { noteId: number | undefined,
-      availableTags: ITag[] | undefined,
-      availableNotebooks: ITag[] | undefined, updateTag: (tag : ITagWithChildren) => any }> =
-    (props: { noteId: number | undefined, availableTags: ITag[] | undefined,
-      availableNotebooks: ITag[] | undefined, updateTag: (tag : ITagWithChildren) => any }) => {
+    DetailCardProps> =
+    (props) => {
       const datePickerRef = React.createRef<IDatePicker>();
       const [note, setNote] = useState<Note | undefined>();
       const [notebooks, setNotebooks] = useState<IDropdownOption[]>([]);
@@ -41,9 +40,8 @@ export const DetailCard: React.FunctionComponent<
 
       const loadNote = () => {
         if (props.noteId) {
-          fetch("/api/notes/" + props.noteId)
-              .then((res) => res.json())
-              .then((data: RawNote) => {
+          props.api.loadNote(props.noteId)
+              .then(data => {
                 let note: Note = {
                   notebookId: data.notebookId,
                   title: data.title ?? '',
@@ -206,9 +204,8 @@ export const DetailCard: React.FunctionComponent<
         let tagItem = (ev.target as HTMLElement).closest('.ms-TagItem')
         if (tagItem) {
           const textContent = tagItem.querySelector('.ms-TagItem-text')?.textContent;
-          console.log(textContent)
           const found = props.availableTags?.find(t => t.name == textContent);
-          console.log(found)
+          ev.preventDefault();
           setDoUpdate({target: tagItem, tag: found as ITagWithChildren})
         }
       }
@@ -245,7 +242,7 @@ export const DetailCard: React.FunctionComponent<
           <TagContextMenu updateTag={props.updateTag} availableTags={props.availableTags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
         </Stack>
         <iframe className='BodyField'
-                src={props.noteId ? ('http://localhost:3001/api/body/' + props.noteId) : 'text.html'}/>
+                src={props.sso.authenticate(props.noteId ? ('http://localhost:3001/api/body/' + props.noteId) : 'text.html')}/>
       </Stack>;
 
     }
@@ -257,10 +254,11 @@ interface Note {
   tags: ITag[];
 }
 
-interface RawNote {
-  notebookId: number;
-  title: string;
-  createTime: string;
-  tags: string;
-  tagIds: string;
+interface DetailCardProps {
+  noteId: number | undefined,
+  availableTags: ITag[] | undefined,
+  availableNotebooks: ITag[] | undefined,
+  updateTag: (tag : ITagWithChildren) => any,
+  api: ServerAPI,
+  sso: SynologySSO
 }

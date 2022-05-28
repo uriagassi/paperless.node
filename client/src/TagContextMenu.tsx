@@ -4,24 +4,10 @@ import {ContextualMenu, ITag} from "@fluentui/react";
 
 export const TagContextMenu: React.FunctionComponent<
     { updateTag: (tag : ITagWithChildren) => any, availableTags: ITag[] | undefined, doUpdate : {target: Element, tag: ITagWithChildren} | undefined, onDismiss: () => any  }> =
-    (props: { updateTag: (tag : ITagWithChildren) => any, availableTags: ITag[] | undefined, doUpdate : {target: Element, tag: ITagWithChildren} | undefined, onDismiss: () => any}) => {
+    (props) => {
           const [contextualMenuTarget, setContextualMenuTarget] = React.useState<Element | undefined>()
           const [showContextualMenu, setShowContextualMenu] = React.useState(false);
       const [selectedTag, setSelectedTag] = useState<ITagWithChildren | undefined>()
-          const onShowContextualMenu = (ev: React.MouseEvent<HTMLElement>) => {
-                let tagItem = (ev.target as HTMLElement).closest('.ms-TagItem')
-                if (tagItem) {
-                      const textContent = tagItem.querySelector('.ms-TagItem-text')?.textContent;
-                      console.log(textContent)
-                      const found = props.availableTags?.find(t => t.name == textContent);
-                      console.log(found)
-                      setSelectedTag(found as ITagWithChildren)
-                      ev.preventDefault(); // don't navigate
-                      setContextualMenuTarget(tagItem)
-                      setShowContextualMenu(true);
-                }
-          };
-
       useEffect(() => {
         if (!showContextualMenu) {
           props.onDismiss()

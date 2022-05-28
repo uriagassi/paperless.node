@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   BaseButton,
   Icon,
@@ -17,6 +17,8 @@ import {CommandBar} from "./CommandBar";
 import {MultiNoteScreen} from "./MultiNoteScreen";
 import {UpdateTagDialog} from "./UpdateTagDialog";
 import 'semantic-ui-css/semantic.css'
+import {SynologySSO} from "./SynologySSO";
+import {ServerAPI} from "./ServerAPI";
 
 initializeIcons();
 
@@ -31,6 +33,9 @@ const stackStyles: Partial<IStackStyles> = {
     maxHeight: '100vh'
   },
 };
+
+const auth = new SynologySSO()
+const serverAPI = new ServerAPI()
 export const App: React.FunctionComponent = () => {
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
@@ -40,17 +45,20 @@ export const App: React.FunctionComponent = () => {
   const [tags, setTags] = useState<ITagWithChildren[] | undefined>(undefined)
   const [keyState, setKeyState] = useState<KeyState>({})
   const [tagToUpdate, setTagToUpdate] = useState<ITagWithChildren | undefined>()
+  const [loggedInUser, setLoggedInUser] = useState<{imageInitials: string, text: string, secondaryText?: string}>()
 
   function loadNotebooks() {
-    fetch("/api/notebooks_and_tags")
-        .then((res) => res.json())
-        .then((data: { tags: ITagWithChildren[], notebooks: any[] }) => {
+    serverAPI.loadNotebooks().then((data: { tags: ITagWithChildren[], notebooks: any[] }) => {
           setNotebooks(data.notebooks);
           setTags(data.tags);
         });
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
+    serverAPI.setHeader({key: 'x-access-token', value: auth.login()})
+    serverAPI.user().then(u => {
+      setLoggedInUser({text: u.user_name, imageInitials: Array.from(u.user_name.matchAll(/\b\w/g)).join(' ')})
+    })
     loadNotebooks();
     eventBus.on('note-collection-change', loadNotebooks)
   }, [])
@@ -78,13 +86,14 @@ export const App: React.FunctionComponent = () => {
           </BaseButton>
           <h1 className='App-header'>Paperless</h1>
           <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch}/>
-          <CommandBar/>
+          <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}}/>
         </Stack>
         <Stack horizontal className='MainView'>
           <TagList  selectedId={selectedFolder}
                    onSelectedIdChanged={(key) => setSelectedFolder(key)}
                    tags={tags} notebooks={notebooks} updateTag={updateTag}/>
           <NoteList tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={activeNote}
+                    api={serverAPI}
                     selectedNotes={selectedNotes}
                     onSelectedIdChanged={(key, selectedKeys) => {
             setActiveNote(key);
@@ -92,7 +101,8 @@ export const App: React.FunctionComponent = () => {
           }} keyState={keyState}/>
           {selectedNotes.size > 1 ?
               <MultiNoteScreen selectedNotes={selectedNotes} availableNotebooks={notebooks} filterId={selectedFolder}/>
-              : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks} updateTag={updateTag}/>}
+              : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks} updateTag={updateTag} api={serverAPI}
+              sso={auth}/>}
         </Stack>
       </Stack>
         <UpdateTagDialog tag={tagToUpdate} availableTags={tags} onClose={onUpdateTagClose}/>

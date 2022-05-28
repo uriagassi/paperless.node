@@ -12,6 +12,7 @@ import {
   Stack
 } from "@fluentui/react";
 import eventBus from "./EventBus";
+import {ServerAPI} from "./ServerAPI";
 
 function formatFileSize(bytes : number,decimalPoint?: number) {
   if(bytes == 0) return '0 Bytes';
@@ -28,15 +29,7 @@ const fileTypeToIcon : {[key: string]: string} = {
   'application/pdf': 'PDF',
   'text': 'TextDocument'
 }
-export const NoteList: React.FunctionComponent<{filterId: string | undefined,
-  selectedId?: number | undefined,
-  onSelectedIdChanged?: (key: number, selectedKeys: Set<number>) => void,
-  limit?: number,
-  searchTerm: string | undefined, tabIndex: number | undefined, selectedNotes: Set<number>, keyState: KeyState}> = (props: {filterId: string | undefined,
-  selectedId?: number | undefined,
-  onSelectedIdChanged?: (key: number, selectedKeys: Set<number>) => void,
-  limit?: number,
-  searchTerm: string | undefined, tabIndex: number | undefined, selectedNotes: Set<number>, keyState: KeyState}) =>
+export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
 {
   const [noteList, setNoteList] = useState<Note[]>([])
   useEffect(() => {
@@ -84,8 +77,7 @@ export const NoteList: React.FunctionComponent<{filterId: string | undefined,
       if (props.searchTerm ?? '' != '') {
         filter = 'search?term=' + encodeURIComponent(props.searchTerm ?? '') + '&'
       }
-      fetch("/api/" + filter + 'limit=' + (props.limit ?? 100) + '&lastItem=0')
-          .then((res) => res.json())
+      props.api.loadNotes(filter, props.limit)
           .then((data) => {
             let notes: Note[] = [];
             let selectedFound = false;
@@ -237,4 +229,17 @@ export interface KeyState {
   metaKey? : boolean;
   ctrlKey? : boolean;
   shiftKey? : boolean;
+}
+
+interface NoteListProps
+{
+  filterId: string | undefined,
+  selectedId?: number | undefined,
+  onSelectedIdChanged?: (key: number, selectedKeys: Set<number>) => void,
+  limit?: number,
+  searchTerm: string | undefined,
+  tabIndex: number | undefined,
+  selectedNotes: Set<number>,
+  keyState: KeyState,
+  api: ServerAPI
 }

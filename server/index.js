@@ -9,6 +9,11 @@ const sqlite3 = require('sqlite3').verbose();
 const baseDir = config.get('paperless.baseDir')
 const db = new sqlite3.Database(baseDir + '/paperless.sqlite');
 const app = express();
+const sso = require('./syn_login')
+const cookieParser = require('cookie-parser')
+
+
+// TODO: HTTPS
 
 const addNotes = require("./addNotes");
 
@@ -24,6 +29,9 @@ const notebooks_query =
   from notebooks left join notes where notes.notebookid=key group by key order by type="D", name\
 ';
 db.connect
+
+app.use(cookieParser())
+app.use(sso)
 app.get("/api", (req, res) => {
   res.json({ message: "Hello from server!" });
 });
@@ -215,6 +223,14 @@ app.post('/api/tags/:tagId', (req, res) => {
     res.json(e ?? 'OK')
   })
 })
+
+app.get('/api/user', (req, res) => {
+  res.json({
+    user_id: req.user_id,
+    user_name: req.user_name
+  })
+  }
+)
 
 addNotes.start(app, config, db)
 
