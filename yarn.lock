@@ -4573,6 +4573,7 @@ __metadata:
     "@types/react": ^17.0.45
     "@types/react-dom": ^17.0.17
     date-fns: ^2.28.0
+    http-proxy-middleware: ^2.0.6
     react: ^17.0.2
     react-dom: ^17.0.2
     react-iframe: ^1.8.0
@@ -7128,7 +7129,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"http-proxy-middleware@npm:^2.0.3":
+"http-proxy-middleware@npm:^2.0.3, http-proxy-middleware@npm:^2.0.6":
   version: 2.0.6
   resolution: "http-proxy-middleware@npm:2.0.6"
   dependencies:

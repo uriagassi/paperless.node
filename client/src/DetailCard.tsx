@@ -242,7 +242,7 @@ export const DetailCard: React.FunctionComponent<
           <TagContextMenu updateTag={props.updateTag} availableTags={props.availableTags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
         </Stack>
         <iframe className='BodyField'
-                src={props.sso.authenticate(props.noteId ? ('http://localhost:3001/api/body/' + props.noteId) : 'text.html')}/>
+                src={props.sso.authenticate(props.noteId ? ('/api/body/' + props.noteId) : 'text.html')}/>
       </Stack>;
 
     }

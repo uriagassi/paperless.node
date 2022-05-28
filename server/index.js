@@ -12,9 +12,6 @@ const app = express();
 const sso = require('./syn_login')
 const cookieParser = require('cookie-parser')
 
-
-// TODO: HTTPS
-
 const addNotes = require("./addNotes");
 
 db.on('trace', (e) => console.log(e))

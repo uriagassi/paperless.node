@@ -29,12 +29,12 @@ const sso = (req, res, next) => {
           maxAge: 5000000,
           secure: true,
           httpOnly: true,
-          sameSite: 'None'}) // TODO - make 'lax' after supporting HTTPS
+          sameSite: 'lax'})
         res.cookie('x-syn-token-checked', true, {
           maxAge: 50000,
           secure: true,
           httpOnly: true,
-          sameSite: 'None'}) // TODO - make 'lax' after supporting HTTPS
+          sameSite: 'lax'})
         return next()
       })
       .catch(error => {
