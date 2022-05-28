@@ -18,21 +18,23 @@
 
     app.get('/api/mail/pending', (req, res) => {
       authorize(res, (gmail, auth) => {
-        gmail.users.labels.list({userId: 'me'}, (err, r) => {
+        gmail.users.getProfile({userId: 'me'}, (err, r) => {
           if (err) {
             console.log(err)
-            if (err.code == 401) {
-              return getNewToken(auth, res)
-            }
-            return r.status(500).json(r)
+            return res.status(err.code ?? 500).json({authenticate: getNewToken(auth)})
           }
-          let mainLabel = r.data.labels.find(l => l.name == 'Paperless')
-          gmail.users.threads.list({userId: 'me', labelIds: [mainLabel.id]}, (err, r) => {
-            if (err) {
-              return res.status(500).json(r)
-            }
-            res.json({pendingThreads: r.data.threads.length})
-            })
+          console.log(r)
+          let emailAddress = r.data.emailAddress
+          gmail.users.labels.list({userId: 'me'}, (err, r) => {
+            let mainLabel = r.data.labels.find(l => l.name == 'Paperless')
+            gmail.users.threads.list({userId: 'me', labelIds: [mainLabel.id]},
+              (err, r) => {
+                if (err) {
+                  return res.status(500).json(r)
+                }
+                res.json({pendingThreads: r.data.threads.length, emailAddress: emailAddress})
+              })
+          })
         })
       })
     })
@@ -59,7 +61,7 @@
 
       // Check if we have previously stored a token.
       fs.readFile(TOKEN_PATH, (err, token) => {
-        if (err) return getNewToken(oAuth2Client, res);
+        if (err) return getNewToken(oAuth2Client);
         oAuth2Client.setCredentials(JSON.parse(token));
         const gmail = google.gmail({version: 'v1', auth: oAuth2Client});
         callback(gmail, oAuth2Client);
@@ -72,16 +74,14 @@
    * execute the given callback with the authorized OAuth2 client.
    * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
    */
-  function getNewToken(oAuth2Client, res) {
-    const authUrl = oAuth2Client.generateAuthUrl({
+  function getNewToken(oAuth2Client) {
+    return oAuth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: SCOPES,
     });
-    res.json({authenticate: authUrl})
   }
 
   function authenticate(credentials, code, res) {
-    e.log(code)
     const {client_secret, client_id, redirect_uris} = credentials.web;
     const oAuth2Client = new google.auth.OAuth2(
       client_id, client_secret, redirect_uris[0]);

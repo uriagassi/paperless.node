@@ -24,4 +24,13 @@ export class SSO {
     return url + '?token=' + this.access_token
   }
 
+  logout() : Promise<any> {
+    return new Promise<any>(resolve => {
+      const iframe = document.createElement('iframe')
+      iframe.onload = () => resolve(null)
+      iframe.src = `${this.synology.oauthserver_url}/webman/sso/SSOOauth.cgi?scope=user_id&redirect_uri=${this.synology.redirect_uri}&synossoJSSDK=false&app_id=${this.synology.app_id}&method=logout`;
+      document.body.appendChild(iframe)
+    })
+  }
+
 }

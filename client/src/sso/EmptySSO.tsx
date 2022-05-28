@@ -10,4 +10,7 @@ export class SSO {
     return url
   }
 
+  logout() : Promise<any> {
+    return new Promise<any>((r) => r(null))
+  }
 }

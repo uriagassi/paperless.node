@@ -230,6 +230,15 @@ app.get('/api/user', (req, res) => {
   }
 )
 
+app.get('/api/logout', (req, res) => {
+  console.log(req.cookies)
+  for (const c in req.cookies)  {
+      console.log('clearing cookie ' + c)
+    res.clearCookie(c)
+  }
+  res.json('OK')
+})
+
 addNotes.start(app, config, db)
 
 gmail.start(app, config, db)

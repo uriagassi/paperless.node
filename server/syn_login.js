@@ -8,7 +8,6 @@ const sso = (req, res, next) => {
   const nonSecurePaths = ['/api/body/css', '/api/body/js'];
   if (nonSecurePaths.find(p => req.path.startsWith(p))) return next();
   if (req.cookies?.['x-syn-token-checked'] && req.path != '/api/user') {
-    console.log('cookie token checked - skipping')
     return next()
   } else {
     console.log(req.cookies)

@@ -97,7 +97,7 @@ export const App: React.FunctionComponent = () => {
           </BaseButton>
           <h1 className='App-header'>Paperless</h1>
           <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch}/>
-          <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}}/>
+          <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth}/>
         </Stack>
         <Stack horizontal className='MainView'>
           <TagList  selectedId={selectedFolder}
