@@ -96,7 +96,7 @@ export const App: React.FunctionComponent = () => {
             <Icon iconName= 'GlobalNavButton'/>
           </BaseButton>
           <h1 className='App-header'>Paperless</h1>
-          <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch}/>
+          <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch} onClear={() => doSearch('')}/>
           <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth}/>
         </Stack>
         <Stack horizontal className='MainView'>
