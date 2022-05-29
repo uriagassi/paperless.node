@@ -1,4 +1,5 @@
 (function () {
+  const formidable = require("formidable");
   const path = require('path');
   const fs = require('fs');
   const mime = require('mime-types');
@@ -26,6 +27,17 @@
       importFiles(pendingFileList(), 0, res)
     })
 
+    app.post('/api/files/new', (req, res) => {
+      const form = new formidable.IncomingForm();
+      form.parse(req, (err, fields, files) => {
+        console.log(files.newNote)
+        console.log(fields)
+        importFromFile(files.newNote.filepath, files.newNote.originalFilename, 0).then(() => {
+          res.json('OK')
+        })
+      })
+    })
+
     const pendingFileList = () => {
       return fs.readdirSync(importDir).filter(f => {
         return !f.startsWith('.') && fs.lstatSync(
@@ -34,7 +46,7 @@
     }
 
     const importFiles = (fileList, i, res) => {
-      importFromFile(path.join(importDir, fileList[i]), i).then(() => {
+      importFromFile(path.join(importDir, fileList[i]), fileList[i], i).then(() => {
         if (i < fileList.length - 1) {
           importFiles(fileList, i + 1, res)
         } else {
@@ -70,31 +82,31 @@
         }
     }
 
-    const importFromFile = (fullName, i) => {
+    const importFromFile = (fullName, basename, i) => {
       return new Promise((resolve, reject) => {
         console.log("starting " + i)
         let stats = fs.lstatSync(fullName)
         if (stats.isFile()) {
           let attachment = {
-            $fileName: path.basename(fullName).replaceAll(/[\/:" *?<>|&=;]+/g,
+            $fileName: basename.replaceAll(/[\/:" *?<>|&=;]+/g,
               '_'),
-            $mime: mime.lookup(fullName),
+            $mime: mime.lookup(basename),
             $hash: md5(fs.readFileSync(fullName)),
             $size: stats.size
           }
           console.log(attachment)
-          let baseName = path.parse(attachment.$fileName).name;
+          let noExtension = path.parse(attachment.$fileName).name;
           let uniqueFilename = attachment.$fileName
           let tick = 0;
           while (fs.existsSync(path.join(attachmentsDir, uniqueFilename))) {
             tick++;
-            uniqueFilename = baseName + tick + path.extname(fullName)
+            uniqueFilename = noExtension + tick + path.extname(basename)
           }
           fs.copyFileSync(fullName, path.join(attachmentsDir, uniqueFilename))
           attachment.$uniqueFilename = uniqueFilename
           let newNote = {
             $createTime: stats.ctime.toISOString().replace(/T.*/, ''),
-            $title: path.basename(fullName),
+            $title: noExtension,
             $noteData: getHtmlForAttachment(attachment)
           }
 

@@ -1,11 +1,10 @@
-import React, {useEffect, useState} from 'react';
+import React, {createRef, useEffect, useState} from 'react';
 import {
-  BaseButton,
+  BaseButton, DefaultButton,
   Icon,
   initializeIcons,
   IStackStyles,
-  IStackTokens,
-  SearchBox,
+  IStackTokens, SearchBox,
   Stack
 } from '@fluentui/react';
 import './App.css';
@@ -47,6 +46,7 @@ export const App: React.FunctionComponent = () => {
   const [tagToUpdate, setTagToUpdate] = useState<ITagWithChildren | undefined>()
   const [loggedInUser, setLoggedInUser] = useState<{imageInitials: string, text: string, secondaryText?: string}>()
   const [auth, setAuth] = useState<ISSO>()
+  const fileUploadRef = createRef<HTMLInputElement>()
 
   useEffect(() => {
     SSO.then(m => setAuth(new m.SSO()))
@@ -86,6 +86,21 @@ export const App: React.FunctionComponent = () => {
     setTagToUpdate(undefined)
   }
 
+  function uploadFile(e: React.ChangeEvent<HTMLInputElement>) {
+    console.log(e.target.files)
+    if (e.target.files) {
+      console.log(e.target.files?.[0])
+      const formData = new FormData();
+      formData.append('newNote', e.target.files[0], e.target.files[0].name)
+      fetch('/api/files/new', { method: 'POST', body: formData}).then(() => {
+        eventBus.dispatch('note-collection-change', { notebooks: [2]})
+      })
+    }
+  }
+
+  function clickUpload() {
+    fileUploadRef.current?.click();
+  }
 
   return (
       <>
@@ -100,9 +115,13 @@ export const App: React.FunctionComponent = () => {
           <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth}/>
         </Stack>
         <Stack horizontal className='MainView'>
+          <Stack>
+            <DefaultButton className='NewNoteButton' name='New Note' text='New Note' iconProps={{iconName: 'BulkUpload'}} onClick={clickUpload}/>
+            <input ref={fileUploadRef} style={{ display: "none" }} type="file" onChange={uploadFile} />
           <TagList  selectedId={selectedFolder}
                    onSelectedIdChanged={(key) => setSelectedFolder(key)}
                    tags={tags} notebooks={notebooks} updateTag={updateTag}/>
+          </Stack>
           <NoteList tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={activeNote}
                     api={serverAPI}
                     selectedNotes={selectedNotes}

@@ -8,6 +8,7 @@
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.18.1",
+    "formidable": "^2.0.1",
     "googleapis": "^100.0.0",
     "md5": "^2.3.0",
     "mime-types": "^2.1.35",
