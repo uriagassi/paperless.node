@@ -27,7 +27,8 @@ const fileTypeToIcon : {[key: string]: string} = {
   'image/jpeg': 'FileImage',
   'image/png': 'FileImage',
   'application/pdf': 'PDF',
-  'text': 'TextDocument'
+  'text': 'TextDocument',
+  'application/zip': 'ZipFolder'
 }
 export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
 {

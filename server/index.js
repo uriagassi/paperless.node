@@ -141,6 +141,7 @@ app.get('/api/body/:noteId', (req, res) => {
 app.use('/api/body/attachments', express.static(baseDir +'/attachments'))
 app.use('/api/body/css', express.static(baseDir + '/css'))
 app.use('/api/body/js', express.static(baseDir + '/js'))
+app.use('/api/body/images', express.static(baseDir + '/images'))
 
 const update_note = "update notes set title = $title, createTime = $createTime, notebookId = $notebookId, updateTime = date('now') where NodeId = $noteId"
 
