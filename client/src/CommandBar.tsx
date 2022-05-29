@@ -17,7 +17,7 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
   const [pendingImport, setPendingImport] = useState<number>(0)
   const [gmailAuthenticateURL, setGmailAuthenticateURL] = useState<string>()
   const [gmailAddress, setGmailAddress] = useState<string>()
-  const [pendingMail, setPendingMail] = useState<number|string>('x')
+  const [pendingMail, setPendingMail] = useState<number|string>('?')
   const [personaCMElement, setPersonaCMElement] = useState<Element>()
   const [gmailCMElement, setGmailCMElement] = useState<Element>()
 
@@ -33,9 +33,9 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
           }
       )
     }
-    refreshPendingCount()
+    refreshPendingCount(true)
     const interval = setInterval(() => {
-      refreshPendingCount()
+      refreshPendingCount(false)
     }, MINUTE_MS)
     return () => clearInterval(interval);
   }, [])
@@ -43,7 +43,7 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
   function importFiles() {
     fetch('/api/files/import').then(r => {
       eventBus.dispatch('note-collection-change', { notebooks: [2]})
-      refreshPendingCount()
+      refreshPendingCount(false)
     })
   }
 
@@ -55,17 +55,20 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
     })
   }
 
-  function refreshPendingCount() {
+  function refreshPendingCount(force: boolean) {
     fetch('/api/files/checkStatus').then(result => result.json())
         .then(r => setPendingImport(r.pending))
-    fetch('/api/mail/pending').then(r => r.json())
-        .then(r => {
-          if (r.authenticate) {
-            setGmailAuthenticateURL(r.authenticate)
-          }
-          setGmailAddress(r.emailAddress)
-          setPendingMail(r.pendingThreads)
-        })
+    if (force || pendingMail != '?') {
+      console.log(`pendingMail = ${pendingMail}, ${pendingMail == '?'}`)
+      fetch('/api/mail/pending').then(r => r.json())
+          .then(r => {
+            if (r.authenticate) {
+              setGmailAuthenticateURL(r.authenticate)
+            }
+            setGmailAddress(r.emailAddress)
+            setPendingMail(r.pendingThreads ?? '?')
+          })
+    }
   }
 
   function authenticate() {
@@ -93,11 +96,11 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
     ))
   }
   return <Stack horizontal verticalAlign='baseline'>
-    <IconButton className="Command" title="Mail Import" iconProps={{'iconName': 'Mail'}} text="Mail Import" onRenderIcon={() => fileImportButton('Mail', pendingMail ?? 'x')} onClick={e => setGmailCMElement(e.target as Element)} onContextMenu={e => {
+    <IconButton className="Command" title="Mail Import" iconProps={{'iconName': 'Mail'}} text="Mail Import" onRenderIcon={() => fileImportButton('Mail', pendingMail ?? '?')} onClick={e => setGmailCMElement(e.target as Element)} onContextMenu={e => {
       e.preventDefault()
 
     }}/>
-    <IconButton className="Command" title='File Import' iconProps={{'iconName':'CloudImportExport'}} text='File Import' onRenderIcon={() => fileImportButton('CloudImportExport', pendingImport)} onMouseEnter={() => refreshPendingCount()} onClick={() => importFiles()}/>
+    <IconButton className="Command" title='File Import' iconProps={{'iconName':'CloudImportExport'}} text='File Import' onRenderIcon={() => fileImportButton('CloudImportExport', pendingImport)} onMouseEnter={() => refreshPendingCount(true)} onClick={() => importFiles()}/>
     <Persona {...props.loggedIn} size={PersonaSize.size40} onContextMenu={e => {
       e.preventDefault()
       setPersonaCMElement(e.target as Element)
