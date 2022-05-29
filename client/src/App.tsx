@@ -89,8 +89,8 @@ export const App: React.FunctionComponent = () => {
 
   return (
       <>
-      <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={(e) => { setKeyState({ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, metaKey: e.metaKey})}}
-             onKeyUp={(e) => { setKeyState({ctrlKey: e.ctrlKey, shiftKey: e.shiftKey, metaKey: e.metaKey})}}>
+      <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={setKeyState}
+             onKeyUp={setKeyState} onClick={setKeyState}>
         <Stack horizontal verticalAlign='baseline'>
           <BaseButton className='Hamburger'>
             <Icon iconName= 'GlobalNavButton'/>
