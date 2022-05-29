@@ -7,8 +7,7 @@ export const TagList: React.FunctionComponent<{
   onSelectedIdChanged: (key?: string) => void,
   tags: ITagWithChildren[] | undefined,
   notebooks: ITagWithChildren[] | undefined, updateTag: (tag : ITagWithChildren) => any }> =
-    (props: { selectedId: string | undefined, onSelectedIdChanged: (key?: string) => void, tags: ITagWithChildren[] | undefined,
-      notebooks: ITagWithChildren[] | undefined, updateTag: (tag : ITagWithChildren) => any }) => {
+    (props) => {
 
   const [tagList, setTagList] = useState<INavLinkGroup[]>([])
 
@@ -83,12 +82,23 @@ export const TagList: React.FunctionComponent<{
         }
       }
 
-  return (
+      function onExpand(ev?: React.MouseEvent<HTMLElement, MouseEvent>, item?: INavLink) {
+        if (item) {
+          fetch(`/api/${item.key?.replace('?','/')}expand`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ expanded: !item.isExpanded })})
+              .then(r => console.log(r))
+        }
+      }
+
+      return (
       <div className='TagList' onContextMenu={onShowContextualMenu}>
         <Nav
             selectedKey={props.selectedId}
             groups={tagList ?? []}
             onLinkClick={onSelect}
+            onLinkExpandClick={onExpand}
         />
         <TagContextMenu updateTag={props.updateTag} availableTags={props.tags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
       </div>

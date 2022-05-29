@@ -222,6 +222,17 @@ app.post('/api/tags/:tagId', (req, res) => {
   })
 })
 
+const update_tag_expand = 'update Tags set IsExpanded = $expanded where TagId = $tagId'
+
+app.post('/api/tags/:tagId/expand', (req, res) => {
+  console.log(req.body)
+  console.log(req.body.expanded)
+  db.run(update_tag_expand, {
+    $tagId: req.params.tagId,
+    $expanded: req.body.expanded
+  })
+})
+
 app.get('/api/user', (req, res) => {
   res.json({
     user_id: req.user_id,
