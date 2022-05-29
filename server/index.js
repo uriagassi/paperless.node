@@ -142,7 +142,7 @@ app.use('/api/body/attachments', express.static(baseDir +'/attachments'))
 app.use('/api/body/css', express.static(baseDir + '/css'))
 app.use('/api/body/js', express.static(baseDir + '/js'))
 
-const update_note = 'update notes set title = $title, createTime = $createTime, notebookId = $notebookId where NodeId = $noteId'
+const update_note = "update notes set title = $title, createTime = $createTime, notebookId = $notebookId, updateTime = date('now') where NodeId = $noteId"
 
 app.post('/api/notes/:noteId', (req, res) => {
   db.run(update_note, {
@@ -168,7 +168,7 @@ app.delete('/api/notes/:noteId', (req, res) => {
   }
 })
 
-const move_notes = 'update notes set notebookId = ? where NodeId in (#noteIds)'
+const move_notes = "update notes set notebookId = ?, updateTime = date('now') where NodeId in (#noteIds)"
 
 app.post('/api/notes/:noteIds/notebook/:notebookId', (req, res) => {
   let ids = req.params.noteIds.split(',')
