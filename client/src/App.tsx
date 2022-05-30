@@ -4,8 +4,8 @@ import {
   Icon,
   initializeIcons,
   IStackStyles,
-  IStackTokens, SearchBox,
-  Stack
+  IStackTokens, PartialTheme, SearchBox,
+  Stack, ThemeProvider
 } from '@fluentui/react';
 import './App.css';
 import {ITagWithChildren, TagList} from "./TagList";
@@ -18,6 +18,7 @@ import {UpdateTagDialog} from "./UpdateTagDialog";
 import 'semantic-ui-css/semantic.css'
 import {ISSO} from "./sso/ISSO";
 import {ServerAPI} from "./ServerAPI";
+import {themeDark, themeLight} from "./themes";
 
 const SSO = import('./sso/' + (process.env.REACT_APP_SSO_HANDLER ?? 'EmptySSO') + '.tsx');
 initializeIcons();
@@ -47,6 +48,34 @@ export const App: React.FunctionComponent = () => {
   const [loggedInUser, setLoggedInUser] = useState<{imageInitials: string, text: string, secondaryText?: string}>()
   const [auth, setAuth] = useState<ISSO>()
   const fileUploadRef = createRef<HTMLInputElement>()
+  const [theme, setTheme] = useState<{uiTheme: PartialTheme, darkMode: boolean}>()
+  const storedTheme = localStorage.getItem("theme");
+
+  const setDark = () => {
+
+    // 2
+    localStorage.setItem("theme", "dark");
+
+    // 3
+    if (!theme?.darkMode) {
+      setTheme({uiTheme: themeDark, darkMode: true});
+    }
+  };
+
+  const setLight = () => {
+    localStorage.setItem("theme", "light");
+    if (theme?.darkMode) {
+      setTheme({uiTheme: themeLight, darkMode: false});
+    }
+  };
+
+  function toggleDarkMode() {
+    if (theme?.darkMode) {
+      setLight();
+    } else {
+      setDark();
+    }
+  }
 
   useEffect(() => {
     SSO.then(m => setAuth(new m.SSO()))
@@ -59,6 +88,27 @@ export const App: React.FunctionComponent = () => {
           setTags(data.tags);
         });
   }
+
+  useEffect(() => {
+    if (!theme) {
+      const prefersDark =
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+      const defaultDark =
+          storedTheme === "dark" || (storedTheme === null && prefersDark);
+
+      if (defaultDark) {
+        setDark();
+      }
+    } else {
+      if (theme.darkMode) {
+        setDark()
+      } else {
+        setLight()
+      }
+    }
+  }, [theme])
 
   useEffect(() => {
     if (auth) {
@@ -103,7 +153,7 @@ export const App: React.FunctionComponent = () => {
   }
 
   return (
-      <>
+      <ThemeProvider applyTo="body" theme={theme?.uiTheme} data-theme={theme?.darkMode ? 'dark' : 'light'}>
       <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={setKeyState}
              onKeyUp={setKeyState} onClick={setKeyState}>
         <Stack horizontal verticalAlign='baseline'>
@@ -112,7 +162,7 @@ export const App: React.FunctionComponent = () => {
           </BaseButton>
           <h1 className='App-header'>Paperless</h1>
           <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch} onClear={() => doSearch('')}/>
-          <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth}/>
+          <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth} isDark={theme?.darkMode ?? false} onDarkChanged={() => toggleDarkMode()}/>
         </Stack>
         <Stack horizontal className='MainView'>
           <Stack>
@@ -136,6 +186,6 @@ export const App: React.FunctionComponent = () => {
         </Stack>
       </Stack>
         <UpdateTagDialog tag={tagToUpdate} availableTags={tags} onClose={onUpdateTagClose}/>
-        </>
+        </ThemeProvider>
   );
 };

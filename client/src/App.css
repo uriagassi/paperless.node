@@ -1,5 +1,6 @@
 .App {
   text-align: center;
+  background-color: var(--background-color);
 }
 :root {
   --line-color: rgb(218, 220, 224);
@@ -7,47 +8,43 @@
   --selected-focus: rgb(220, 218, 216);
   --selected-bar-color: rgb(0, 120, 212);
   --icon-color: rgb(16, 110, 190);
+  --background-color: white;
+  --hover-color: rgb(243, 242, 241);
+  --detail-background: #f8f9fa;
+  --text-color: rgb(50, 49, 48);
+  --drop-shadow: gray;
+  --button-color: white;
+  --tag-item-color: rgb(243, 242, 241);
 }
 
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+#root {
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+[data-theme="dark"] {
+  --background-color: rgb(24, 25, 27);
+  --text-color: white;
+  --hover-color: rgb(22,25,27);
+  --line-color: rgb(54, 55, 58);
+  --detail-background: rgb(36, 37, 40);
+  --selected-color:rgb(28, 56, 101);
+  --drop-shadow: black;
+  --button-color: rgb(39, 41, 44);
+  --tag-item-color: var(--button-color);
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
 .App-header {
-  #background-color: white;
-  #min-height: 10vh;
-  #display: flex;
-  #flex-direction: column;
-  #align-items: flex-start;
   padding: 10px 60px 10px 60px;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  #color: white;
   background-image: url('../public/favicon.ico');
   background-repeat: no-repeat;
   background-position: left;
   margin: 10px 40px;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  color: var(--text-color)
 }
 
 .ms-CommandBar {
@@ -76,7 +73,7 @@
 }
 
 .ListItem:hover {
-  background-color: rgb(243, 242, 241);
+  background-color: var(--hover-color);
   color: var(--selected-bar-color);
 }
 
@@ -115,17 +112,17 @@
   padding: 0 1em;
 }
 
+.ms-TagItem {
+  background-color: var(--tag-item-color);
+}
+
 .MainView {
   height: 90vh;
   flex: 1;
   #padding: 3px;
   border-top: var(--line-color) solid 1px;
 }
-.footer {
-  text-align: right;
-  border-top: 1px solid gray;
-  padding: 2px;
-}
+
 .SearchBox {
   flex: 1;
   border-radius: 10px;
@@ -141,7 +138,7 @@
   border-style: none;
   margin-right: 10px;
   margin-left: 20px;
-  background-color: white;
+  background-color: var(--background-color);
 }
 
 .Hamburger i {
@@ -152,7 +149,7 @@
 .DetailCard {
   flex: 1;
   border-left: var(--line-color) solid 1px;
-  background-color: #f8f9fa;
+  background-color: var(--detail-background);
 }
 .DateField {
   min-width: 9em;
@@ -162,7 +159,7 @@
 .CardRow1, .CardRow2 {
   padding: 0.75em 1em 0.75em 1em;
   min-height: 3em;
-  background-color: white;
+  background-color: var(--background-color);
   border-bottom: var(--line-color) solid 1px;
 }
 
@@ -194,7 +191,7 @@
 .badge {
   position: absolute;
   background: var(--icon-color);
-  color: white;
+  color: var(--background-color);
   border-radius: 10px;
   width: 20px;
   height: 20px;
@@ -203,9 +200,15 @@
   top: 0px;
 }
 
-.CommandButton {
+.Command .ms-Icon, .CommandButton {
   font-size: 36px;
   padding-top: 8px;
+  fill: var(--icon-color);
+  height: 36px;
+}
+
+.Command .ms-Icon {
+  padding-top: 3px;
 }
 
 .Command {
@@ -222,6 +225,10 @@
   overflow-y: visible !important;
 }
 
+.ms-DocumentCardStatus {
+  background-color: var(--detail-background);
+}
+
 .NewNoteButton {
   font-size: 14px;
   width: 160px;
@@ -229,7 +236,8 @@
   border-radius: 48px;
   border-style: none;
   margin: 1em;
-  filter: drop-shadow(0 1px 0.1rem gray);
+  background-color: var(--button-color);
+  filter: drop-shadow(0 1px 0.1rem var(--drop-shadow));
 }
 
 .NewNoteButton i {
