@@ -7,8 +7,7 @@ import {
   DocumentCard,
   DocumentCardDetails,
   DocumentCardLogo,
-  DocumentCardStatus,
-  DocumentCardTitle, DocumentCardType, FocusZone,
+  DocumentCardTitle, DocumentCardType, FocusZone, Icon,
   Stack
 } from "@fluentui/react";
 import eventBus from "./EventBus";
@@ -195,8 +194,12 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
       <DocumentCardDetails>
         <DocumentCardTitle title={note.title} className='ListItemTitle' data-is-not-focusable/>
         <DocumentCardTitle title={note.createTime.split(' ')[0]} showAsSecondaryTitle/>
-        <DocumentCardStatus status={note.attachments + ' ' + formatFileSize(note.size)}
-                            statusIcon={fileTypeToIcon[note.mime] ?? "attach"}/>
+        {note.size && note.size > 0 ?
+        <div className='ms-DocumentCardStatus Attachments'>
+          <Icon iconName={fileTypeToIcon[note.mime] ?? "attach"}/>
+          <span className='AttachmentName'>{note.attachments}</span>
+          <span>{formatFileSize(note.size)}</span>
+        </div> : <div/>}
       </DocumentCardDetails>
     </DocumentCard>)
   }

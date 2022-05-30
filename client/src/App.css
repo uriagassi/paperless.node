@@ -243,3 +243,17 @@
 .NewNoteButton i {
   color: var(--icon-color);
 }
+
+.Attachments {
+  display: flex;
+  padding: 5px 10px;
+  margin: 5px 15px;
+  color: var(--text-color);
+}
+
+.AttachmentName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 5px;
+}
