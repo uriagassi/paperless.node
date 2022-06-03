@@ -11,7 +11,15 @@ export const TagList: React.FunctionComponent<{
 
   const [tagList, setTagList] = useState<INavLinkGroup[]>([])
 
-  useEffect(() => {
+      function addNote(notebooks: INavLink[], n: ITagWithChildren, icon: string) {
+        notebooks.push({
+          key: 'notebooks/' + n.key + '?',
+          name: n.name + (n.notes ? " (" + n.notes + ")" : ""),
+          icon: icon
+        } as INavLink)
+      }
+
+      useEffect(() => {
     let links: INavLink[] = [];
     let tags: { [key: string]: INavLink } = {};
     let notebooks: INavLink[] = []
@@ -33,13 +41,10 @@ export const TagList: React.FunctionComponent<{
         tags['' + (item.parent ?? '')]?.links?.push(current)
       }
     });
-    props.notebooks?.forEach((n: ITagWithChildren) => {
-      notebooks.push({
-        key: 'notebooks/' + n.key + '?',
-        name: n.name + (n.notes ? " (" + n.notes + ")" : ""),
-        icon: n.type == 'D' ? "Delete" : "Inbox"
-      } as INavLink)
-    })
+    props.notebooks?.filter(n => n.type == 'I').forEach(n => addNote(notebooks, n, "Inbox"))
+    props.notebooks?.filter(n => !n.type).forEach(n => addNote(notebooks, n, "BookAnswers"))
+    props.notebooks?.filter(n => n.type == 'A').forEach(n => addNote(notebooks, n,  "Archive"))
+    props.notebooks?.filter(n => n.type == 'D').forEach(n => addNote(notebooks, n, "Delete"))
     let selectedId = props.selectedId || notebooks[0]?.key
     if (selectedId != props.selectedId) {
       props.onSelectedIdChanged(selectedId);

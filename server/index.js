@@ -120,9 +120,16 @@ const select_note =
   from Notes left join NoteTags nt on NodeId = nt.NoteId left join Tags t on t.TagId=nt.TagId \
   where NodeId = ?'
 ;
+
+const select_attachments = 'select AttachmentId as id, Filename as filename, UniqueFilename as uniqueFilename \
+from Attachments where NoteNodeId = ?\
+'
 app.get("/api/notes/:noteId", (req, res) => {
   db.get(select_note, req.params.noteId, (e, r) => {
-    res.json(r)
+    db.all(select_attachments, [req.params.noteId], (e, a) => {
+      r.attachments = a
+      res.json(r)
+    })
   })
 })
 

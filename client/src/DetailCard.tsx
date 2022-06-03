@@ -3,10 +3,11 @@ import {format} from "date-fns";
 import eventBus from "./EventBus";
 
 import {
+  CommandBar,
   DatePicker,
   defaultDatePickerStrings,
   Dropdown,
-  IBasePickerSuggestionsProps,
+  IBasePickerSuggestionsProps, ICommandBarItemProps, Icon,
   IDatePicker,
   IDropdownOption, ITag,
   Stack,
@@ -33,20 +34,45 @@ export const DetailCard: React.FunctionComponent<
 
       useEffect(() => {
         setNotebooks(props.availableNotebooks?.map(t => {
-          return {key: t.key, text: t.name}
-        }) ?? [{key: 11, text: 'test!'}])
+          return {key: t.key, text: t.name, data: { icon: selectIcon(t.type)}}
+        }) ?? [])
       }, [props.availableNotebooks])
 
+      const onRenderOption = (option?: IDropdownOption): JSX.Element => {
+        return (
+            <div>
+              {option?.data && option.data.icon && (
+                  <Icon iconName={option.data.icon} aria-hidden="true" title={option.data.icon} />
+              )}
+              <span>{option?.text}</span>
+            </div>
+        );
+      };
+      const selectIcon = (type: string | undefined) => {
+        switch (type) {
+          case 'A':
+            return 'Archive'
+          case 'I':
+            return 'Inbox'
+          case 'D':
+            return 'Delete'
+          default:
+            return "BookAnswers"
+        }
+      }
 
       const loadNote = () => {
         if (props.noteId) {
           props.api.loadNote(props.noteId)
               .then(data => {
                 let note: Note = {
+                  attachments: data.attachments,
                   notebookId: data.notebookId,
                   title: data.title ?? '',
                   createTime: new Date(Date.parse(data.createTime)),
-                  tags: []
+                  tags: [],
+                  deleted: props.availableNotebooks?.find(n => n.key == data.notebookId)?.type == 'D',
+                  archived: props.availableNotebooks?.find(n => n.key == data.notebookId)?.type == 'A'
                 }
                 let tagNames = data.tags?.split(',') ?? []
                 let tagIds = data.tagIds?.split(',') ?? []
@@ -214,7 +240,95 @@ export const DetailCard: React.FunctionComponent<
         setDoUpdate(undefined);
       }
 
+      const download = (url: string, filename: string) => {
+        fetch(url)
+            .then((response) => response.blob())
+            .then((blob) => {
+              // Create blob link to download
+              const url = window.URL.createObjectURL(
+                  new Blob([blob]),
+              );
+              const link = document.createElement('a');
+              link.href = url;
+              link.setAttribute(
+                  'download',
+                  filename,
+              );
+
+              // Append to html link element page
+              document.body.appendChild(link);
+
+              // Start download
+              link.click();
+
+              // Clean up and remove the link
+              link.parentNode?.removeChild(link);
+            });
+      }
+
+      const detailCommands: ICommandBarItemProps[] = [
+        {key: 'download',
+          text: 'Download',
+          iconProps: { iconName: 'DownloadDocument'},
+          hidden: !note?.attachments.length,
+          split: true,
+          subMenuProps: (note?.attachments.length ?? 0) > 0 ? {
+          items: note?.attachments.map(a => {return {
+            key: 'download' + a.filename,
+                text: a.filename,
+                iconProps: { iconName: 'DownloadDocument'},
+            onClick: () => download(`/api/body/attachments/${a.uniqueFilename}`, a.filename),
+          }}) || []} : undefined
+        },
+        { key: 'sep0',
+          buttonStyles: {icon: 'Separator'},
+          iconProps: { iconName: 'Separator'},
+          disabled: true},
+        { key: 'archive',
+        text: 'Archive',
+        iconProps: { iconName: 'Archive' },
+          hidden: note?.archived || note?.deleted,
+        onClick: () => onNotebookChanged(null, notebooks.find(n => n.data.icon == 'Archive'))},
+        { key: 'restore',
+          text: note?.archived ? 'Unarchive' : 'Undelete',
+          iconProps: { iconName: 'InboxCheck' },
+          hidden: !note?.archived && !note?.deleted,
+          onClick: () => onNotebookChanged(null, notebooks.find(n => n.data.icon == 'Inbox'))},
+        {key: 'delete',
+          text: 'Delete',
+          iconProps: { iconName: 'Delete'},
+          hidden: note?.deleted,
+          onClick: () => onNotebookChanged(null, notebooks.find(n => n.data.icon == 'Delete')),
+        split: true,},
+        { key: 'sep1',
+          buttonStyles: {icon: 'Separator'},
+         iconProps: { iconName: 'Separator'},
+        disabled: true},
+        { key: 'split',
+        text: 'Split',
+        iconProps: { iconName: 'Split'},
+        disabled: true},
+        { key: 'sep2',
+          buttonStyles: {icon: 'Separator'},
+          iconProps: { iconName: 'Separator'},
+          disabled: true},
+        { key: 'moveNotebook',
+        text: 'Move',
+        iconProps: {iconName: 'FabricMovetoFolder'},
+          subMenuProps: { items: notebooks.map(n => { return {
+            key: `${n.key}`,
+              onClick: () => onNotebookChanged(null, n),
+            text: n.text,
+              iconProps: { iconName: n.data.icon }
+            }})}
+        },
+        { key: 'addTag',
+        text: 'Modify Tags',
+        iconProps: { iconName: 'Tag'}}
+      ]
+
       return <Stack className='DetailCard'>
+        <CommandBar className='DetailsCommands' items={detailCommands}/>
         <Stack horizontalAlign='stretch' verticalAlign='center' horizontal
                className='CardRow1'>
           <span>Name:&nbsp;</span>
@@ -233,7 +347,7 @@ export const DetailCard: React.FunctionComponent<
         </Stack>
         <Stack horizontal className='CardRow2' onContextMenu={onShowContextualMenu}>
           <Dropdown className='NotebookDropdown' options={notebooks}
-                    selectedKey={note?.notebookId} onChange={onNotebookChanged}/>
+                    selectedKey={note?.notebookId} onChange={onNotebookChanged} onRenderOption={onRenderOption}/>
           <TagPicker onResolveSuggestions={filterSuggestedTags}
                      getTextFromItem={getTextFromItem}
                      pickerSuggestionsProps={pickerSuggestionsProps}
@@ -248,16 +362,19 @@ export const DetailCard: React.FunctionComponent<
     }
 
 interface Note {
+  attachments: [{id: number, filename: string, uniqueFilename: string}]
   notebookId: number;
   title: string;
   createTime: Date;
   tags: ITag[];
+  deleted: boolean | undefined;
+  archived: boolean | undefined;
 }
 
 interface DetailCardProps {
   noteId: number | undefined,
   availableTags: ITag[] | undefined,
-  availableNotebooks: ITag[] | undefined,
+  availableNotebooks: ITagWithChildren[] | undefined,
   updateTag: (tag : ITagWithChildren) => any,
   api: ServerAPI,
   sso: ISSO | undefined

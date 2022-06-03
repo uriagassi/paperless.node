@@ -170,6 +170,10 @@
   background-size: 10px;
 }
 
+.NotebookDropdown {
+  width: 10em;
+}
+
 .TagList .ms-Button-flexContainer {
   padding-left: 20px;
 }
@@ -242,6 +246,10 @@
 
 .NewNoteButton i {
   color: var(--icon-color);
+}
+
+.Separator {
+  color: var(--line-color) !important;
 }
 
 .Attachments {

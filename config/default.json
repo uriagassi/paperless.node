@@ -6,7 +6,7 @@
   "paperless": {
     "baseDir": "~/paperless",
     "importDir": "~/importToPaperless",
-    "defaultNotebook": "ToSort"
+    "defaultNotebook": "Inbox"
   },
   "sso": {
     "handler": "./empty_sso"
