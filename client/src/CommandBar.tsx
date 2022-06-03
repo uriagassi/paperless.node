@@ -59,10 +59,12 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
   }
 
   function importMail() {
-    fetch('/api/mail/import').then(r => r.json()).then(r => {
+    fetch('/api/mail/import', {method: 'POST', headers: {'Content-Type': 'application/json'}}).then(r => r.json()).then(r => {
       if (r.authenticate) {
         window.location.href = r.authenticate
       }
+      console.log(r)
+      eventBus.dispatch('note-collection-change', { notebooks: [2]})
     })
   }
 

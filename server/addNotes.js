@@ -4,15 +4,10 @@
   const fs = require('fs');
   const mime = require('mime-types');
   const md5 = require('md5');
+  const att = require('./attachment')
+  const notes = require('./notes')
 
-  function formatFileSize(bytes,decimalPoint) {
-    if(bytes == 0) return '0 Bytes';
-    var k = 1000,
-      dm = decimalPoint || 2,
-      sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
-      i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-  }
+
 
 
   module.exports.start = function (app, config, db) {
@@ -55,32 +50,13 @@
       })
     }
 
-    const add_note = "insert into Notes \
-      (NotebookId, CreateTime, UpdateTime, Title, NoteData) values \
-      ((select notebookId from Notebooks where Type = 'I'), $createTime, date('now'), $title, $noteData)"
 
     const add_attachment = db.prepare('insert into Attachments \
      (FileName, UniqueFilename, Mime, Hash, Size, NoteNodeId) values \
      ($fileName, $uniqueFilename, $mime, $hash, $size, $noteId)')
 
-    const get_auto_id = 'select last_insert_rowid() as id'
 
-    const getHtmlForAttachment = (attachmentData) => {
-        if (attachmentData.$mime.startsWith("image"))
-        {
-          return "<img class='paperless-attachment' src='attachments/" + attachmentData.$uniqueFilename + "' hash='" + attachmentData.$hash + "'/>";
-        }
-        else if (attachmentData.$mime.endsWith("pdf"))
-        {
-          return "<embed class='paperless-attachment' src='attachments/" + attachmentData.$uniqueFilename + "' type='" + attachmentData.$mime + "' hash='" + attachmentData.$hash + "'/>";
-        }
-        else
-        {
-          return "<div class='paperless-attachment-file' data-ext='" + mime.extension(attachmentData.$mime) + "'" +
-            " data-src='attachments/" + attachmentData.$uniqueFilename + "'><span>&nbsp;</span><span>" + attachmentData.$fileName + "</span>\n" +
-            "<span>" + formatFileSize(attachmentData.$size) + " </span></div>";
-        }
-    }
+
 
     const importFromFile = (fullName, basename, i) => {
       return new Promise((resolve, reject) => {
@@ -95,42 +71,17 @@
             $size: stats.size
           }
           console.log(attachment)
-          let noExtension = path.parse(attachment.$fileName).name;
-          let uniqueFilename = attachment.$fileName
-          let tick = 0;
-          while (fs.existsSync(path.join(attachmentsDir, uniqueFilename))) {
-            tick++;
-            uniqueFilename = noExtension + tick + path.extname(basename)
-          }
-          fs.copyFileSync(fullName, path.join(attachmentsDir, uniqueFilename))
-          attachment.$uniqueFilename = uniqueFilename
+          att.setUniqueFilename(attachment, config)
+          fs.copyFileSync(fullName, path.join(attachmentsDir, attachment.$uniqueFilename))
           let newNote = {
             $createTime: stats.ctime.toISOString().replace(/T.*/, ''),
-            $title: noExtension,
-            $noteData: getHtmlForAttachment(attachment)
+            $title: path.parse(attachment.$fileName),
+            $noteData: att.getHtmlForAttachment(attachment)
           }
-
-          db.run(add_note, newNote, (e) => {
+          notes.insertNote(db, newNote, [attachment], (e) => {
             console.log(e)
-            db.get(get_auto_id, (e, r) => {
-              if (r.id != '0') {
-                attachment.$noteId = r.id;
-                console.log(attachment)
-                add_attachment.run(attachment, (e) => {
-                  console.log(e)
-                  fs.unlinkSync(fullName)
-                })
-                console.log("resolving " + i)
-                resolve("OK")
-              } else {
-                console.log(e)
-                console.log(r)
-                reject(e)
-              }
-
-            })
-
-          });
+            fs.unlinkSync(fullName)
+          }).then(() => resolve("OK"))
         }
       })
     }

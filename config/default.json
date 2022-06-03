@@ -12,6 +12,8 @@
     "handler": "./empty_sso"
   },
   "mail": {
-    "redirect_uri": "https://localhost:3000/gmail"
+    "redirect_uri": "https://localhost:3000/gmail",
+    "pendingLabel": "Paperless",
+    "doneLabel": "Paperless/Archived"
   }
 }
