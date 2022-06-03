@@ -267,23 +267,7 @@ export const DetailCard: React.FunctionComponent<
       }
 
       const detailCommands: ICommandBarItemProps[] = [
-        {key: 'download',
-          text: 'Download',
-          iconProps: { iconName: 'DownloadDocument'},
-          hidden: !note?.attachments.length,
-          split: true,
-          subMenuProps: (note?.attachments.length ?? 0) > 0 ? {
-          items: note?.attachments.map(a => {return {
-            key: 'download' + a.filename,
-                text: a.filename,
-                iconProps: { iconName: 'DownloadDocument'},
-            onClick: () => download(`/api/body/attachments/${a.uniqueFilename}`, a.filename),
-          }}) || []} : undefined
-        },
-        { key: 'sep0',
-          buttonStyles: {icon: 'Separator'},
-          iconProps: { iconName: 'Separator'},
-          disabled: true},
+
         { key: 'archive',
         text: 'Archive',
         iconProps: { iconName: 'Archive' },
@@ -324,7 +308,26 @@ export const DetailCard: React.FunctionComponent<
         },
         { key: 'addTag',
         text: 'Modify Tags',
-        iconProps: { iconName: 'Tag'}}
+        iconProps: { iconName: 'Tag'}},
+
+        { key: 'sep0',
+          buttonStyles: {icon: 'Separator'},
+          iconProps: { iconName: 'Separator'},
+          hidden: !note?.attachments.length,
+          disabled: true},
+        {key: 'download',
+          text: 'Download',
+          iconProps: { iconName: 'DownloadDocument'},
+          hidden: !note?.attachments.length,
+          split: true,
+          subMenuProps: (note?.attachments.length ?? 0) > 0 ? {
+            items: note?.attachments.map(a => {return {
+              key: 'download' + a.filename,
+              text: a.filename,
+              iconProps: { iconName: 'Attach'},
+              onClick: () => download(`/api/body/attachments/${a.uniqueFilename}`, a.filename),
+            }}) || []} : undefined
+        },
       ]
 
       return <Stack className='DetailCard'>
