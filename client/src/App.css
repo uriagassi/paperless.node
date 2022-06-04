@@ -283,3 +283,19 @@
   padding: 0 5px;
   white-space: nowrap;
 }
+
+.LoadingModalView {
+  position: fixed;
+  display: flex;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.4);
+  backdrop-filter: blur(2px);
+}
+
+.LoadingModalView .ms-Spinner {
+  flex: 1;
+}

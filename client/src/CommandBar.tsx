@@ -24,7 +24,7 @@ registerIcons({
   }
 })
 
-export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: string, text: string}, isDark: boolean, onDarkChanged: () => any, sso: ISSO | undefined}> = props => {
+export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: string, text: string}, isDark: boolean, onDarkChanged: () => any, sso: ISSO | undefined, onLoadingText: (text: string | undefined) => any}> = props => {
   const [pendingImport, setPendingImport] = useState<number>(0)
   const [gmailAuthenticateURL, setGmailAuthenticateURL] = useState<string>()
   const [gmailAddress, setGmailAddress] = useState<string>()
@@ -59,12 +59,17 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
   }
 
   function importMail() {
+    props.onLoadingText("Importing from Gmail...")
     fetch('/api/mail/import', {method: 'POST', headers: {'Content-Type': 'application/json'}}).then(r => r.json()).then(r => {
       if (r.authenticate) {
         window.location.href = r.authenticate
       }
+      if (r.pendingThreads) {
+        setPendingMail(r.pendingThreads)
+      }
       console.log(r)
       eventBus.dispatch('note-collection-change', { notebooks: [2]})
+      props.onLoadingText(undefined)
     })
   }
 

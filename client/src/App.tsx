@@ -1,11 +1,16 @@
 import React, {createRef, useEffect, useState} from 'react';
 import {
-  BaseButton, DefaultButton,
+  BaseButton,
+  DefaultButton,
   Icon,
   initializeIcons,
   IStackStyles,
-  IStackTokens, PartialTheme, SearchBox,
-  Stack, ThemeProvider
+  IStackTokens, PartialTheme,
+  SearchBox,
+  Spinner,
+  SpinnerSize,
+  Stack,
+  ThemeProvider
 } from '@fluentui/react';
 import './App.css';
 import {ITagWithChildren, TagList} from "./TagList";
@@ -49,6 +54,7 @@ export const App: React.FunctionComponent = () => {
   const [auth, setAuth] = useState<ISSO>()
   const fileUploadRef = createRef<HTMLInputElement>()
   const [theme, setTheme] = useState<{uiTheme: PartialTheme, darkMode: boolean}>()
+  const [loadingText, setLoadingText] = useState<string>()
   const storedTheme = localStorage.getItem("theme");
 
   const setDark = () => {
@@ -162,7 +168,8 @@ export const App: React.FunctionComponent = () => {
           </BaseButton>
           <h1 className='App-header'>Paperless</h1>
           <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch} onClear={() => doSearch('')}/>
-          <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth} isDark={theme?.darkMode ?? false} onDarkChanged={() => toggleDarkMode()}/>
+          <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth} isDark={theme?.darkMode ?? false} onDarkChanged={() => toggleDarkMode()}
+          onLoadingText={setLoadingText}/>
         </Stack>
         <Stack horizontal className='MainView'>
           <Stack>
@@ -189,6 +196,9 @@ export const App: React.FunctionComponent = () => {
         </Stack>
       </Stack>
         <UpdateTagDialog tag={tagToUpdate} availableTags={tags} onClose={onUpdateTagClose}/>
+        <div className='LoadingModalView' hidden={!loadingText}>
+          <Spinner size={SpinnerSize.large} label={loadingText}/>
+        </div>
         </ThemeProvider>
   );
 };

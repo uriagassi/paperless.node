@@ -59,24 +59,36 @@
               userId: 'me',
               labelIds: [mainLabel.id],
               includeSpamTrash: false,
-              maxResults: 1
             },
             (err, r) => {
               if (err) {
                 return res.status(500).json(r)
               }
-              let note = importMessage(gmail, req.user_name, r.data.threads[0], [mainLabel.id],
+              const numOfNotes = 10
+              const partialThreads = r.data.threads.slice(0, numOfNotes);
+              let note = importMessages(gmail, req.user_name, partialThreads, [mainLabel.id],
                 [doneLabel.id], labelRecords.data.labels)
               note.then((r1) => {
                 console.log(r1)
                 res.json({
-                  pendingThreads: r.data.threads.length - 1,
+                  pendingThreads: r.data.threads.length - partialThreads.length,
                 })
               })
             })
         })
       })
     })
+
+    function importMessages(gmail, user_name, threads, pendingLabels, doneLabels, allLabels)  {
+      return new Promise(resolve => {
+        if (!threads[0]) {
+          resolve("OK")
+        } else {
+          importMessage(gmail, user_name, threads[0], pendingLabels, doneLabels, allLabels).then(() =>
+            importMessages(gmail, user_name, threads.slice(1), pendingLabels, doneLabels, allLabels)).then(() => resolve("OK"))
+        }
+      })
+    }
 
     function withCreds(callback) {
       fs.readFile(config.get('mail.credentials'), (err, content) => {
