@@ -9,7 +9,7 @@ import {
   Dropdown,
   IBasePickerSuggestionsProps, ICommandBarItemProps, Icon,
   IDatePicker,
-  IDropdownOption, ITag,
+  IDropdownOption, ITag, Shimmer,
   Stack,
   TagPicker,
   TextField
@@ -66,6 +66,7 @@ export const DetailCard: React.FunctionComponent<
           props.api.loadNote(props.noteId)
               .then(data => {
                 let note: Note = {
+                  id: props.noteId!,
                   attachments: data.attachments,
                   notebookId: data.notebookId,
                   title: data.title ?? '',
@@ -330,7 +331,7 @@ export const DetailCard: React.FunctionComponent<
         },
       ]
 
-      return <Stack className='DetailCard'>
+      return <Stack className='DetailCard'><Shimmer className='DetailCardShimmer' isDataLoaded={note && props.noteId == note.id}>
         <CommandBar className='DetailsCommands' items={detailCommands}/>
         <Stack horizontalAlign='stretch' verticalAlign='center' horizontal
                className='CardRow1'>
@@ -358,13 +359,19 @@ export const DetailCard: React.FunctionComponent<
                      onChange={onTagsChanged}/>
           <TagContextMenu updateTag={props.updateTag} availableTags={props.availableTags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
         </Stack>
+
+      </Shimmer>
+      <Shimmer isDataLoaded={note && props.noteId == note.id} className='BodyFieldShimmer'>
         <iframe className='BodyField'
                 src={props.sso?.authenticate(props.noteId ? ('/api/body/' + props.noteId) : 'text.html')}/>
-      </Stack>;
+      </Shimmer>
+      </Stack>
+          ;
 
     }
 
 interface Note {
+  id: number,
   attachments: [{id: number, filename: string, uniqueFilename: string}]
   notebookId: number;
   title: string;

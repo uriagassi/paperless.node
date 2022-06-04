@@ -10,8 +10,6 @@ const sso = (req, res, next) => {
   if (req.cookies?.['x-syn-token-user'] && req.path != '/api/user') {
     req.user_name = req.cookies?.['x-syn-token-user']
     return next()
-  } else {
-    console.log(req.cookies)
   }
   const token = sanitizer.value( req.cookies?.['x-syn-access-token'] ||
     req.body?.token || req.query?.token || req.headers["x-access-token"], /\w+/);

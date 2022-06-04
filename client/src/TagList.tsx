@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {INavLink, INavLinkGroup, ITag, Nav} from "@fluentui/react";
+import {INavLink, INavLinkGroup, ITag, Nav, Shimmer} from "@fluentui/react";
 import {TagContextMenu} from "./TagContextMenu";
 
 export const TagList: React.FunctionComponent<{
@@ -99,12 +99,14 @@ export const TagList: React.FunctionComponent<{
 
       return (
       <div className='TagList' onContextMenu={onShowContextualMenu}>
+        <Shimmer isDataLoaded={!!props.tags}>
         <Nav
             selectedKey={props.selectedId}
             groups={tagList ?? []}
             onLinkClick={onSelect}
             onLinkExpandClick={onExpand}
         />
+        </Shimmer>
         <TagContextMenu updateTag={props.updateTag} availableTags={props.tags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
       </div>
   );

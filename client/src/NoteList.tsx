@@ -7,7 +7,12 @@ import {
   DocumentCard,
   DocumentCardDetails,
   DocumentCardLogo,
-  DocumentCardTitle, DocumentCardType, FocusZone, Icon,
+  DocumentCardTitle,
+  DocumentCardType,
+  FocusZone,
+  Icon,
+  Shimmer,
+  ShimmerElementsGroup, ShimmerElementType,
   Stack
 } from "@fluentui/react";
 import eventBus from "./EventBus";
@@ -32,6 +37,7 @@ const fileTypeToIcon : {[key: string]: string} = {
 export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
 {
   const [noteList, setNoteList] = useState<Note[]>([])
+  const [loading, setLoading] = useState(false)
   useEffect(() => {
     loadNotes();
   },[])
@@ -73,6 +79,7 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
 
   const loadNotes = () => {
     if (props.filterId || props.searchTerm) {
+      setLoading(true)
       let filter = props.filterId ?? ''
       if (props.searchTerm ?? '' != '') {
         filter = 'search?term=' + encodeURIComponent(props.searchTerm ?? '') + '&'
@@ -93,6 +100,7 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
                 active: props.selectedId == n.id})
             })
             setNoteList(notes);
+            setLoading(false)
             if (!selectedFound && data.notes.length > 0) {
               props.onSelectedIdChanged?.(data.notes[0].id, new Set([data.notes[0].id]));
             }
@@ -179,6 +187,28 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
       props.onSelectedIdChanged?.(noteId, new Set([noteId]))
     }
   }
+  const getCustomElements = (): JSX.Element => {
+    return (
+        <>
+          {[...Array(10)].map(() =>
+        <div className="ListItem">
+          <ShimmerElementsGroup
+              shimmerElements={[
+                { type: ShimmerElementType.line, height: 100, width: 48},
+                { type: ShimmerElementType.gap, width: 16, height: 40 },
+              ]}
+          />
+          <ShimmerElementsGroup
+              flexWrap
+              width="100%"
+              shimmerElements={[
+                { type: ShimmerElementType.gap, width: '100%', height: 15 },
+              ]}
+          />
+        </div>)}
+        </>
+    );
+  }
 
   let notes = [];
   for (let i = 0; i < noteList.length; i++) {
@@ -210,9 +240,11 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
   }
   return (
       <FocusZone className='ListView' >
-        <Stack tabIndex={props.tabIndex} key={props.filterId} horizontalAlign='start' verticalAlign='start'>
-          {notes}
-        </Stack>
+        <Shimmer isDataLoaded={!loading} customElementsGroup={getCustomElements()} width="100%">
+          <Stack tabIndex={props.tabIndex} key={props.filterId} horizontalAlign='start' verticalAlign='start'>
+            {notes}
+          </Stack>
+        </Shimmer>
       </FocusZone>
   );
 };

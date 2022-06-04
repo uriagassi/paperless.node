@@ -169,7 +169,10 @@ export const App: React.FunctionComponent = () => {
             <DefaultButton className='NewNoteButton' name='New Note' text='New Note' iconProps={{iconName: 'BulkUpload'}} onClick={clickUpload}/>
             <input ref={fileUploadRef} style={{ display: "none" }} type="file" onChange={uploadFile} />
           <TagList  selectedId={selectedFolder}
-                   onSelectedIdChanged={(key) => setSelectedFolder(key)}
+                   onSelectedIdChanged={(key) => {
+                     setActiveNote(undefined)
+                     setSelectedFolder(key)
+                   }}
                    tags={tags} notebooks={notebooks} updateTag={updateTag}/>
           </Stack>
           <NoteList tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={activeNote}
