@@ -141,7 +141,7 @@
 
     const attachmentsDir = config.get('paperless.baseDir') + '/attachments/'
 
-    function importMessage(gmail, thread, pendingLabels, doneLabels, labels) {
+    function importMessage(gmail, username, thread, pendingLabels, doneLabels, labels) {
       return new Promise((resolve, reject) =>  {
       gmail.users.threads.get({userId: "me", id: thread.id}, (err, thread) => {
         console.log(err)
