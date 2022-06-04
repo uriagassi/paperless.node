@@ -50,9 +50,9 @@
 
     app.post('/api/mail/import', (req, res) => {
       authorize(res, (gmail, auth) => {
-        gmail.users.labels.list({userId: 'me'}, (err, r) => {
-          let mainLabel = r.data.labels.find(l => l.name == config.get('mail.pendingLabel'))
-          let doneLabel = r.data.labels.find(
+        gmail.users.labels.list({userId: 'me'}, (err, labelRecords) => {
+          let mainLabel = labelRecords.data.labels.find(l => l.name == config.get('mail.pendingLabel'))
+          let doneLabel = labelRecords.data.labels.find(
             l => l.name == config.get('mail.doneLabel'))
           gmail.users.threads.list(
             {
@@ -66,7 +66,7 @@
                 return res.status(500).json(r)
               }
               let note = importMessage(gmail, r.data.threads[0], [mainLabel.id],
-                [doneLabel.id])
+                [doneLabel.id], labelRecords.data.labels)
               note.then((r1) => {
                 console.log(r1)
                 res.json({
@@ -141,24 +141,27 @@
 
     const attachmentsDir = config.get('paperless.baseDir') + '/attachments/'
 
-    function importMessage(gmail, thread, pendingLabels, doneLabels) {
+    function importMessage(gmail, thread, pendingLabels, doneLabels, labels) {
       return new Promise((resolve, reject) =>  {
       gmail.users.threads.get({userId: "me", id: thread.id}, (err, thread) => {
         console.log(err)
         const message = thread.data?.messages?.[thread.data?.messages?.length - 1];
         if (message == null || doneLabels.find(
           l => message.labelIds.includes(l))) {
-          console.log(`rejecting ${JSON.stringify(message)}`)
-          reject("not imported")
+          gmail.users.messages.modify({
+            removeLabelIds: pendingLabels,
+            userId: "me",
+            id: message.id
+          })
+          resolve("not imported")
           return
         }
-        return messageToNote(gmail, message).then(note => {
-          console.log(note)
+        return messageToNote(gmail, message, labels).then(note => {
           notes.insertNote(db, {
             $createTime: note.createTime,
             $title: note.title ?? "(no subject)",
             $noteData: note.noteData
-          }, note.attachments).then(() => {
+          }, note.attachments, note.tags).then(() => {
             gmail.users.messages.modify({
               addLabelIds: doneLabels,
               removeLabelIds: pendingLabels,
@@ -173,20 +176,22 @@
       });
     }
 
-    function messageToNote(gmail, message) {
+    function messageToNote(gmail, message, labels) {
       let note = {
         attachments: [],
-        title: "(no subject)"
+        title: "(no subject)",
+        tags: []
       };
       message.labelIds.forEach(label => {
         console.log(label)
-        // let l = labels.find(x => x.id == label);
-        // if (l.type === "user" && !config.PendingLabels.Contains(l.Name))
-        //   context.AddTag(note, l.Name);
+         let l = labels.find(x => x.id == label);
+        console.log(l)
+         if (l.type === "user" && l.name != config.get('mail.pendingLabel'))
+           note.tags.push(l.name);
       })
-      // if (config.Tag) {
-      //   context.AddTag(note, config.Tag);
-      // }
+      if (config.get('mail.importedTag')) {
+         note.tags.push(config.get('mail.importedTag'));
+      }
 
       //loop through the headers to get from,date,subject, body
       message.payload.headers.forEach(mParts => {

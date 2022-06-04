@@ -49,6 +49,11 @@
   module.exports.addAttachment = (db, attachment, noteId, callback) => {
     console.log(`adding attachment ${attachment.$fileName} to ${noteId}`)
     attachment.$noteId = noteId;
-    return db.run(add_attachment, attachment, callback)
+    return new Promise(resolve => {
+      db.run(add_attachment, attachment, a => {
+        callback?.(a)
+        resolve(a)
+      })
+    })
   }
 })()

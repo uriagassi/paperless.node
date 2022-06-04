@@ -78,7 +78,7 @@
             $title: path.parse(attachment.$fileName),
             $noteData: att.getHtmlForAttachment(attachment)
           }
-          notes.insertNote(db, newNote, [attachment], (e) => {
+          notes.insertNote(db, newNote, [attachment], [], (e) => {
             console.log(e)
             fs.unlinkSync(fullName)
           }).then(() => resolve("OK"))
