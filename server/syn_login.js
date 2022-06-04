@@ -7,7 +7,8 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 const sso = (req, res, next) => {
   const nonSecurePaths = ['/api/body/css', '/api/body/js'];
   if (nonSecurePaths.find(p => req.path.startsWith(p))) return next();
-  if (req.cookies?.['x-syn-token-checked'] && req.path != '/api/user') {
+  if (req.cookies?.['x-syn-token-user'] && req.path != '/api/user') {
+    req.user_name = req.cookies?.['x-syn-token-user']
     return next()
   } else {
     console.log(req.cookies)
@@ -21,7 +22,6 @@ const sso = (req, res, next) => {
     axios
       .get(synologyURL + token)
       .then(res1 => {
-        console.log(`statusCode: ${res1.status}`);
         req.user_id = res1.data.data.user_id;
         req.user_name = res1.data.data.user_name;
         res.cookie('x-syn-access-token', token, {
@@ -29,7 +29,7 @@ const sso = (req, res, next) => {
           secure: true,
           httpOnly: true,
           sameSite: 'lax'})
-        res.cookie('x-syn-token-checked', true, {
+        res.cookie('x-syn-token-user', res1.data.data.user_name, {
           maxAge: 50000,
           secure: true,
           httpOnly: true,

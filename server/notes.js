@@ -3,8 +3,8 @@
   const tagservice = require('./tags')
 
   const add_note = "insert into Notes \
-      (NotebookId, CreateTime, UpdateTime, Title, NoteData) values \
-      ((select notebookId from Notebooks where Type = 'I'), $createTime, date('now'), $title, $noteData)"
+      (NotebookId, CreateTime, UpdateTime, Title, NoteData, UpdatedBy) values \
+      ((select notebookId from Notebooks where Type = 'I'), $createTime, date('now'), $title, $noteData, $updateBy)"
   const get_auto_id = 'select last_insert_rowid() as id'
 
   module.exports.insertNote = (db, note, attachments, tags, attachmentCallback) => {

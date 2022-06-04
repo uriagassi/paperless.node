@@ -150,14 +150,15 @@ app.use('/api/body/css', express.static(baseDir + '/css'))
 app.use('/api/body/js', express.static(baseDir + '/js'))
 app.use('/api/body/images', express.static(baseDir + '/images'))
 
-const update_note = "update notes set title = $title, createTime = $createTime, notebookId = $notebookId, updateTime = date('now') where NodeId = $noteId"
+const update_note = "update notes set title = $title, createTime = $createTime, notebookId = $notebookId, updateTime = date('now'), updatedBy = $updatedBy where NodeId = $noteId"
 
 app.post('/api/notes/:noteId', (req, res) => {
   db.run(update_note, {
     $noteId: req.params.noteId,
     $notebookId: req.body.notebookId,
     $createTime: req.body.createTime,
-    $title: req.body.title
+    $title: req.body.title,
+    $updatedBy: req.user_name
   }, (e) => res.json(e ?? 'OK'))
 })
 
@@ -176,12 +177,12 @@ app.delete('/api/notes/:noteId', (req, res) => {
   }
 })
 
-const move_notes = "update notes set notebookId = ?, updateTime = date('now') where NodeId in (#noteIds)"
+const move_notes = "update notes set notebookId = ?, updateTime = date('now'), updatedBy = ? where NodeId in (#noteIds)"
 
 app.post('/api/notes/:noteIds/notebook/:notebookId', (req, res) => {
   let ids = req.params.noteIds.split(',')
   db.run(move_notes.replace(/#noteIds/, ids.map(() => '?').join(',')), [
-    req.params.notebookId, ...ids
+    req.params.notebookId, req.user_name, ...ids
   ], e => res.json(e ?? 'OK'))
 })
 

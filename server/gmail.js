@@ -65,7 +65,7 @@
               if (err) {
                 return res.status(500).json(r)
               }
-              let note = importMessage(gmail, r.data.threads[0], [mainLabel.id],
+              let note = importMessage(gmail, req.user_name, r.data.threads[0], [mainLabel.id],
                 [doneLabel.id], labelRecords.data.labels)
               note.then((r1) => {
                 console.log(r1)
@@ -156,11 +156,12 @@
           resolve("not imported")
           return
         }
-        return messageToNote(gmail, message, labels).then(note => {
+        return messageToNote(gmail, username, message, labels).then(note => {
           notes.insertNote(db, {
             $createTime: note.createTime,
             $title: note.title ?? "(no subject)",
-            $noteData: note.noteData
+            $noteData: note.noteData,
+            $updateBy: username
           }, note.attachments, note.tags).then(() => {
             gmail.users.messages.modify({
               addLabelIds: doneLabels,
@@ -176,7 +177,7 @@
       });
     }
 
-    function messageToNote(gmail, message, labels) {
+    function messageToNote(gmail, username, message, labels) {
       let note = {
         attachments: [],
         title: "(no subject)",

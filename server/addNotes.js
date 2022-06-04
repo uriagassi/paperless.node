@@ -7,9 +7,6 @@
   const att = require('./attachment')
   const notes = require('./notes')
 
-
-
-
   module.exports.start = function (app, config, db) {
     const importDir = config.get("paperless.importDir")
     const attachmentsDir = config.get('paperless.baseDir') + '/attachments/'
@@ -27,7 +24,7 @@
       form.parse(req, (err, fields, files) => {
         console.log(files.newNote)
         console.log(fields)
-        importFromFile(files.newNote.filepath, files.newNote.originalFilename, 0).then(() => {
+        importFromFile(files.newNote.filepath, files.newNote.originalFilename, req.user_name, 0).then(() => {
           res.json('OK')
         })
       })
@@ -40,8 +37,8 @@
       })
     }
 
-    const importFiles = (fileList, i, res) => {
-      importFromFile(path.join(importDir, fileList[i]), fileList[i], i).then(() => {
+    const importFiles = (fileList, i, req, res) => {
+      importFromFile(path.join(importDir, fileList[i]), fileList[i], req.user_name, i).then(() => {
         if (i < fileList.length - 1) {
           importFiles(fileList, i + 1, res)
         } else {
@@ -50,15 +47,7 @@
       })
     }
 
-
-    const add_attachment = db.prepare('insert into Attachments \
-     (FileName, UniqueFilename, Mime, Hash, Size, NoteNodeId) values \
-     ($fileName, $uniqueFilename, $mime, $hash, $size, $noteId)')
-
-
-
-
-    const importFromFile = (fullName, basename, i) => {
+    const importFromFile = (fullName, basename, user, i) => {
       return new Promise((resolve, reject) => {
         console.log("starting " + i)
         let stats = fs.lstatSync(fullName)
@@ -76,7 +65,8 @@
           let newNote = {
             $createTime: stats.ctime.toISOString().replace(/T.*/, ''),
             $title: path.parse(attachment.$fileName),
-            $noteData: att.getHtmlForAttachment(attachment)
+            $noteData: att.getHtmlForAttachment(attachment),
+            $updateBy: user
           }
           notes.insertNote(db, newNote, [attachment], [], (e) => {
             console.log(e)
