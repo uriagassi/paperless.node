@@ -77,9 +77,11 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
     setNoteList(newNotes)
   }
 
-  const loadNotes = () => {
+  const loadNotes = (withSetLoading: boolean = true) => {
     if (props.filterId || props.searchTerm) {
-      setLoading(true)
+      if (withSetLoading) {
+        setLoading(true)
+      }
       let filter = props.filterId ?? ''
       if (props.searchTerm ?? '' != '') {
         filter = 'search?term=' + encodeURIComponent(props.searchTerm ?? '') + '&'
@@ -100,7 +102,9 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
                 active: props.selectedId == n.id})
             })
             setNoteList(notes);
-            setLoading(false)
+            if (withSetLoading) {
+              setLoading(false)
+            }
             if (!selectedFound && data.notes.length > 0) {
               props.onSelectedIdChanged?.(data.notes[0].id, new Set([data.notes[0].id]));
             }
@@ -114,11 +118,11 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
   const checkChange = (data: { notebooks?: number[], tags?: number[]}) => {
     if (props.filterId?.startsWith('notebook')) {
       if (data.notebooks?.filter(n => props.filterId == 'notebooks/' + n + '?')) {
-        loadNotes()
+        loadNotes(false)
       }
     } else if (props.filterId?.startsWith('tag')) {
       if (data.tags?.filter(n => props.filterId == 'tags/' + n + '?')) {
-        loadNotes()
+        loadNotes(false)
       }
     }
   }

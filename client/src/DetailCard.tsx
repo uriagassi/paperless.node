@@ -151,8 +151,8 @@ export const DetailCard: React.FunctionComponent<
       }, [note, modified])
 
       const onTitleChanged = (event: any, newValue: string | undefined) => {
-        if (newValue && note?.title && note?.title != newValue) {
-          setNote({...note, title: newValue})
+        if (note && note?.title != newValue) {
+          setNote({...note, title: newValue ?? ''})
           setModified(true)
         }
       }
