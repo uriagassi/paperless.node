@@ -11,8 +11,8 @@ const sso = (req, res, next) => {
     req.user_name = req.cookies?.['x-syn-token-user']
     return next()
   }
-  const token = sanitizer.value( req.cookies?.['x-syn-access-token'] ||
-    req.body?.token || req.query?.token || req.headers["x-access-token"], /\w+/);
+  const token = sanitizer.value(  req.query?.token ||
+    req.body?.token || req.query?.token || req.headers["x-access-token"] || req.cookies?.['x-syn-access-token'], /\w+/);
   if (!token) {
     return res.status(403).send("Not supported for unknown users or in Incognito Mode (no cookies)");
   }
