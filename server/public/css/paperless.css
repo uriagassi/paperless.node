@@ -1,0 +1,109 @@
+.paperless-attachment {
+    max-width: 90%;
+    height: auto;
+}
+
+embed.paperless-attachment {
+    min-width: 90%;
+    height: 720px;
+}
+
+.paperless-attachment-file {
+    height: 70px;
+    width: 250px;
+    border-color: lightblue;
+    color: blue;
+    font-weight: lighter;
+    border-width: 1px;
+    background-repeat: no-repeat;
+    background-position: left;
+    border-style: solid;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    background-color: lightgray;
+}
+
+.paperless-attachment-file span {
+    vertical-align: middle;
+    text-align: left;
+    clear: left;
+    position: relative;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 200px;
+    left: 50px;
+    float: left;
+}
+
+.paperless-attachment-file span.paperless-attachment-img {
+    display: inline-block;
+    height: 48px;
+    width: 48px;
+    background-repeat: no-repeat;
+    left: 10px;
+    top: 18px;
+}
+
+.paperless-merged-note-data {
+    background-color: floralwhite;
+    border-radius: 10px 10px 0 0;
+    border-bottom: black 1px solid;
+    box-shadow: grey 2px 0px 2px 0px;
+    margin: 4px 0px 4px 0px;
+    padding: 5px;
+    column-count: 2;
+}
+
+.paperless-merged-note-title {
+    font-weight: bold;
+    font-size: larger;
+    column-span: all;
+}
+
+.paperless-merged-note-tag {
+    display: inline-block;
+    background: aliceblue;
+    padding: 2px;
+    box-shadow: grey 1px 0px 1px;
+    font-size: x-small;
+}
+
+.paperless-merged-note-create-date {
+    float: right;
+    font-size: smaller;
+}
+
+
+.paperless-email-import-from {
+    /* height: 50px; */
+    /* padding-left: 50; */
+    width: 90%;
+    /*position: absolute;*/
+    /* top: 20px; */
+    /* left: 12px; */
+    border-bottom: 1px solid gray;
+    background-color: cornsilk;
+    padding: 15px 10px 5px 35px;
+    box-shadow: grey 1px 0px 1px;
+    border-radius: 5px 5px 0px 0px;
+    font-size: x-small;
+}
+
+.paperless-email-import-from::before {
+    background-image: url(https://ssl.gstatic.com/ui/v1/icons/mail/profile_mask2.png);
+    /* background-repeat: no-repeat; */
+    width: 20px;
+    height: 20px;
+    border-radius: 100px;
+    /*border: 1px solid gray;*/
+    content: " ";
+    position: absolute;
+    background-color: lightgray;
+    background-size: cover;
+    box-shadow: black -1.5px 1.5px 3px 0px;
+    left: 15px;
+    top: 15px;
+}

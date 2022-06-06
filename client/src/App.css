@@ -17,9 +17,14 @@
   --tag-item-color: rgb(243, 242, 241);
 }
 
+.MainWindow {
+  height: 100%;
+}
+
 #root {
   background-color: var(--background-color);
   color: var(--text-color);
+  height: 100%;
 }
 
 [data-theme="dark"] {

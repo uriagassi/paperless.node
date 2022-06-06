@@ -23,8 +23,8 @@ const tag_query =
   from tags left join notetags on tags.tagid=notetags.tagid \
   group by tags.tagid order by name';
 const notebooks_query =
-  'select name as name, notebooks.notebookid as key, type as type, count(*) as notes \
-  from notebooks left join notes where notes.notebookid=key group by key order by type="D", name\
+  'select name as name, notebooks.notebookid as key, type as type, count(notes.title) as notes \
+  from notebooks left join notes on notes.notebookid=key group by key order by type="D", name\
 ';
 db.connect
 
@@ -146,9 +146,9 @@ app.get('/api/body/:noteId', (req, res) => {
 })
 
 app.use('/api/body/attachments', express.static(baseDir +'/attachments'))
-app.use('/api/body/css', express.static(baseDir + '/css'))
-app.use('/api/body/js', express.static(baseDir + '/js'))
-app.use('/api/body/images', express.static(baseDir + '/images'))
+app.use('/api/body/css', express.static('server/public/css'))
+app.use('/api/body/js', express.static('server/public/js'))
+app.use('/api/body/images', express.static('server/public/images'))
 
 const update_note = "update notes set title = $title, createTime = $createTime, notebookId = $notebookId, updateTime = date('now'), updatedBy = $updatedBy where NodeId = $noteId"
 

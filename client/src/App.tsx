@@ -159,9 +159,9 @@ export const App: React.FunctionComponent = () => {
   }
 
   return (
-      <ThemeProvider applyTo="body" theme={theme?.uiTheme} data-theme={theme?.darkMode ? 'dark' : 'light'}>
+      <ThemeProvider applyTo="body" theme={theme?.uiTheme} data-theme={theme?.darkMode ? 'dark' : 'light'} className='MainWindow'>
       <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={setKeyState}
-             onKeyUp={setKeyState} onClick={setKeyState}>
+             onKeyUp={setKeyState} onClick={setKeyState} className='MainWindow'>
         <Stack horizontal verticalAlign='baseline'>
           <BaseButton className='Hamburger'>
             <Icon iconName= 'GlobalNavButton'/>

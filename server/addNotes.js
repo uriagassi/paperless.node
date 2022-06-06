@@ -64,7 +64,7 @@
           fs.copyFileSync(fullName, path.join(attachmentsDir, attachment.$uniqueFilename))
           let newNote = {
             $createTime: stats.ctime.toISOString().replace(/T.*/, ''),
-            $title: path.parse(attachment.$fileName),
+            $title: path.basename(attachment.$fileName),
             $noteData: att.getHtmlForAttachment(attachment),
             $updateBy: user
           }
