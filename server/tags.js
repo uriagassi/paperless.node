@@ -1,48 +1,41 @@
 (function() {
+  module.exports.prepare = (db) => {
+    const sql_helper = require('./sql_helper')
+    const result = {}
+    const find_tag_by_name = db.prepare('select TagId as tagId from tags where name = ?')
+    const add_tag_to_note = db.prepare('insert into notetags (noteid, tagid) values ($noteId, $tagId)')
+    const add_tag = db.prepare('insert into Tags (Name, IsExpanded) values (?, false)')
+    const delete_tags = sql_helper.prepare_many(db, 'delete from NoteTags where NoteId in (#noteIds)', '#noteIds')
 
-  const find_tag_by_name = 'select TagId as tagId from tags where name = ?'
-  const add_tag_to_note = 'insert into notetags (noteid, tagid) values ($noteId, $tagId)'
-  const add_tag = 'insert into Tags (Name, IsExpanded) values (?, false)'
-  const get_auto_id = 'select last_insert_rowid() as id'
-  const delete_tags = 'delete from NoteTags where NoteId in (#noteIds)'
-
-  function addTagId(db, noteId, tagId, callback) {
-    db.run(add_tag_to_note, {$noteId: noteId, $tagId: tagId}, e => {
+    function addTagId(noteId, tagId, callback) {
+      add_tag_to_note.run({noteId: noteId, tagId: tagId})
       callback?.(tagId)
-    })
-  }
+    }
 
-  module.exports.addTagId = addTagId
+    result.addTagId = addTagId
 
-  module.exports.addTag = (db, noteId, tagName) => {
-    return new Promise(resolve => {
-      if (!tagName) resolve(undefined)
-      db.get(find_tag_by_name, [tagName], (e, r) => {
+    result.addTag = (noteId, tagName) => {
+      return new Promise(resolve => {
+        if (!tagName) resolve(undefined)
+        const r = find_tag_by_name.get(tagName)
         if (r) {
-          addTagId(db, noteId, r.tagId, resolve);
+          addTagId(noteId, r.tagId, resolve);
         } else {
           console.log('adding new tag...')
-          db.run(add_tag, [tagName], e => {
-            console.log(e)
-            console.log(r)
-            if (!e) {
-              db.get(get_auto_id, (e, r) => {
-                console.log('adding to note')
-                db.run(add_tag_to_note, {$noteId: noteId, $tagId: r.id}, e => {
-                  resolve(r.id)
-                })
-              })
-            }
-          })
+          const added_tag = add_tag.run(tagName)
+          if (added_tag.changes > 0) {
+            console.log('adding to note')
+            add_tag_to_note.run(
+              {noteId: noteId, tagId: added_tag.lastInsertRowid})
+          }
+          resolve(added_tag.lastInsertRowid)
         }
       })
-    })
-  }
+    }
 
-  module.exports.removeTags = (db, noteIds, callback) => {
-    db.run(delete_tags.replace(/#noteIds/, noteIds.map(() => '?').join(',')), noteIds, ids => {
-      callback()
-    })
+    result.removeTags = (noteIds) => {
+      delete_tags(noteIds.length).run(noteIds)
+    }
+    return result
   }
-
 })()

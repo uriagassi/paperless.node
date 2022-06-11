@@ -92,7 +92,7 @@ export const TagList: React.FunctionComponent<{
           fetch(`/api/${item.key?.replace('?','/')}expand`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ expanded: !item.isExpanded })})
+            body: JSON.stringify({ expanded: `${!item.isExpanded}` })})
               .then(r => console.log(r))
         }
       }

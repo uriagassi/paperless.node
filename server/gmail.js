@@ -2,10 +2,8 @@
   const fs = require('fs');
   const {google} = require('googleapis');
   const escape = require('escape-html');
-  const att = require('./attachment');
   const mime = require('mime-types');
   const md5 = require('md5');
-  const notes = require('./notes')
   const path = require('path')
 
 // If modifying these scopes, delete token.json.
@@ -14,7 +12,7 @@
 // created automatically when the authorization flow completes for the first
 // time.
   const TOKEN_PATH = 'token.json';
-  module.exports.start = function (app, config, db) {
+  module.exports.start = function (app, config, notes, att) {
     app.get('/api/mail/auth', (req, res) => {
       withCreds(content => {
         authenticate(content, req.query.access_token, res)
@@ -32,17 +30,28 @@
           let emailAddress = r.data.emailAddress
           gmail.users.labels.list({userId: 'me'}, (err, r) => {
             let mainLabel = r.data.labels.find(l => l.name == config.get('mail.pendingLabel'))
-            gmail.users.threads.list(
-              {userId: 'me', labelIds: [mainLabel.id], includeSpamTrash: false},
-              (err, r) => {
-                if (err) {
-                  return res.status(500).json(r)
-                }
-                res.json({
-                  pendingThreads: r.data.threads.length,
-                  emailAddress: emailAddress
+            if (mainLabel) {
+              gmail.users.threads.list(
+                {
+                  userId: 'me',
+                  labelIds: [mainLabel.id],
+                  includeSpamTrash: false
+                },
+                (err, r) => {
+                  if (err) {
+                    return res.status(500).json(r)
+                  }
+                  res.json({
+                    pendingThreads: r.data.threads?.length || 0,
+                    emailAddress: emailAddress
+                  })
                 })
+            } else {
+              res.json({
+                pendingThreads: 0,
+                emailAddress: emailAddress
               })
+            }
           })
         })
       })
@@ -173,11 +182,11 @@
           return
         }
         return messageToNote(gmail, username, message, labels).then(note => {
-          notes.insertNote(db, {
-            $createTime: note.createTime,
-            $title: note.title ?? "(no subject)",
-            $noteData: note.noteData,
-            $updateBy: username
+          notes.insertNote({
+            createTime: note.createTime,
+            title: note.title ?? "(no subject)",
+            noteData: note.noteData,
+            updateBy: username
           }, note.attachments, note.tags).then(() => {
             gmail.users.messages.modify({
               addLabelIds: doneLabels,
@@ -251,19 +260,19 @@
             (err, attachPart) => {
               let data = fromBase64ForUrlString(attachPart.data);
               let attachment = {
-                $fileName: part.filename,
-                $mime: part.mimeType,
-                $hash: md5(data),
-                $size: attachPart.data.size
+                fileName: part.filename,
+                mime: part.mimeType,
+                hash: md5(data),
+                size: attachPart.data.size
               };
               console.log(attachment)
-              if (attachment.$mime
-                === "application/octet-stream") attachment.$mime = mime.lookup(
-                attachment.$fileName);
+              if (attachment.mime
+                === "application/octet-stream") attachment.mime = mime.lookup(
+                attachment.fileName);
               att.setUniqueFilename(attachment, config)
-              console.log(`writing file ${attachment.$uniqueFilename}`)
+              console.log(`writing file ${attachment.uniqueFilename}`)
               fs.writeFileSync(
-                path.join(attachmentsDir, attachment.$uniqueFilename), Buffer.from(data))
+                path.join(attachmentsDir, attachment.uniqueFilename), Buffer.from(data))
               note.attachments.push(attachment);
               note.noteData += att.getHtmlForAttachment(attachment);
               resolve(note);

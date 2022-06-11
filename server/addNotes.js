@@ -4,10 +4,8 @@
   const fs = require('fs');
   const mime = require('mime-types');
   const md5 = require('md5');
-  const att = require('./attachment')
-  const notes = require('./notes')
 
-  module.exports.start = function (app, config, db) {
+  module.exports.start = function (app, config, db, notes, att) {
     const importDir = config.get("paperless.importDir")
     const attachmentsDir = config.get('paperless.baseDir') + '/attachments/'
 
@@ -29,7 +27,7 @@
     })
 
     app.post('/api/notes/:toNote/merge', (req, res) => {
-      notes.mergeNotes(db, Number(req.params.toNote), req.body.notes, () => {
+      notes.mergeNotes( Number(req.params.toNote), req.body.notes, () => {
         res.json('OK')
       })
     })
@@ -57,22 +55,22 @@
         let stats = fs.lstatSync(fullName)
         if (stats.isFile()) {
           let attachment = {
-            $fileName: basename.replaceAll(/[\/:" *?<>|&=;]+/g,
+            fileName: basename.replaceAll(/[\/:" *?<>|&=;]+/g,
               '_'),
-            $mime: mime.lookup(basename),
-            $hash: md5(fs.readFileSync(fullName)),
-            $size: stats.size
+            mime: mime.lookup(basename),
+            hash: md5(fs.readFileSync(fullName)),
+            size: stats.size
           }
           console.log(attachment)
           att.setUniqueFilename(attachment, config)
-          fs.copyFileSync(fullName, path.join(attachmentsDir, attachment.$uniqueFilename))
+          fs.copyFileSync(fullName, path.join(attachmentsDir, attachment.uniqueFilename))
           let newNote = {
-            $createTime: stats.ctime.toISOString().replace(/T.*/, ''),
-            $title: path.basename(attachment.$fileName),
-            $noteData: att.getHtmlForAttachment(attachment),
-            $updateBy: user
+            createTime: stats.ctime.toISOString().replace(/T.*/, ''),
+            title: path.basename(attachment.fileName),
+            noteData: att.getHtmlForAttachment(attachment),
+            updateBy: user
           }
-          notes.insertNote(db, newNote, [attachment], [], (e) => {
+          notes.insertNote(newNote, [attachment], [], (e) => {
             console.log(e)
             fs.unlinkSync(fullName)
           }).then(() => resolve("OK"))
