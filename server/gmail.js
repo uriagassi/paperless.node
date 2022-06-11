@@ -103,6 +103,10 @@
      * @param {function} callback The callback to call with the authorized client.
      */
     function authorize(res, callback) {
+      if (config.has('mail.supported') && !config.get('mail.supported')) {
+        res.status(402).json({notSupported: true})
+        return
+      }
       withCreds(credentials => {
         const {client_secret, client_id, redirect_uris} = credentials.web;
         const oAuth2Client = new google.auth.OAuth2(

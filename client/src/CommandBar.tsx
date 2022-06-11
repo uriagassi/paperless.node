@@ -29,6 +29,7 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
   const [gmailAuthenticateURL, setGmailAuthenticateURL] = useState<string>()
   const [gmailAddress, setGmailAddress] = useState<string>()
   const [pendingMail, setPendingMail] = useState<number|string>('?')
+  const [gmailUnsupported, setGmailUnsupported] = useState(false)
   const [personaCMElement, setPersonaCMElement] = useState<Element>()
   const [gmailCMElement, setGmailCMElement] = useState<Element>()
 
@@ -83,6 +84,9 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
             if (r.authenticate) {
               setGmailAuthenticateURL(r.authenticate)
             }
+            if (r.notSupported) {
+              setGmailUnsupported(true)
+            }
             setGmailAddress(r.emailAddress)
             setPendingMail(r.pendingThreads ?? '?')
           })
@@ -115,7 +119,7 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
   }
   return <Stack horizontal verticalAlign='baseline'>
     <IconButton className="Command" title="Dark Mode" iconProps={{'iconName' : props.isDark ? 'light-mode-symbol-svg' : 'dark-mode-symbol-svg'}} text="Dark Mode" onClick={props.onDarkChanged}/>
-    <IconButton className="Command" title="Mail Import" iconProps={{'iconName': 'Mail'}} text="Mail Import" onRenderIcon={() => fileImportButton('Mail', pendingMail ?? '?')} onClick={e => setGmailCMElement(e.target as Element)} onContextMenu={e => {
+    <IconButton className="Command" title="Mail Import" hidden={gmailUnsupported} iconProps={{'iconName': 'Mail'}} text="Mail Import" onRenderIcon={() => fileImportButton('Mail', pendingMail ?? '?')} onClick={e => setGmailCMElement(e.target as Element)} onContextMenu={e => {
       e.preventDefault()
 
     }}/>
