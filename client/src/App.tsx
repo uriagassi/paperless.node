@@ -190,7 +190,7 @@ export const App: React.FunctionComponent = () => {
             setSelectedNotes(selectedKeys)
           }} keyState={keyState}/>
           {selectedNotes.size > 1 ?
-              <MultiNoteScreen selectedNotes={selectedNotes} availableNotebooks={notebooks} filterId={selectedFolder}/>
+              <MultiNoteScreen selectedNotes={selectedNotes} availableNotebooks={notebooks} filterId={selectedFolder} activeNote={activeNote}/>
               : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks} updateTag={updateTag} api={serverAPI}
               sso={auth}/>}
         </Stack>

@@ -28,6 +28,12 @@
       })
     })
 
+    app.post('/api/notes/:toNote/merge', (req, res) => {
+      notes.mergeNotes(db, Number(req.params.toNote), req.body.notes, () => {
+        res.json('OK')
+      })
+    })
+
     const pendingFileList = () => {
       return fs.readdirSync(importDir).filter(f => {
         return !f.startsWith('.') && fs.lstatSync(
