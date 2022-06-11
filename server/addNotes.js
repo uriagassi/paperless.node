@@ -16,14 +16,12 @@
     })
 
     app.get('/api/files/import', (req, res) => {
-      importFiles(pendingFileList(), 0, res)
+      importFiles(pendingFileList(), 0, req, res)
     })
 
     app.post('/api/files/new', (req, res) => {
       const form = new formidable.IncomingForm();
       form.parse(req, (err, fields, files) => {
-        console.log(files.newNote)
-        console.log(fields)
         importFromFile(files.newNote.filepath, files.newNote.originalFilename, req.user_name, 0).then(() => {
           res.json('OK')
         })
@@ -40,7 +38,7 @@
     const importFiles = (fileList, i, req, res) => {
       importFromFile(path.join(importDir, fileList[i]), fileList[i], req.user_name, i).then(() => {
         if (i < fileList.length - 1) {
-          importFiles(fileList, i + 1, res)
+          importFiles(fileList, i + 1, req, res)
         } else {
           res.json("OK")
         }
