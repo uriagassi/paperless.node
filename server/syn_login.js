@@ -20,6 +20,10 @@ const sso = (req, res, next) => {
     axios
       .get(synologyURL + token)
       .then(res1 => {
+        if (!res1.data.data) {
+          console.log(res1.data)
+          return res.status(401).send("Invalid Token")
+        }
         req.user_id = res1.data.data.user_id;
         req.user_name = res1.data.data.user_name;
         res.cookie('x-syn-access-token', token, {

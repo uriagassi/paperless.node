@@ -16,7 +16,7 @@
     result.insertNote = (note, attachments, tags,
       attachmentCallback) => {
       return new Promise((resolve, reject) => {
-        const new_note = add_note_to_inbox.run(note)
+        const new_note = note.notebookId ? add_note.run(note) : add_note_to_inbox.run(note)
         console.log(`adding ${attachments?.size}`)
         if (attachments || tags) {
           if (new_note.changes != 0) {
@@ -27,7 +27,7 @@
             tags.forEach(tag => {
               console.log(`adding ${tag}...`)
 
-              last = tagservice.addTag(new_note.lastInsertRowid, tag)
+              tagservice.addTag(new_note.lastInsertRowid, tag)
             })
           } else {
             reject(new_note)
@@ -37,7 +37,7 @@
       })
     }
 
-    const get_note_data = sql_helper.prepare_many(db, 'select Title, NoteData, CreateTime, GROUP_CONCAT(a.Hash) Hash, GROUP_CONCAT(t.Name) Tags\
+    const get_note_data = sql_helper.prepare_many(db, 'select Title, NoteData, CreateTime, NotebookId, GROUP_CONCAT(a.Hash) Hash, GROUP_CONCAT(t.Name) Tags\
         from Notes left join Attachments a on a.NoteNodeId = NodeId \
         left join NoteTags nt on NodeId = nt.NoteId left join Tags t on t.TagId=nt.TagId \
         where NodeId in (#noteIds) group by NodeId', '#noteIds')
@@ -95,65 +95,87 @@
       return toNote;
     }
 
-    function traverse(doc, tag, callback) {
-      doc.getElementsByTagName(tag).forEach(
-        div => callback(div.getAttribute("className"), div));
-    }
-
     function isNullOrWhitespace(input) {
       return !input || !input.trim();
     }
 
-    result.splitNote = async (db, updateBy, originalNoteId) => {
-      db.get(get_note_data.replace(/#noteIds/, "?"), toNote,
-        (err, originalNote) => {
-          const {document} = new JSDOM(originalNote.NoteData)
-          let splitDone = false;
-          traverse(document, "div", (c, d) => {
-            if (c === "paperless-merged-note") {
-              const tags = []
-              const newNote =
-                {
-                  notebookId: originalNote.NotebookId,
-                  updateBy: updateBy
-                }
-              traverse(d, "div", (partType, part) => {
-                switch (partType) {
-                  case "paperless-merged-note-data":
-                    traverse(part, "div", (dataType, data) => {
-                      switch (dataType) {
-                        case "paperless-merged-note-title":
-                          newNote.$title = data.innerText;
-                          break;
-                        case "paperless-merged-note-attachments":
-                          if (isNullOrWhitespace(
-                            data.getAttribute("data"))) break;
-                          const hashes = data.getAttribute("data").Split(' ');
-                          newNote.attachments = hashes;
-                          break;
-                        case "paperless-merged-note-tags":
-                          traverse(data, "div", (_, tag) => {
-                            newNote.tags.push(tag.innerText);
-                          });
-                          break;
-                        case "paperless-merged-note-create-date":
-                          newNote.$createTime = data.innerText;
-                          break;
+    const select_body = db.prepare('select NoteData data from Notes where NodeId = ?').raw(true)
+
+    result.body = (noteId) => {
+      return select_body.get(noteId)?.[0]
+    }
+
+    result.html = (body) => {
+      return`\
+<html>
+  <head>
+    <link rel='stylesheet' type='text/css' href='css/paperless.css'/>
+    <meta http-equiv='X-UA-Compatible' content='IE=11'>
+    <script src='js/paperless.js'></script>
+  </head>
+    <body>${body}</body>
+</html>`
+    }
+
+    const count_parts = db.prepare("select length(replace(NoteData, 'paperless-merged-note-data', 'paperless-merged-note-data1')) - length(NoteData) as parts from Notes where NodeId = ?").raw(true)
+
+    result.parts = (noteId) => {
+      return count_parts.get(noteId)[0]
+    }
+
+    result.splitNote = async (updateBy, originalNoteId) => {
+      const originalNote = get_note_data(1).get(originalNoteId)
+      const jsdom1 = new JSDOM(result.html(originalNote.NoteData));
+      const document = jsdom1.window.document.body
+      let splitDone = false;
+      document.querySelectorAll('.paperless-merged-note').forEach(d => {
+        const tags = []
+        const newNote =
+          {
+            notebookId: originalNote.NotebookId,
+            updateBy: updateBy
+          }
+        const attachments = []
+        d.childNodes.forEach(part => {
+          switch (part.className) {
+            case "paperless-merged-note-data":
+              part.childNodes.forEach(data => {
+                switch (data.className) {
+                  case "paperless-merged-note-title":
+                    newNote.title = data.textContent;
+                    break;
+                  case "paperless-merged-note-attachments":
+                    if (isNullOrWhitespace(
+                      data.getAttribute("data"))) break;
+                    const hashes = data.getAttribute("data").split(' ');
+                    attachments.push(...hashes.map(h => { return {hash: h, noteId: originalNoteId} }));
+                    break;
+                  case "paperless-merged-note-tags":
+                    data.childNodes.forEach(tag => {
+                      if (!isNullOrWhitespace(tag.textContent)) {
+                        tags.push(tag.textContent);
                       }
                     });
                     break;
-                  case "paperless-merged-note-contents":
-                    newNote.$noteData = part.innerHtml;
+                  case "paperless-merged-note-create-date":
+                    newNote.createTime = data.textContent;
                     break;
                 }
               });
-
-              d.outerHtml = "";
-              splitDone = true;
-            }
-          });
-          return splitDone;
-        })
+              break;
+            case "paperless-merged-note-contents":
+              newNote.noteData = part.innerHTML;
+              break;
+          }
+        });
+        result.insertNote(newNote, attachments, tags)
+        d.outerHTML = "";
+        splitDone = true;
+      });
+      if (splitDone) {
+        update_note_data.run(document.innerHTML, originalNoteId)
+      }
+      return splitDone;
     }
     return result;
   }

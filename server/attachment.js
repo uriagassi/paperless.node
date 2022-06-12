@@ -50,11 +50,18 @@
       attachment.uniqueFilename = uniqueFilename
     }
 
+    const move_attachment = db.prepare('update attachments set noteNodeId = ? where hash = $hash and noteNodeId = $noteId')
+
     result.addAttachment = (attachment, noteId, callback) => {
-      console.log(`adding attachment ${attachment.fileName} to ${noteId}`)
-      attachment.noteId = noteId;
-      const att = add_attachment.run(attachment);
-      callback?.(att)
+      if (attachment.noteId && attachment.noteId !== noteId) {
+        console.log(`moving attachment ${attachment.hash} from ${attachment.noteId} to ${noteId}`)
+        move_attachment.run(noteId, attachment)
+      } else {
+        console.log(`adding attachment ${attachment.fileName} to ${noteId}`)
+        attachment.noteId = noteId;
+        const att = add_attachment.run(attachment);
+        callback?.(att)
+      }
     }
     return result;
   }

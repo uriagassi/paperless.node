@@ -40,4 +40,5 @@ interface RawNote {
   createTime: string;
   tags: string;
   tagIds: string;
+  parts: number;
 }

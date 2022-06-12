@@ -2,6 +2,7 @@
   "name": "paperless.node",
   "packageManager": "yarn@3.2.1",
   "dependencies": {
+    "@semantic-ui-react/css-patch": "^1.0.0",
     "axios": "^0.27.2",
     "better-sqlite3": "^7.5.3",
     "body-parser": "^1.20.0",
@@ -30,6 +31,7 @@
   "scripts": {
     "dev": "concurrently \"cd client && HTTPS=true yarn start\" \"yarn start\"",
     "start": "node server/index.js",
-    "setup_wizard": "node scripts/setup_wizard.js"
+    "setup_wizard": "node scripts/setup_wizard.js",
+    "postinstall": "semantic-ui-css-patch"
   }
 }

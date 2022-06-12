@@ -73,7 +73,8 @@ export const DetailCard: React.FunctionComponent<
                   createTime: new Date(Date.parse(data.createTime)),
                   tags: [],
                   deleted: props.availableNotebooks?.find(n => n.key == data.notebookId)?.type == 'D',
-                  archived: props.availableNotebooks?.find(n => n.key == data.notebookId)?.type == 'A'
+                  archived: props.availableNotebooks?.find(n => n.key == data.notebookId)?.type == 'A',
+                  parts: data.parts
                 }
                 let tagNames = data.tags?.split(',') ?? []
                 let tagIds = data.tagIds?.split(',') ?? []
@@ -267,6 +268,13 @@ export const DetailCard: React.FunctionComponent<
             });
       }
 
+      function split() {
+        fetch(`/api/notes/${props.noteId}/split`, { method: 'POST'}).then(() => {
+          eventBus.dispatch('note-collection-change',
+              {notebooks: [note?.notebookId], tags: [note?.tags]})
+        })
+      }
+
       const detailCommands: ICommandBarItemProps[] = [
 
         { key: 'archive',
@@ -292,7 +300,9 @@ export const DetailCard: React.FunctionComponent<
         { key: 'split',
         text: 'Split',
         iconProps: { iconName: 'Split'},
-        disabled: true},
+        disabled: (note?.parts || 0) == 0,
+          onClick: () => split()
+        },
         { key: 'sep2',
           buttonStyles: {icon: 'Separator'},
           iconProps: { iconName: 'Separator'},
@@ -379,6 +389,7 @@ interface Note {
   tags: ITag[];
   deleted: boolean | undefined;
   archived: boolean | undefined;
+  parts: number | undefined;
 }
 
 interface DetailCardProps {

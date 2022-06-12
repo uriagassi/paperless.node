@@ -115,19 +115,18 @@ from Attachments where NoteNodeId = ?')
 app.get("/api/notes/:noteId", (req, res) => {
   res.json({
     ...select_note.get(req.params.noteId),
-    attachments: select_attachments.all(req.params.noteId)
+    attachments: select_attachments.all(req.params.noteId),
+    parts: notes.parts(req.params.noteId)
   })
 })
 
-const select_body = db.prepare('select NoteData data from Notes where NodeId = ?').raw(true)
+app.post("/api/notes/:noteId/split", (req, res) => {
+  notes.splitNote(req.user_name, req.params.noteId).then(_ => res.json('OK'))
+})
+
 app.get('/api/body/:noteId', (req, res) => {
     res.set('Content-Type', 'text/html')
-    res.send(Buffer.from(`<html><head>
-<link rel='stylesheet' type='text/css' href='css/paperless.css'/>
-<meta http-equiv='X-UA-Compatible' content='IE=11'>
-<script src='js/paperless.js'></script></head>
-<body>${select_body.get(req.params.noteId)}</body>
-</html>`))
+    res.send(Buffer.from(notes.html(notes.body(req.params.noteId))))
 })
 
 app.use('/api/body/attachments', express.static(baseDir +'/attachments'))
