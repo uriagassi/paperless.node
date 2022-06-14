@@ -42,13 +42,13 @@
 }
 
 .App-header {
-  padding: 10px 60px 10px 60px;
+  padding: 10px 60px;
   justify-content: center;
   font-size: calc(10px + 2vmin);
   background-image: url('../public/favicon.ico');
   background-repeat: no-repeat;
   background-position: left;
-  margin: 10px 40px;
+  margin: 10px 40px !important;
   color: var(--text-color)
 }
 
@@ -73,7 +73,7 @@
 .ListItem {
   width: 100%;
   #height: 8em;
-  text-align: left;
+  text-align: start;
   border-width: 0 0 1px 0;
 }
 
@@ -144,7 +144,7 @@
   flex: 1;
   border-radius: 10px;
   border: none;
-  margin: 0 7em;
+  margin: 0 7em !important;
   background-color: var(--line-color);
   height: 3em;
 }
@@ -238,7 +238,7 @@
 }
 
 .Command {
-  margin-right: 2em;
+  margin: 0 2em;
   top: 0.8em;
   width: 36px;
 }
@@ -303,4 +303,9 @@
 
 .LoadingModalView .ms-Spinner {
   flex: 1;
+}
+
+.ms-Persona {
+  direction: initial;
+  padding: 3px;
 }

@@ -1,10 +1,10 @@
 import React, {useEffect, useState} from "react";
 import {
-  ContextualMenu,
+  ContextualMenu, getRTL,
   Icon,
   IconButton,
   Persona,
-  PersonaSize, registerIcons,
+  PersonaSize, registerIcons, setRTL,
   Stack
 } from "@fluentui/react";
 import eventBus from "./EventBus";
@@ -123,6 +123,7 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
     ))
   }
   return <Stack horizontal verticalAlign='baseline'>
+    <IconButton className="Command" title={getRTL() ? "LTR" : "RTL"} iconProps={{'iconName': getRTL() ? "AlignLeft" : "AlignRight"}} text="RTL" onClick={() => setRTL(!getRTL(), true)}/>
     <IconButton className="Command" title="Dark Mode" iconProps={{'iconName' : props.isDark ? 'light-mode-symbol-svg' : 'dark-mode-symbol-svg'}} text="Dark Mode" onClick={props.onDarkChanged}/>
     <IconButton className="Command" title="Mail Import" hidden={gmailUnsupported} iconProps={{'iconName': 'Mail'}} text="Mail Import" onRenderIcon={() => fileImportButton('Mail', pendingMail ?? '?', 'Mail Import')} onClick={e => setGmailCMElement(e.target as Element)} onContextMenu={e => {
       e.preventDefault()

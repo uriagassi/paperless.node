@@ -330,7 +330,6 @@ export const DetailCard: React.FunctionComponent<
           text: 'Download',
           iconProps: { iconName: 'DownloadDocument'},
           hidden: !note?.attachments.length,
-          split: true,
           subMenuProps: (note?.attachments.length ?? 0) > 0 ? {
             items: note?.attachments.map(a => {return {
               key: 'download' + a.filename,
@@ -347,7 +346,7 @@ export const DetailCard: React.FunctionComponent<
                className='CardRow1'>
           <span>Name:&nbsp;</span>
           <TextField value={note?.title || ''} className='TitleField'
-                     onChange={onTitleChanged}/>
+                     onChange={onTitleChanged} dir='auto'/>
           <span>Date:&nbsp;</span>
           <DatePicker
               componentRef={datePickerRef}
