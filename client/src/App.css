@@ -61,6 +61,17 @@
   overflow-y: auto;
   overflow-x: auto;
   padding: 3px;
+  transition: width 300ms ease-in-out;
+}
+
+.SideView {
+  width: 280px;
+  transition: width 300ms ease-in-out;
+  overflow: hidden;
+}
+
+.collapsed, .collapsed .TagList {
+  width: 0;
 }
 
 .ListView {
@@ -309,3 +320,5 @@
   direction: initial;
   padding: 3px;
 }
+
+

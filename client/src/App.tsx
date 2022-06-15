@@ -1,8 +1,8 @@
 import React, {createRef, useEffect, useState} from 'react';
 import {
-  BaseButton,
+  BaseButton, css,
   DefaultButton,
-  Icon,
+  Icon, IconButton,
   initializeIcons,
   IStackStyles,
   IStackTokens, PartialTheme,
@@ -56,6 +56,7 @@ export const App: React.FunctionComponent = () => {
   const [theme, setTheme] = useState<{uiTheme: PartialTheme, darkMode: boolean}>()
   const [loadingText, setLoadingText] = useState<string>()
   const storedTheme = localStorage.getItem("theme");
+  const [sideViewCollapsed, setSideViewCollapsed] = useState<boolean>()
 
   const setDark = () => {
 
@@ -163,16 +164,14 @@ export const App: React.FunctionComponent = () => {
       <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={setKeyState}
              onKeyUp={setKeyState} onClick={setKeyState} className='MainWindow'>
         <Stack horizontal verticalAlign='baseline'>
-          <BaseButton className='Hamburger'>
-            <Icon iconName= 'GlobalNavButton'/>
-          </BaseButton>
+          <IconButton className='Hamburger' iconProps={{iconName:'GlobalNavButton'}} onClick={() => setSideViewCollapsed(!sideViewCollapsed)}/>
           <h1 className='App-header'>Paperless</h1>
           <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch} onClear={() => doSearch('')}/>
           <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth} isDark={theme?.darkMode ?? false} onDarkChanged={() => toggleDarkMode()}
           onLoadingText={setLoadingText}/>
         </Stack>
         <Stack horizontal className='MainView'>
-          <Stack>
+          <Stack className={css('SideView', sideViewCollapsed ? 'collapsed' : undefined)}>
             <DefaultButton className='NewNoteButton' name='New Note' text='New Note' iconProps={{iconName: 'BulkUpload'}} onClick={clickUpload}/>
             <input ref={fileUploadRef} style={{ display: "none" }} type="file" onChange={uploadFile} />
           <TagList  selectedId={selectedFolder}
