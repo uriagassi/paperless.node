@@ -48,7 +48,7 @@ export const App: React.FunctionComponent = () => {
   const [selectedNotes, setSelectedNotes] = useState<Set<number>>(new Set())
   const [notebooks, setNotebooks] = useState<ITagWithChildren[] | undefined>(undefined)
   const [tags, setTags] = useState<ITagWithChildren[] | undefined>(undefined)
-  const [keyState, setKeyState] = useState<KeyState>({})
+  const [keyState, setKeyState] = useState<KeyState>()
   const [tagToUpdate, setTagToUpdate] = useState<ITagWithChildren | undefined>()
   const [loggedInUser, setLoggedInUser] = useState<{imageInitials: string, text: string, secondaryText?: string}>()
   const [auth, setAuth] = useState<ISSO>()
@@ -178,8 +178,8 @@ export const App: React.FunctionComponent = () => {
 
   return (
       <ThemeProvider applyTo="body" theme={theme?.uiTheme} data-theme={theme?.darkMode ? 'dark' : 'light'} className='MainWindow' onMouseUp={() => stopListViewResize()} onMouseMove={e => updateListViewWidth(e.pageX)} style={listViewOffsetStart ? { cursor: 'col-resize'} : {}}>
-      <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={setKeyState}
-             onKeyUp={setKeyState} onClick={setKeyState} className='MainWindow'>
+      <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={e => setKeyState({...e, update: Date.now()})}
+             onKeyUp={e => setKeyState({...e, update: Date.now()})} onClick={e => setKeyState({...e, update: Date.now()})} className='MainWindow'>
         <Stack horizontal verticalAlign='baseline'>
           <IconButton className='Hamburger' iconProps={{iconName:'GlobalNavButton'}} onClick={() => setSideViewCollapsed(!sideViewCollapsed)}/>
           <h1 className='App-header'>Paperless</h1>

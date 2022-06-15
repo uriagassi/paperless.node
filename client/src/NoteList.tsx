@@ -152,40 +152,43 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
   const onFocusChange = (note: Note) => {
     let noteId = note.id
     let keyState = props.keyState
-    console.log(keyState)
-    if (keyState.ctrlKey || keyState.metaKey) {
-      const index = props.selectedNotes?.has(noteId);
-      const selected = new Set(props.selectedNotes);
-      if (index) {
-        selected.delete(noteId)
-      } else {
-        selected.add(noteId)
-      }
-      props.onSelectedIdChanged?.(noteId, selected)
-
-    } else if (keyState.shiftKey) {
-      if (props?.selectedId) {
-        let startIndex = noteList.indexOf(note)
-        let endIndex = noteList.findIndex((n) => n.id == props.selectedId)
-        if (endIndex < startIndex) {
-          [startIndex, endIndex] = [endIndex, startIndex]
-        }
-        console.log("range is [" + startIndex + "," + endIndex + ")")
-        let selected = new Set(props.selectedNotes)
-        console.log("finding range")
-        if (startIndex > -1) {
-          for (let i = startIndex; i <= endIndex; i++) {
-            console.log("looking for id " + noteList[i].id + " [" + i + "]")
-            if (!note.selected) {
-              selected.add(noteList[i].id)
-            } else {
-              selected.delete(noteList[i].id)
-            }
-          }
+    if (keyState && keyState.update > Date.now() - 5000) {
+      if (keyState.ctrlKey || keyState.metaKey) {
+        const index = props.selectedNotes?.has(noteId);
+        const selected = new Set(props.selectedNotes);
+        if (index) {
+          selected.delete(noteId)
+        } else {
           selected.add(noteId)
-          console.log("setting selected " + selected)
-          props.onSelectedIdChanged?.(noteId, selected)
         }
+        props.onSelectedIdChanged?.(noteId, selected)
+
+      } else if (keyState.shiftKey) {
+        if (props?.selectedId) {
+          let startIndex = noteList.indexOf(note)
+          let endIndex = noteList.findIndex((n) => n.id == props.selectedId)
+          if (endIndex < startIndex) {
+            [startIndex, endIndex] = [endIndex, startIndex]
+          }
+          console.log("range is [" + startIndex + "," + endIndex + ")")
+          let selected = new Set(props.selectedNotes)
+          console.log("finding range")
+          if (startIndex > -1) {
+            for (let i = startIndex; i <= endIndex; i++) {
+              console.log("looking for id " + noteList[i].id + " [" + i + "]")
+              if (!note.selected) {
+                selected.add(noteList[i].id)
+              } else {
+                selected.delete(noteList[i].id)
+              }
+            }
+            selected.add(noteId)
+            console.log("setting selected " + selected)
+            props.onSelectedIdChanged?.(noteId, selected)
+          }
+        }
+      } else {
+        props.onSelectedIdChanged?.(noteId, new Set([noteId]))
       }
     } else {
       props.onSelectedIdChanged?.(noteId, new Set([noteId]))
@@ -269,6 +272,7 @@ export interface KeyState {
   metaKey? : boolean;
   ctrlKey? : boolean;
   shiftKey? : boolean;
+  update: number;
 }
 
 interface NoteListProps
@@ -281,6 +285,6 @@ interface NoteListProps
   searchTerm: string | undefined,
   tabIndex: number | undefined,
   selectedNotes: Set<number>,
-  keyState: KeyState,
+  keyState?: KeyState,
   api: ServerAPI
 }
