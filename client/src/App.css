@@ -79,6 +79,8 @@
   overflow-y: auto;
   overflow-x: auto;
   padding: 1em;
+  min-width: 206px;
+  max-width: 480px;
 }
 
 .ListItem {
@@ -321,4 +323,8 @@
   padding: 3px;
 }
 
+.ResizeHandle {
+  cursor: col-resize;
+  width: 2px;
+}
 

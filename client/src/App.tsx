@@ -1,7 +1,7 @@
 import React, {createRef, useEffect, useState} from 'react';
 import {
   BaseButton, css,
-  DefaultButton,
+  DefaultButton, getRTL,
   Icon, IconButton,
   initializeIcons,
   IStackStyles,
@@ -57,6 +57,8 @@ export const App: React.FunctionComponent = () => {
   const [loadingText, setLoadingText] = useState<string>()
   const storedTheme = localStorage.getItem("theme");
   const [sideViewCollapsed, setSideViewCollapsed] = useState<boolean>()
+  const [listViewWidth, setListViewWidth] = useState({ width: Number(localStorage.getItem('listViewWidth') ?? 350) })
+  const [listViewOffsetStart, setListViewOffsetStart] = useState<{ startValue: number, startPosition: number}>()
 
   const setDark = () => {
 
@@ -159,8 +161,23 @@ export const App: React.FunctionComponent = () => {
     fileUploadRef.current?.click();
   }
 
+  function updateListViewWidth(newPos: number) {
+    if (listViewOffsetStart) {
+      let change = newPos - listViewOffsetStart.startPosition;
+      if (getRTL()) {
+        change = -change
+      }
+      setListViewWidth({width: Math.min(480, Math.max(240, listViewOffsetStart.startValue + change))})
+    }
+  }
+
+  function stopListViewResize() {
+    setListViewOffsetStart(undefined)
+    localStorage.setItem('listViewWidth', `${listViewWidth.width}`)
+  }
+
   return (
-      <ThemeProvider applyTo="body" theme={theme?.uiTheme} data-theme={theme?.darkMode ? 'dark' : 'light'} className='MainWindow'>
+      <ThemeProvider applyTo="body" theme={theme?.uiTheme} data-theme={theme?.darkMode ? 'dark' : 'light'} className='MainWindow' onMouseUp={() => stopListViewResize()} onMouseMove={e => updateListViewWidth(e.pageX)} style={listViewOffsetStart ? { cursor: 'col-resize'} : {}}>
       <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={setKeyState}
              onKeyUp={setKeyState} onClick={setKeyState} className='MainWindow'>
         <Stack horizontal verticalAlign='baseline'>
@@ -181,13 +198,14 @@ export const App: React.FunctionComponent = () => {
                    }}
                    tags={tags} notebooks={notebooks} updateTag={updateTag}/>
           </Stack>
-          <NoteList tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={activeNote}
+          <NoteList style={listViewWidth} tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={activeNote}
                     api={serverAPI}
                     selectedNotes={selectedNotes}
                     onSelectedIdChanged={(key, selectedKeys) => {
             setActiveNote(key);
             setSelectedNotes(selectedKeys)
           }} keyState={keyState}/>
+          <div className='ResizeHandle' onMouseDown={e => setListViewOffsetStart({startValue: listViewWidth.width, startPosition: e.pageX})}/>
           {selectedNotes.size > 1 ?
               <MultiNoteScreen selectedNotes={selectedNotes} availableNotebooks={notebooks} filterId={selectedFolder} activeNote={activeNote}/>
               : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks} updateTag={updateTag} api={serverAPI}

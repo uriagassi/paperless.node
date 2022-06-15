@@ -243,7 +243,7 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
     )
   }
   return (
-      <FocusZone className='ListView' >
+      <FocusZone className='ListView' style={props.style}>
         <Shimmer isDataLoaded={!loading} customElementsGroup={getCustomElements()} width="100%">
           <Stack tabIndex={props.tabIndex} key={props.filterId} horizontalAlign='start' verticalAlign='start'>
             {notes}
@@ -273,6 +273,7 @@ export interface KeyState {
 
 interface NoteListProps
 {
+  style: {width: string|number}
   filterId: string | undefined,
   selectedId?: number | undefined,
   onSelectedIdChanged?: (key: number, selectedKeys: Set<number>) => void,
