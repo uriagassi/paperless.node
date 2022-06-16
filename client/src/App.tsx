@@ -137,10 +137,6 @@ export const App: React.FunctionComponent = () => {
     setSearchTerm(newValue)
   }
 
-  const updateTag = (tag: ITagWithChildren) => {
-    setTagToUpdate(tag)
-  }
-
   const onUpdateTagClose = () => {
     setTagToUpdate(undefined)
   }
@@ -196,7 +192,7 @@ export const App: React.FunctionComponent = () => {
                      setActiveNote(undefined)
                      setSelectedFolder(key)
                    }}
-                   tags={tags} notebooks={notebooks} updateTag={updateTag}/>
+                   tags={tags} notebooks={notebooks} updateTag={setTagToUpdate}/>
           </Stack>
           <NoteList style={listViewWidth} tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={activeNote}
                     api={serverAPI}
@@ -208,7 +204,7 @@ export const App: React.FunctionComponent = () => {
           <div className='ResizeHandle' onMouseDown={e => setListViewOffsetStart({startValue: listViewWidth.width, startPosition: e.pageX})}/>
           {selectedNotes.size > 1 ?
               <MultiNoteScreen selectedNotes={selectedNotes} availableNotebooks={notebooks} filterId={selectedFolder} activeNote={activeNote}/>
-              : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks} updateTag={updateTag} api={serverAPI}
+              : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks} updateTag={setTagToUpdate} api={serverAPI} focusTag={t => setSelectedFolder(`tags/${t.key}?`)}
               sso={auth}/>}
         </Stack>
       </Stack>

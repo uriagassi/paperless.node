@@ -3,10 +3,10 @@ import {ITagWithChildren} from "./TagList";
 import {ContextualMenu, ITag} from "@fluentui/react";
 
 export const TagContextMenu: React.FunctionComponent<
-    { updateTag: (tag : ITagWithChildren) => any, availableTags: ITag[] | undefined, doUpdate : {target: Element, tag: ITagWithChildren} | undefined, onDismiss: () => any  }> =
+    { updateTag: (tag : ITagWithChildren) => any, focusTag?: (tag : ITagWithChildren) => any, availableTags: ITag[] | undefined, doUpdate : {target: Element, tag: ITagWithChildren} | undefined, onDismiss: () => any  }> =
     (props) => {
-          const [contextualMenuTarget, setContextualMenuTarget] = React.useState<Element | undefined>()
-          const [showContextualMenu, setShowContextualMenu] = React.useState(false);
+      const [contextualMenuTarget, setContextualMenuTarget] = React.useState<Element | undefined>()
+      const [showContextualMenu, setShowContextualMenu] = React.useState(false);
       const [selectedTag, setSelectedTag] = useState<ITagWithChildren | undefined>()
       useEffect(() => {
         if (!showContextualMenu) {
@@ -21,21 +21,28 @@ export const TagContextMenu: React.FunctionComponent<
           setShowContextualMenu(true);
         }
       }, [props.doUpdate])
-          const onHideContextualMenu = React.useCallback(() => setShowContextualMenu(false), []);
-          const updateCurrentTag = React.useCallback(() => {
-                onHideContextualMenu()
-                console.log(selectedTag)
-                if (selectedTag) {
-                      props.updateTag(selectedTag)
-                }
-          }, [selectedTag])
+      const onHideContextualMenu = React.useCallback(() => setShowContextualMenu(false), []);
+      const updateCurrentTag = React.useCallback(() => {
+        onHideContextualMenu()
+        console.log(selectedTag)
+        if (selectedTag) {
+          props.updateTag(selectedTag)
+        }
+      }, [selectedTag])
 
+      const focusOnCurrentTag = React.useCallback(() => {
+        onHideContextualMenu()
+        console.log(selectedTag)
+        if (selectedTag) {
+          props.focusTag?.(selectedTag)
+        }
+      }, [selectedTag])
 
-          return <ContextualMenu
-          items={[{key: 'rename', text: 'Update...', onClick: () => updateCurrentTag()}]}
+      return <ContextualMenu
+          items={[{key: 'rename', text: 'Update...', onClick: () => updateCurrentTag()},{key: 'focus', text: 'Focus', onClick: () => focusOnCurrentTag(), hidden: !props.focusTag }]}
           hidden={!showContextualMenu}
           target={contextualMenuTarget}
           onDismiss={onHideContextualMenu}
       />;
 
-}
+    }

@@ -366,7 +366,7 @@ export const DetailCard: React.FunctionComponent<
                      pickerSuggestionsProps={pickerSuggestionsProps}
                      selectedItems={note?.tags} className="ItemTags"
                      onChange={onTagsChanged}/>
-          <TagContextMenu updateTag={props.updateTag} availableTags={props.availableTags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
+          <TagContextMenu updateTag={props.updateTag} availableTags={props.availableTags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss} focusTag={props.focusTag}/>
         </Stack>
 
       </Shimmer>
@@ -396,6 +396,7 @@ interface DetailCardProps {
   availableTags: ITag[] | undefined,
   availableNotebooks: ITagWithChildren[] | undefined,
   updateTag: (tag : ITagWithChildren) => any,
+  focusTag: (tag : ITagWithChildren) => any,
   api: ServerAPI,
   sso: ISSO | undefined
 }
