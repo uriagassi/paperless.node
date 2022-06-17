@@ -80,9 +80,9 @@ export const TagList: React.FunctionComponent<{
 
       useEffect(() => {
         if (props.selectedId) {
-          tagListRef.current?.querySelector('.is-selected')?.scrollIntoView()
+          tagListRef.current?.querySelector('.is-selected')?.scrollIntoView(false)
         }
-      })
+      }, [tagList])
 
       function checkExpanded(links: INavLink[]) : boolean {
         const selectedLink = links.find(l => l.key == props.selectedId)
