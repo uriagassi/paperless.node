@@ -143,7 +143,11 @@
 
 .ItemTags {
   flex: 1;
-  padding: 0 1em;
+  padding: 0 0 0 1em;
+}
+
+[dir='rtl'] .ItemTags {
+  padding: 0 1em 0 0;
 }
 
 .ms-TagItem {
@@ -192,7 +196,8 @@
 
 .DateField {
   min-width: 9em;
-  margin-right: 1em;
+  height: 38px;
+  padding: 3px;
 }
 
 .CardRow1, .CardRow2 {
@@ -224,7 +229,13 @@
 
 .ListItem.is-active {
   background-color: var(--selected-color);
+  border-color: var(--selected-bar-color);
+  border-width: 0;
   border-left: 2px var(--selected-bar-color) solid;
+}
+
+[dir="rtl"] .ListItem.is-active {
+  border-width: 0 2px 0 0;
 }
 
 .ListItem.is-selected {
