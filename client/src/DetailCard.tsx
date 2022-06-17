@@ -168,6 +168,12 @@ export const DetailCard: React.FunctionComponent<
         }
       }
 
+      const purge = () => {
+        fetch(`/api/notes/${props.noteId}`, {method: 'DELETE'}).then(() => {
+          eventBus.dispatch('note-collection-change', {notebooks: [note?.notebookId], tags: [note?.tags?.map(t => t.key)]})
+        })
+      }
+
       const onDateChanged = (newValue: Date | null | undefined) => {
         if (newValue && note?.createTime && note?.createTime != newValue) {
           updateNote({...note, createTime: newValue});
@@ -292,7 +298,13 @@ export const DetailCard: React.FunctionComponent<
           iconProps: { iconName: 'Delete'},
           hidden: note?.deleted,
           onClick: () => onNotebookChanged(null, notebooks.find(n => n.data.icon == 'Delete')),
-        split: true,},
+        },
+        {key: 'purge',
+          text: 'Purge',
+          iconProps: { iconName: 'Delete'},
+          hidden: !note?.deleted,
+          onClick: () => purge(),
+        },
         { key: 'sep1',
           buttonStyles: {icon: 'Separator'},
          iconProps: { iconName: 'Separator'},

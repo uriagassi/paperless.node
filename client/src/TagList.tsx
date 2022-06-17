@@ -10,6 +10,7 @@ import {
 import {TagContextMenu} from "./TagContextMenu";
 import {AddNotebookDialog} from "./AddNotebookDialog";
 import {useBoolean} from "@fluentui/react-hooks";
+import eventBus from "./EventBus";
 
 export const TagList: React.FunctionComponent<{
   selectedId: string | undefined,
@@ -20,6 +21,7 @@ export const TagList: React.FunctionComponent<{
 
       const [tagList, setTagList] = useState<INavLinkGroup[]>([])
       const [showArchiveContext, setShowArchiveContext] = useState<Element>()
+      const [showTrashContext, setShowTrashContext] = useState<Element>()
       const [addNotebook, { toggle: toggleAddNotebook }] = useBoolean(false)
       const tagListRef = createRef<HTMLDivElement>()
 
@@ -119,19 +121,26 @@ export const TagList: React.FunctionComponent<{
         let tagItem = (ev.target as HTMLElement).closest('.ms-Button-flexContainer')
         if (tagItem) {
           const iconName = tagItem.querySelector('.ms-Icon')?.attributes?.getNamedItem('data-icon-name')?.textContent;
-          if (iconName == 'Tag') {
-            const textContent = tagItem.querySelector('.ms-Nav-linkText')?.textContent?.match(/(.*?)( \(\d+\))?$/)
-            console.log(textContent)
-            if (textContent) {
-              const found = props.tags?.find(t => t.name == textContent[1]);
-              if (found) {
-                ev.preventDefault();
-                setDoUpdate({target: tagItem, tag: found as ITagWithChildren})
+          switch (iconName) {
+            case 'Tag':
+              const textContent = tagItem.querySelector('.ms-Nav-linkText')?.textContent?.match(/(.*?)( \(\d+\))?$/)
+              console.log(textContent)
+              if (textContent) {
+                const found = props.tags?.find(t => t.name == textContent[1]);
+                if (found) {
+                  ev.preventDefault();
+                  setDoUpdate({target: tagItem, tag: found as ITagWithChildren})
+                }
               }
-            }
-          } else if (iconName == 'Archive') {
-            ev.preventDefault()
-            setShowArchiveContext(tagItem)
+              break
+            case 'Archive':
+              ev.preventDefault()
+              setShowArchiveContext(tagItem)
+              break
+            case 'Delete':
+              ev.preventDefault()
+              setShowTrashContext(tagItem)
+              break
           }
         }
       }
@@ -146,6 +155,14 @@ export const TagList: React.FunctionComponent<{
         }
       }
 
+      function emptyTrash() {
+        eventBus.dispatch('wait-screen', 'Emptying Trash...')
+        fetch('api/trash', {method: 'DELETE'}).then(() => {
+          eventBus.dispatch('note-collection-change', {notebooks: [props.notebooks?.find(n => n.type == 'D')?.key]})
+          eventBus.dispatch('wait-screen', undefined)
+        })
+      }
+
       return (
           <div className='TagList' onContextMenu={onShowContextualMenu} ref={tagListRef}>
             <Shimmer isDataLoaded={!!props.tags}>
@@ -158,10 +175,16 @@ export const TagList: React.FunctionComponent<{
             </Shimmer>
             <TagContextMenu updateTag={props.updateTag} availableTags={props.tags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
             <ContextualMenu
-                items={[{key: 'add-notebook', text: 'Add Notebook...', onClick: toggleAddNotebook}]}
+                items={[{key: 'add-notebook', text: 'Add Notebook...', onClick: toggleAddNotebook, iconProps: { iconName: 'BookAnswers'}}]}
                 hidden={!showArchiveContext}
                 target={showArchiveContext}
                 onDismiss={() => setShowArchiveContext(undefined)}
+            />
+            <ContextualMenu
+                items={[{key: 'empty-trash', text: 'Empty...', onClick: emptyTrash, iconProps: { iconName: 'Trash'}}]}
+                hidden={!showTrashContext}
+                target={showTrashContext}
+                onDismiss={() => setShowTrashContext(undefined)}
             />
             <AddNotebookDialog show={addNotebook} availableNotebooks={props.notebooks} onClose={toggleAddNotebook}/>
           </div>

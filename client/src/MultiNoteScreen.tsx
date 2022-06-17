@@ -1,8 +1,9 @@
 import React from "react";
 import {CommandBar, ICommandBarItemProps, ITag,  Stack} from "@fluentui/react";
 import eventBus from "./EventBus";
+import {ITagWithChildren} from "./TagList";
 
-export const MultiNoteScreen: React.FunctionComponent<{selectedNotes: Set<number>, availableNotebooks: ITag[] | undefined, filterId: string | undefined, activeNote?: number}> = (props) => {
+export const MultiNoteScreen: React.FunctionComponent<{selectedNotes: Set<number>, availableNotebooks: ITagWithChildren[] | undefined, filterId: string | undefined, activeNote?: number}> = (props) => {
 
   function currentUpdated() {
     let affectedList = {notebooks: [3], tags: [0]}
@@ -24,20 +25,23 @@ export const MultiNoteScreen: React.FunctionComponent<{selectedNotes: Set<number
     })
   }
 
-  const doMove = (notebook: string | number) => {
-    const requestOptions = {
-      method: 'POST' }
-    fetch(`api/notes/${Array.from(props.selectedNotes).join(',')}/notebook/${notebook}`, requestOptions).then(() => {
-      let affectedList = { notebooks : [notebook], tags: [0]}
-      if (props.filterId) {
-        if (props.filterId.split('/')[0] == 'notebooks') {
-          affectedList.notebooks.push(Number(props.filterId.split('/')[1]))
-        } else {
-          affectedList.tags = [Number(props.filterId.split('/')[1])];
-        }
+  const doMove = (notebook: string | number | undefined) => {
+    if (notebook) {
+      const requestOptions = {
+        method: 'POST'
       }
-      eventBus.dispatch('note-collection-change', affectedList)
-    })
+      fetch(`api/notes/${Array.from(props.selectedNotes).join(',')}/notebook/${notebook}`, requestOptions).then(() => {
+        let affectedList = {notebooks: [notebook], tags: [0]}
+        if (props.filterId) {
+          if (props.filterId.split('/')[0] == 'notebooks') {
+            affectedList.notebooks.push(Number(props.filterId.split('/')[1]))
+          } else {
+            affectedList.tags = [Number(props.filterId.split('/')[1])];
+          }
+        }
+        eventBus.dispatch('note-collection-change', affectedList)
+      })
+    }
   }
 
   const doMerge = () => {
@@ -71,7 +75,7 @@ export const MultiNoteScreen: React.FunctionComponent<{selectedNotes: Set<number
               key: 'delete',
               text: 'Delete ' + props.selectedNotes.size + ' Notes',
               iconProps: {iconName: 'Delete'},
-              onClick: () => doDelete()
+              onClick: () => doMove(props.availableNotebooks?.find(n => n.type == 'D')?.key)
             },
             {
               key: 'move',

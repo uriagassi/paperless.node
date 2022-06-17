@@ -15,6 +15,7 @@ const cookieParser = require('cookie-parser')
 const addNotes = require("./addNotes");
 const gmail = require('./gmail')
 const sql_helper = require('./sql_helper')
+const cleanup = require('./cleanup')
 const att = require('./attachment').prepare(db)
 const tagservice = require('./tags').prepare(db)
 const notes = require('./notes').prepare(db, att, tagservice)
@@ -152,20 +153,6 @@ app.post('/api/notes/:noteId', (req, res) => {
   }))
 })
 
-const delete_note = db.prepare("update notes set notebookId = (select notebookId from notebooks where Type = 'D') where NodeId = $noteId")
-const delete_notes = sql_helper.prepare_many(db, "update notes set notebookId = (select notebookId from notebooks where Type = 'D') where NodeId in (#noteIds)", '#noteIds')
-
-app.delete('/api/notes/:noteId', (req, res) => {
-  if (req.params.noteId.includes(',')) {
-    let ids = req.params.noteId.split(',')
-    res.json(delete_notes(ids.length).run(ids))
-  } else {
-    res.json(delete_note.run({
-      noteId: req.params.noteId
-    }))
-  }
-})
-
 const move_notes = sql_helper.prepare_many(db, "update notes set notebookId = ?, updateTime = date('now'), updatedBy = ? where NodeId in (#noteIds)", '#noteIds')
 
 app.post('/api/notes/:noteIds/notebook/:notebookId', (req, res) => {
@@ -227,6 +214,8 @@ app.get('/api/logout', (req, res) => {
 addNotes.start(app, config, db, notes, att)
 
 gmail.start(app, config, notes, att)
+
+cleanup.start(app, config, db, notes, att)
 
 app.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);

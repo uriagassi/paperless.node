@@ -119,6 +119,10 @@ export const App: React.FunctionComponent = () => {
     }
   }, [theme])
 
+  function waitScreen(e: CustomEvent) {
+    setLoadingText(e.detail)
+  }
+
   useEffect(() => {
     if (auth) {
       serverAPI.setHeader({key: 'x-access-token', value: auth.login()})
@@ -130,6 +134,11 @@ export const App: React.FunctionComponent = () => {
       })
       loadNotebooks();
       eventBus.on('note-collection-change', loadNotebooks)
+      eventBus.on('wait-screen', waitScreen)
+    }
+    return () => {
+      eventBus.remove('note-collection-change', loadNotebooks)
+      eventBus.remove('wait-screen', waitScreen)
     }
   }, [auth])
 
