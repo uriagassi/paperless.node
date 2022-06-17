@@ -64,6 +64,10 @@
   transition: width 300ms ease-in-out;
 }
 
+.TagList .is-selected .ms-Button {
+  background-color: var(--selected-color);
+}
+
 .SideView {
   width: 280px;
   transition: width 300ms ease-in-out;
