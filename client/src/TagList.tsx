@@ -1,5 +1,11 @@
-import React, {useEffect, useState} from "react";
-import {INavLink, INavLinkGroup, ITag, Nav, Shimmer} from "@fluentui/react";
+import React, {createRef, useEffect, useState} from "react";
+import {
+  INavLink,
+  INavLinkGroup,
+  ITag,
+  Nav,
+  Shimmer
+} from "@fluentui/react";
 import {TagContextMenu} from "./TagContextMenu";
 
 export const TagList: React.FunctionComponent<{
@@ -10,6 +16,7 @@ export const TagList: React.FunctionComponent<{
     (props) => {
 
       const [tagList, setTagList] = useState<INavLinkGroup[]>([])
+      const tagListRef = createRef<HTMLDivElement>()
 
       function addNote(notebooks: INavLink[], n: ITagWithChildren, icon: string) {
         notebooks.push({
@@ -71,6 +78,12 @@ export const TagList: React.FunctionComponent<{
         }
       }, [props.selectedId])
 
+      useEffect(() => {
+        if (props.selectedId) {
+          tagListRef.current?.querySelector('.is-selected')?.scrollIntoView()
+        }
+      })
+
       function checkExpanded(links: INavLink[]) : boolean {
         const selectedLink = links.find(l => l.key == props.selectedId)
         if (selectedLink) {
@@ -120,7 +133,7 @@ export const TagList: React.FunctionComponent<{
       }
 
       return (
-          <div className='TagList' onContextMenu={onShowContextualMenu}>
+          <div className='TagList' onContextMenu={onShowContextualMenu} ref={tagListRef}>
             <Shimmer isDataLoaded={!!props.tags}>
               <Nav
                   selectedKey={props.selectedId}
