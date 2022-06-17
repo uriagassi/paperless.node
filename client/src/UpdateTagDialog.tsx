@@ -43,9 +43,7 @@ export const UpdateTagDialog: React.FunctionComponent<
       }
 
       useEffect(() => {
-        console.log("show?")
         if (props.tag) {
-          console.log("show!")
           toggleHideDialog()
           setCurrentTag({...props.tag})
         }

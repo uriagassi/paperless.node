@@ -62,6 +62,12 @@ app.get("/api/notebooks_and_tags", (req, res) => {
   res.json(result)
 })
 
+const add_notebook = db.prepare('insert into notebooks (name) values (?)')
+
+app.post('/api/notebooks/:name', (req, res) => {
+  res.json(add_notebook.run(req.params.name))
+})
+
 const notes_by_notebook_query = db.prepare(
   'select NodeId as id, CreateTime as createTime, Title as title, \
   GROUP_CONCAT(a.FileName) as attachments, \

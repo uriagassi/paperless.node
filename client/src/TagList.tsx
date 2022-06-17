@@ -1,5 +1,6 @@
 import React, {createRef, useEffect, useState} from "react";
 import {
+  ContextualMenu,
   INavLink,
   INavLinkGroup,
   ITag,
@@ -7,6 +8,8 @@ import {
   Shimmer
 } from "@fluentui/react";
 import {TagContextMenu} from "./TagContextMenu";
+import {AddNotebookDialog} from "./AddNotebookDialog";
+import {useBoolean} from "@fluentui/react-hooks";
 
 export const TagList: React.FunctionComponent<{
   selectedId: string | undefined,
@@ -16,13 +19,16 @@ export const TagList: React.FunctionComponent<{
     (props) => {
 
       const [tagList, setTagList] = useState<INavLinkGroup[]>([])
+      const [showArchiveContext, setShowArchiveContext] = useState<Element>()
+      const [addNotebook, { toggle: toggleAddNotebook }] = useBoolean(false)
       const tagListRef = createRef<HTMLDivElement>()
 
       function addNote(notebooks: INavLink[], n: ITagWithChildren, icon: string) {
         notebooks.push({
           key: 'notebooks/' + n.key + '?',
           name: n.name + (n.notes ? " (" + n.notes + ")" : ""),
-          icon: icon
+          icon: icon,
+          isExpanded: n.isExpanded
         } as INavLink)
       }
 
@@ -49,8 +55,13 @@ export const TagList: React.FunctionComponent<{
           }
         });
         props.notebooks?.filter(n => n.type == 'I').forEach(n => addNote(notebooks, n, "Inbox"))
-        props.notebooks?.filter(n => !n.type).forEach(n => addNote(notebooks, n, "BookAnswers"))
-        props.notebooks?.filter(n => n.type == 'A').forEach(n => addNote(notebooks, n,  "Archive"))
+        const isArchiveExpanded = tagList?.[0]?.links?.find(l => l.icon == 'Archive')?.isExpanded??true
+        props.notebooks?.filter(n => n.type == 'A').forEach(n => addNote(notebooks, {...n, isExpanded: isArchiveExpanded},  "Archive"))
+        if (notebooks.length > 0) {
+          const customNotebookLinks: INavLink[] = []
+          props.notebooks?.filter(n => !n.type).forEach(n => addNote(customNotebookLinks, n, "BookAnswers"))
+          notebooks[notebooks.length - 1].links = customNotebookLinks
+        }
         props.notebooks?.filter(n => n.type == 'D').forEach(n => addNote(notebooks, n, "Delete"))
         let selectedId = props.selectedId || notebooks[0]?.key
         if (selectedId != props.selectedId) {
@@ -59,7 +70,7 @@ export const TagList: React.FunctionComponent<{
         setTagList([
           {
             name: "Notebooks",
-            links: notebooks
+            links: notebooks,
           }, {
             name: 'Tags',
             links: links,
@@ -71,7 +82,7 @@ export const TagList: React.FunctionComponent<{
       }
 
       useEffect(() => {
-        if (props.selectedId) {
+        if (props.selectedId && tagList.length > 1) {
           if (checkExpanded(tagList[1].links)) {
             setTagList([...tagList])
           }
@@ -106,9 +117,9 @@ export const TagList: React.FunctionComponent<{
 
       const onShowContextualMenu = (ev: React.MouseEvent<HTMLElement>) => {
         let tagItem = (ev.target as HTMLElement).closest('.ms-Button-flexContainer')
-        console.log(tagItem ?? ev.target)
         if (tagItem) {
-          if (tagItem.querySelector('.ms-Icon')?.attributes?.getNamedItem('data-icon-name')?.textContent == 'Tag') {
+          const iconName = tagItem.querySelector('.ms-Icon')?.attributes?.getNamedItem('data-icon-name')?.textContent;
+          if (iconName == 'Tag') {
             const textContent = tagItem.querySelector('.ms-Nav-linkText')?.textContent?.match(/(.*?)( \(\d+\))?$/)
             console.log(textContent)
             if (textContent) {
@@ -118,6 +129,9 @@ export const TagList: React.FunctionComponent<{
                 setDoUpdate({target: tagItem, tag: found as ITagWithChildren})
               }
             }
+          } else if (iconName == 'Archive') {
+            ev.preventDefault()
+            setShowArchiveContext(tagItem)
           }
         }
       }
@@ -143,6 +157,13 @@ export const TagList: React.FunctionComponent<{
               />
             </Shimmer>
             <TagContextMenu updateTag={props.updateTag} availableTags={props.tags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
+            <ContextualMenu
+                items={[{key: 'add-notebook', text: 'Add Notebook...', onClick: toggleAddNotebook}]}
+                hidden={!showArchiveContext}
+                target={showArchiveContext}
+                onDismiss={() => setShowArchiveContext(undefined)}
+            />
+            <AddNotebookDialog show={addNotebook} availableNotebooks={props.notebooks} onClose={toggleAddNotebook}/>
           </div>
       );
     }
