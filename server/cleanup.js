@@ -25,7 +25,9 @@
       delete_note.run(noteId)
       // 5. delete attachments from fs
       attachmentsToDelete.forEach(a => {
-        fs.unlinkSync(path.join(attachmentsDir, ...a))
+        if (fs.existsSync(path.join(attachmentsDir, ...a))) {
+          fs.unlinkSync(path.join(attachmentsDir, ...a))
+        }
       })
     }
 

@@ -32,6 +32,7 @@
     "dev": "concurrently \"cd client && HTTPS=true yarn start\" \"yarn start\"",
     "start": "node server/index.js",
     "setup_wizard": "node scripts/setup_wizard.js",
-    "postinstall": "semantic-ui-css-patch"
+    "postinstall": "semantic-ui-css-patch",
+    "cleanup": "node scripts/cleanup.js"
   }
 }
