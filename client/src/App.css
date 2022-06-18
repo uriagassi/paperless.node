@@ -44,12 +44,16 @@
 .App-header {
   padding: 10px 60px;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  font-size: calc(10px + 1vmin);
   background-image: url('../public/favicon.ico');
   background-repeat: no-repeat;
   background-position: left;
-  margin: 10px 40px !important;
+  margin: 5px 10px !important;
   color: var(--text-color)
+}
+
+[dir='rtl'] .App-header {
+  background-position: right;
 }
 
 .ms-CommandBar {
@@ -157,30 +161,28 @@
 .MainView {
   height: 90vh;
   flex: 1;
-  #padding: 3px;
+  margin-top: 0 !important;
   border-top: var(--line-color) solid 1px;
 }
 
 .SearchBox {
-  flex: 1;
+  flex: 1.5;
   border-radius: 10px;
   border: none;
-  margin: 0 7em !important;
   background-color: var(--line-color);
   height: 3em;
 }
 
 .Hamburger {
-  width: 3em;
-  height: 3em;
+  width: 24px;
+  height: 24px;
   border-style: none;
-  margin-right: 10px;
-  margin-left: 20px;
+  margin: 10px 10px 10px 25px;
   background-color: var(--background-color);
 }
 
 .Hamburger i {
-  font-size: 28px;
+  font-size: 24px;
   color: var(--selected-bar-color);
 }
 
@@ -246,19 +248,19 @@
   position: absolute;
   background: var(--icon-color);
   color: var(--background-color);
-  border-radius: 10px;
-  width: 20px;
-  height: 20px;
-  right: -10px;
-  padding-top: 1px;
-  top: 0px;
+  border-radius: 7.5px;
+  width: 15px;
+  height: 15px;
+  right: -7.5px;
+  font-size: 12px;
+  top: 0;
 }
 
 .Command .ms-Icon, .CommandButton {
-  font-size: 36px;
+  font-size: 24px;
   padding-top: 8px;
   fill: var(--icon-color);
-  height: 36px;
+  height: 24px;
 }
 
 .Command .ms-Icon {
@@ -266,9 +268,10 @@
 }
 
 .Command {
-  margin: 0 2em;
+  margin: 0 1.5em;
   top: 0.8em;
-  width: 36px;
+  width: 24px;
+  height: 24px;
 }
 
 .MultiFolderIcon {
@@ -334,12 +337,16 @@
 }
 
 .ms-Persona {
-  direction: initial;
   padding: 3px;
 }
 
 .ResizeHandle {
   cursor: col-resize;
   width: 2px;
+}
+
+.CommandBar {
+  flex: 1;
+  flex-direction: row-reverse;
 }
 

@@ -186,7 +186,7 @@ export const App: React.FunctionComponent = () => {
       <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={e => setKeyState({...e, update: Date.now()})}
              onKeyUp={e => setKeyState({...e, update: Date.now()})} onClick={e => setKeyState({...e, update: Date.now()})} className='MainWindow'>
         <Stack horizontal verticalAlign='baseline'>
-          <IconButton className='Hamburger' iconProps={{iconName:'GlobalNavButton'}} onClick={() => setSideViewCollapsed(!sideViewCollapsed)}/>
+          <IconButton className='Command' iconProps={{iconName:'GlobalNavButton'}} onClick={() => setSideViewCollapsed(!sideViewCollapsed)}/>
           <h1 className='App-header'>Paperless</h1>
           <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch} onClear={() => doSearch('')}/>
           <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth} isDark={theme?.darkMode ?? false} onDarkChanged={() => toggleDarkMode()}
