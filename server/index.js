@@ -195,10 +195,10 @@ app.post('/api/tags/:tagId/expand', (req, res) => {
 })
 
 app.get('/api/user', (req, res) => {
-  res.json({
-    user_id: req.user_id,
-    user_name: req.user_name
-  })
+    res.json({
+      user_id: req.user_id,
+      user_name: req.user_name
+    })
   }
 )
 
@@ -209,6 +209,24 @@ app.get('/api/logout', (req, res) => {
     res.clearCookie(c)
   }
   res.json('OK')
+})
+
+const delete_tag = db.prepare('delete from tags where tagId = ?')
+const empty_tag = db.prepare('delete from notetags where tagId = ?')
+const move_child_tags_to_parent = db.prepare('update tags set parenttagtagid = (select parenttagtagid from tags where tagid=$tagId) where parenttagtagid = $tagId')
+
+app.delete('/api/tags/:tagId', (req, res) => {
+  empty_tag.run(req.params.tagId)
+  move_child_tags_to_parent.run(req.params)
+  res.json(delete_tag.run(req.params.tagId))
+})
+
+const delete_notebook = db.prepare('delete from notebooks where notebookId = ?')
+const empty_notebook = db.prepare("update notes set notebookId = (select NotebookId from Notebooks where Type = 'I') where notebookId = ?")
+
+app.delete('/api/notebooks/:notebookId', (req, res) => {
+  empty_notebook.run(req.params.notebookId)
+  res.json(delete_notebook.run(req.params.notebookId))
 })
 
 addNotes.start(app, config, db, notes, att)

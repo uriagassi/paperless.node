@@ -1,11 +1,12 @@
 import React, {createRef, useEffect, useState} from "react";
 import {
-  ContextualMenu,
+  ContextualMenu, DefaultButton, Dialog, DialogFooter,
   INavLink,
   INavLinkGroup,
   ITag,
-  Nav,
-  Shimmer
+  IDialogContentProps,
+  Nav, PrimaryButton,
+  Shimmer, DialogType
 } from "@fluentui/react";
 import {TagContextMenu} from "./TagContextMenu";
 import {AddNotebookDialog} from "./AddNotebookDialog";
@@ -22,6 +23,7 @@ export const TagList: React.FunctionComponent<{
       const [tagList, setTagList] = useState<INavLinkGroup[]>([])
       const [showArchiveContext, setShowArchiveContext] = useState<Element>()
       const [showTrashContext, setShowTrashContext] = useState<Element>()
+      const [showDeleteNotebookContext, setShowDeleteNotebookContext] = useState<{target: Element, tag: ITagWithChildren} | undefined>()
       const [addNotebook, { toggle: toggleAddNotebook }] = useBoolean(false)
       const tagListRef = createRef<HTMLDivElement>()
 
@@ -83,6 +85,53 @@ export const TagList: React.FunctionComponent<{
         props.onSelectedIdChanged(item?.key)
       }
 
+      const [dialogData, setDialogData] = useState<{props: IDialogContentProps, callback: () => any}>()
+
+      const onDeleteTag = (tag: ITagWithChildren) => {
+        if (tag.notes > 0) {
+          setDialogData({props: {
+            type: DialogType.normal,
+              title: `Delete tag ${tag.name}`,
+              subText: `Tag will be removed from all notes`
+            },
+          callback: () => {
+            setDialogData(undefined)
+            doDeleteTag(tag)
+          }})
+        } else {
+          doDeleteTag(tag)
+        }
+      }
+
+      const doDeleteTag = (tag: ITagWithChildren) => {
+        fetch(`/api/tags/${tag.key}`, {method: 'DELETE'}).then(() => {
+          eventBus.dispatch('note-collection-change', {tags: [tag.key]})
+        })
+      }
+
+      const onDeleteNotebook = () => {
+        const notebook = showDeleteNotebookContext!.tag
+        if (notebook.notes > 0) {
+          setDialogData({props: {
+              type: DialogType.normal,
+              title: `Delete notebook ${notebook.name}`,
+              subText: `Notes from this notebook will be sent to Inbox`
+            },
+            callback: () => {
+              setDialogData(undefined)
+              doDeleteNotebook(notebook)
+            }})
+        } else {
+          doDeleteNotebook(notebook)
+        }
+      }
+
+      const doDeleteNotebook = (notebook: ITagWithChildren) => {
+        fetch(`/api/notebooks/${notebook.key}`, {method: 'DELETE'}).then(() => {
+          eventBus.dispatch('note-collection-change', {notebooks: [notebook.key]})
+        })
+      }
+
       useEffect(() => {
         if (props.selectedId && tagList.length > 1) {
           if (checkExpanded(tagList[1].links)) {
@@ -121,9 +170,9 @@ export const TagList: React.FunctionComponent<{
         let tagItem = (ev.target as HTMLElement).closest('.ms-Button-flexContainer')
         if (tagItem) {
           const iconName = tagItem.querySelector('.ms-Icon')?.attributes?.getNamedItem('data-icon-name')?.textContent;
+          const textContent = tagItem.querySelector('.ms-Nav-linkText')?.textContent?.match(/(.*?)( \(\d+\))?$/)
           switch (iconName) {
             case 'Tag':
-              const textContent = tagItem.querySelector('.ms-Nav-linkText')?.textContent?.match(/(.*?)( \(\d+\))?$/)
               console.log(textContent)
               if (textContent) {
                 const found = props.tags?.find(t => t.name == textContent[1]);
@@ -141,6 +190,14 @@ export const TagList: React.FunctionComponent<{
               ev.preventDefault()
               setShowTrashContext(tagItem)
               break
+            case "BookAnswers":
+              if (textContent) {
+                const found = props.notebooks?.find(t => t.name == textContent[1]);
+                if (found) {
+                  ev.preventDefault()
+                  setShowDeleteNotebookContext({target: tagItem, tag: found})
+                }
+              }
           }
         }
       }
@@ -173,7 +230,7 @@ export const TagList: React.FunctionComponent<{
                   onLinkExpandClick={onExpand}
               />
             </Shimmer>
-            <TagContextMenu updateTag={props.updateTag} availableTags={props.tags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss}/>
+            <TagContextMenu updateTag={props.updateTag} availableTags={props.tags} doUpdate={doUpdate} onDismiss={onContextMenuDismiss} deleteTag={onDeleteTag}/>
             <ContextualMenu
                 items={[{key: 'add-notebook', text: 'Add Notebook...', onClick: toggleAddNotebook, iconProps: { iconName: 'BookAnswers'}}]}
                 hidden={!showArchiveContext}
@@ -186,7 +243,23 @@ export const TagList: React.FunctionComponent<{
                 target={showTrashContext}
                 onDismiss={() => setShowTrashContext(undefined)}
             />
+            <ContextualMenu
+                items={[{key: 'delete-notebook', text: 'Delete Notebook', onClick: onDeleteNotebook, iconProps: { iconName: 'Trash'}}]}
+                hidden={!showDeleteNotebookContext}
+                target={showDeleteNotebookContext?.target}
+                onDismiss={() => setShowDeleteNotebookContext(undefined)}
+            />
             <AddNotebookDialog show={addNotebook} availableNotebooks={props.notebooks} onClose={toggleAddNotebook}/>
+            <Dialog
+                hidden={!dialogData}
+                onDismiss={() => setDialogData(undefined)}
+                dialogContentProps={dialogData?.props}
+            >
+              <DialogFooter>
+                <PrimaryButton onClick={dialogData?.callback} text="Delete"/>
+                <DefaultButton onClick={() => setDialogData(undefined)} text="Cancel"/>
+              </DialogFooter>
+            </Dialog>
           </div>
       );
     }

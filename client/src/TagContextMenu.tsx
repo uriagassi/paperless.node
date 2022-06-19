@@ -3,7 +3,7 @@ import {ITagWithChildren} from "./TagList";
 import {ContextualMenu, ITag} from "@fluentui/react";
 
 export const TagContextMenu: React.FunctionComponent<
-    { updateTag: (tag : ITagWithChildren) => any, focusTag?: (tag : ITagWithChildren) => any, availableTags: ITag[] | undefined, doUpdate : {target: Element, tag: ITagWithChildren} | undefined, onDismiss: () => any  }> =
+    { updateTag: (tag : ITagWithChildren) => any, focusTag?: (tag : ITagWithChildren) => any, deleteTag?: (tag : ITagWithChildren) => any, availableTags: ITag[] | undefined, doUpdate : {target: Element, tag: ITagWithChildren} | undefined, onDismiss: () => any  }> =
     (props) => {
       const [contextualMenuTarget, setContextualMenuTarget] = React.useState<Element | undefined>()
       const [showContextualMenu, setShowContextualMenu] = React.useState(false);
@@ -38,8 +38,17 @@ export const TagContextMenu: React.FunctionComponent<
         }
       }, [selectedTag])
 
+      const deleteCurrentTag = React.useCallback(() => {
+        onHideContextualMenu()
+        if (selectedTag) {
+          props.deleteTag?.(selectedTag)
+        }
+      }, [selectedTag])
+
       return <ContextualMenu
-          items={[{key: 'rename', text: 'Update...', onClick: () => updateCurrentTag()},{key: 'focus', text: 'Focus', onClick: () => focusOnCurrentTag(), hidden: !props.focusTag }]}
+          items={[{key: 'rename', text: 'Update...', onClick: () => updateCurrentTag()},
+            {key: 'focus', text: 'Focus', onClick: () => focusOnCurrentTag(), hidden: !props.focusTag },
+            {key: 'delete', text: 'Delete Tag', onClick: () => deleteCurrentTag(), hidden: !props.deleteTag }]}
           hidden={!showContextualMenu}
           target={contextualMenuTarget}
           onDismiss={onHideContextualMenu}
