@@ -160,11 +160,11 @@ export const DetailCard: React.FunctionComponent<
 
       const onNotebookChanged = (event: any, option?: IDropdownOption) => {
         if (option && note?.notebookId && note?.notebookId != option.key) {
-          let oldNotebook = note.notebookId
-          updateNote({...note, notebookId: Number(option.key)});
-          setNote(note)
+          const newNote = {...note, notebookId: Number(option.key)};
+          updateNote(newNote);
+          setNote(newNote)
           eventBus.dispatch('note-collection-change',
-              {notebooks: [oldNotebook, note.notebookId]})
+              {notebooks: [newNote.notebookId, note.notebookId]})
         }
       }
 
@@ -176,8 +176,9 @@ export const DetailCard: React.FunctionComponent<
 
       const onDateChanged = (newValue: Date | null | undefined) => {
         if (newValue && note?.createTime && note?.createTime != newValue) {
-          updateNote({...note, createTime: newValue});
-          setNote(note)
+          const newNote = {...note, createTime: newValue};
+          updateNote(newNote);
+          setNote(newNote)
           eventBus.dispatch('note-detail-change', props.noteId)
         }
       }
