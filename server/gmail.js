@@ -168,15 +168,15 @@
 
     function importMessage(gmail, username, thread, pendingLabels, doneLabels, labels) {
       return new Promise((resolve, reject) =>  {
-      gmail.users.threads.get({userId: "me", id: thread.id}, (err, thread) => {
+      gmail.users.threads.get({userId: "me", id: thread.id}, (err, threadData) => {
         console.log(err)
-        const message = thread.data?.messages?.[thread.data?.messages?.length - 1];
+        const message = threadData.data?.messages?.[threadData.data?.messages?.length - 1];
         if (message == null || doneLabels.find(
           l => message.labelIds.includes(l))) {
-          gmail.users.messages.modify({
+          gmail.users.threads.modify({
             removeLabelIds: pendingLabels,
             userId: "me",
-            id: message.id
+            id: thread.id
           })
           resolve("not imported")
           return
@@ -188,11 +188,11 @@
             noteData: note.noteData,
             updateBy: username
           }, note.attachments, note.tags).then(() => {
-            gmail.users.messages.modify({
+            gmail.users.threads.modify({
               addLabelIds: doneLabels,
               removeLabelIds: pendingLabels,
               userId: "me",
-              id: message.id
+              id: thread.id
             })
 
             resolve("OK");
