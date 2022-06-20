@@ -80,7 +80,13 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
   }
 
   function refreshPendingCount(force: boolean) {
-    fetch('/api/files/checkStatus').then(result => result.json())
+    fetch('/api/files/checkStatus')
+        .then(result => {
+          if (result.status == 403) {
+            window.location.hash = '#'
+          }
+          return result.json()
+        })
         .then(r => setPendingImport(r.pending))
     if (force || pendingMail != '?') {
       console.log(`pendingMail = ${pendingMail}, ${pendingMail == '?'}`)
@@ -115,12 +121,12 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
   function logout() {
     props.sso?.logout().then(() =>
         fetch('/api/logout').then(
-      ).then(() => {
-          window.location.hash = ''
-      window.location.pathname = ''
-          window.location.reload()
-        }
-    ))
+        ).then(() => {
+              window.location.hash = ''
+              window.location.pathname = ''
+              window.location.reload()
+            }
+        ))
   }
   return <Stack horizontal verticalAlign='baseline' className='CommandBar'>
     <Persona {...props.loggedIn} size={PersonaSize.size24} onContextMenu={e => {
