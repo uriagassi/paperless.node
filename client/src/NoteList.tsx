@@ -135,8 +135,8 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
 
   const deleteNote = (id: number) => {
     const requestOptions = {
-      method: 'DELETE' }
-    fetch('api/notes/' + id, requestOptions).then(() => {
+      method: 'POST' }
+    fetch(`api/notes/${id}/notebook/D`, requestOptions).then(() => {
       let affectedList = { notebooks : [3], tags: [0]}
       if (props.filterId) {
         if (props.filterId.split('/')[0] == 'notebooks') {

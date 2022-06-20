@@ -154,11 +154,16 @@ app.post('/api/notes/:noteId', (req, res) => {
 })
 
 const move_notes = sql_helper.prepare_many(db, "update notes set notebookId = ?, updateTime = date('now'), updatedBy = ? where NodeId in (#noteIds)", '#noteIds')
+const find_notebook = db.prepare('select notebookId from notebooks where type=?')
 
 app.post('/api/notes/:noteIds/notebook/:notebookId', (req, res) => {
   let ids = req.params.noteIds.split(',')
+  let notebookId =  req.params.notebookId
+  if (isNaN(req.params.notebookId)) {
+    notebookId = find_notebook.get(req.params.notebookId).NotebookId
+  }
   res.json(move_notes(ids.length).run(
-    req.params.notebookId, req.user_name, ...ids
+   notebookId, req.user_name, ...ids
   ))
 })
 
