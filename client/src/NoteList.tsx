@@ -118,11 +118,11 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
   const checkChange = (data: { notebooks?: number[], tags?: number[]}) => {
     if (props.filterId?.startsWith('notebook')) {
       if (data.notebooks?.filter(n => props.filterId == 'notebooks/' + n + '?')) {
-        loadNotes()
+        loadNotes(false)
       }
     } else if (props.filterId?.startsWith('tag')) {
       if (data.tags?.filter(n => props.filterId == 'tags/' + n + '?')) {
-        loadNotes()
+        loadNotes(false)
       }
     }
   }
