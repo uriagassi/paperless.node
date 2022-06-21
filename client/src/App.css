@@ -350,3 +350,18 @@
   flex-direction: row-reverse;
 }
 
+.EmptyDetails {
+  flex: 1;
+  padding: 20px 10px;
+  border: 2px solid var(--selected-focus);
+  margin: 5px;
+  border-radius: 10px;
+  background-color: var(--line-color);
+  box-shadow: 1px 1px 3px var(--drop-shadow) inset;
+}
+
+.EmptyDetails > div {
+  background-color: var(--hover-color);
+  padding: 7px;
+  box-shadow: 0 1px 2px var(--drop-shadow);
+}

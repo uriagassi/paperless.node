@@ -198,8 +198,10 @@ export const App: React.FunctionComponent = () => {
             <input ref={fileUploadRef} style={{ display: "none" }} type="file" onChange={uploadFile} />
           <TagList  selectedId={selectedFolder}
                    onSelectedIdChanged={(key) => {
-                     setActiveNote(undefined)
-                     setSelectedFolder(key)
+                     if (selectedFolder != key) {
+                       setActiveNote(undefined)
+                       setSelectedFolder(key)
+                     }
                    }}
                    tags={tags} notebooks={notebooks} updateTag={setTagToUpdate}/>
           </Stack>
@@ -211,7 +213,11 @@ export const App: React.FunctionComponent = () => {
             setSelectedNotes(selectedKeys)
           }} keyState={keyState}/>
           <div className='ResizeHandle' onMouseDown={e => setListViewOffsetStart({startValue: listViewWidth.width, startPosition: e.pageX})}/>
-          {selectedNotes.size > 1 ?
+          {!activeNote ?
+              <div className='EmptyDetails'>
+                <div>There are no notes in this {selectedFolder?.split('s')[0]}.</div>
+              </div>
+          :selectedNotes.size > 1 ?
               <MultiNoteScreen selectedNotes={selectedNotes} availableNotebooks={notebooks} filterId={selectedFolder} activeNote={activeNote}/>
               : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks} updateTag={setTagToUpdate} api={serverAPI} focusTag={t => setSelectedFolder(`tags/${t.key}?`)}
               sso={auth}/>}
