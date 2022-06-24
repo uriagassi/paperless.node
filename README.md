@@ -1,3 +1,4 @@
+![screenshot](images/screenshot.png)
 # paperless.node
 
 An alternative to Evernote specifically intended for indexing scanned paperwork/PDFs/mail in a private and trust-no-one architecture.
