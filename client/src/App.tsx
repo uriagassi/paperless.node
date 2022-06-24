@@ -1,8 +1,9 @@
 import React, {createRef, useEffect, useState} from 'react';
 import {
-  BaseButton, css,
+  ActionButton,
+  css,
   DefaultButton, getRTL,
-  Icon, IconButton,
+  IconButton,
   initializeIcons,
   IStackStyles,
   IStackTokens, PartialTheme,
@@ -146,7 +147,10 @@ export const App: React.FunctionComponent = () => {
     setSearchTerm(newValue)
   }
 
-  const onUpdateTagClose = () => {
+  const onUpdateTagClose = (key: string | undefined) => {
+    if (key && tagToUpdate?.key === -1) {
+      setSelectedFolder(`tags/${key}?`)
+    }
     setTagToUpdate(undefined)
   }
 
@@ -204,6 +208,7 @@ export const App: React.FunctionComponent = () => {
                      }
                    }}
                    tags={tags} notebooks={notebooks} updateTag={setTagToUpdate}/>
+            <ActionButton text='Add Tag' iconProps={{iconName: 'Tag'}} className='NewTagButton' name='Add Tag' onClick={() => setTagToUpdate({key: -1, name: '', notes:0}) }/>
           </Stack>
           <NoteList style={listViewWidth} tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={activeNote}
                     api={serverAPI}

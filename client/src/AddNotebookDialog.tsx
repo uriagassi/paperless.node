@@ -32,6 +32,8 @@ export const AddNotebookDialog: React.FunctionComponent<
       useEffect(() => {
         if (props.show) {
           toggleHideDialog()
+          setNotebookName(undefined)
+          setTagNameErrorMessage(undefined)
         }
       }, [props.show])
 
@@ -68,9 +70,9 @@ export const AddNotebookDialog: React.FunctionComponent<
       }
 
       return (
-          <Dialog className='TagDialog' hidden={hideDialog} onDismiss={cancelChange} modalProps={{isBlocking: true, dragOptions: dragOptions}} dialogContentProps={{type: DialogType.normal, title: 'Add Notebook'}} >
-            <Stack>
-              <TextField componentRef={textField} label="Tag Name:" value={notebookName} onChange={nameChanged} errorMessage={tagNameErrorMessage}/>
+          <Dialog className='TagDialog' hidden={hideDialog} onDismiss={cancelChange} modalProps={{dragOptions: dragOptions}} dialogContentProps={{type: DialogType.normal, title: 'Add Notebook'}}>
+            <Stack onKeyUp={(e) => { if (e.key === 'Enter') doAdd() }}>
+              <TextField componentRef={textField} label="Notebook Name:" value={notebookName} onChange={nameChanged} errorMessage={tagNameErrorMessage}/>
             </Stack>
             <DialogFooter>
               <PrimaryButton text='Add' onClick={doAdd}/>

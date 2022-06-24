@@ -66,6 +66,7 @@
   overflow-x: auto;
   padding: 3px;
   transition: width 300ms ease-in-out;
+  flex: 1;
 }
 
 .TagList .is-selected .ms-Button {
@@ -297,7 +298,19 @@
   filter: drop-shadow(0 1px 0.1rem var(--drop-shadow));
 }
 
-.NewNoteButton i {
+.NewTagButton {
+  font-size: 12px;
+  height: 27px;
+  width: 90px;
+  padding: .5em;
+  border-radius: 10px;
+  border-style: none;
+  margin: 1em;
+  background-color: var(--button-color);
+  filter: drop-shadow(0 1px 0.1rem var(--drop-shadow));
+}
+
+.NewNoteButton i, .NewTagButton i {
   color: var(--icon-color);
 }
 

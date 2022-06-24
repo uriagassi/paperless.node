@@ -20,10 +20,8 @@ const dragOptions = {
 export const UpdateTagDialog: React.FunctionComponent<
     { tag: ITagWithChildren | undefined,
       availableTags: ITagWithChildren[] | undefined,
-      onClose: () => any }> =
-    (props: { tag: ITagWithChildren | undefined,
-      availableTags: ITagWithChildren[] | undefined,
-      onClose: () => any}) => {
+      onClose: (s: string | undefined) => any }> =
+    props => {
       const [hideDialog, {toggle: toggleHideDialog}] = useBoolean(true);
       const [parentOptions, setParentOptions] = useState<DropdownItemProps[]>([]);
       const [currentTag, setCurrentTag] = useState<ITagWithChildren | undefined>()
@@ -62,7 +60,7 @@ export const UpdateTagDialog: React.FunctionComponent<
 
       const cancelChange = () => {
         toggleHideDialog()
-        props.onClose()
+        props.onClose(undefined)
       }
       let nameChanged = (e : any, newValue?: string) => {
         if (newValue != props.tag?.name && props.availableTags?.find(t => newValue == t.name)) {
@@ -92,18 +90,18 @@ export const UpdateTagDialog: React.FunctionComponent<
               name: currentTag.name,
               parent: currentTag.parent ?? 0
             })
-          }).then((r) => {
+          }).then(r=>r.json()).then((r) => {
             console.log(r)
             eventBus.dispatch('note-collection-change', { tags: [currentTag.key, currentTag.parent]})
             toggleHideDialog()
-            props.onClose()
+            props.onClose(r.key)
           })
         }
       }
 
       return (
-          <Dialog className='TagDialog' hidden={hideDialog} onDismiss={cancelChange} modalProps={{isBlocking: true, dragOptions: dragOptions}} dialogContentProps={{type: DialogType.normal, title: 'Update Tag'}} >
-            <Stack>
+          <Dialog className='TagDialog' hidden={hideDialog} onDismiss={cancelChange} modalProps={{dragOptions: dragOptions}} dialogContentProps={{type: DialogType.normal, title: 'Update Tag'}} >
+            <Stack onKeyUp={(e) => { if (e.key === 'Enter') doUpdate() }}>
               <TextField componentRef={textField} label="Tag Name:" value={currentTag?.name} onChange={nameChanged} errorMessage={tagNameErrorMessage}/>
               <Label>Parent:</Label>
               <Dropdown options={parentOptions} search selection placeholder='Parent' value={currentTag?.parent} onChange={parentChanged}/>

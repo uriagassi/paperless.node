@@ -179,10 +179,10 @@ app.delete('/api/notes/:noteId/tags/:tagId', (req, res) =>{
   res.json(remove_tag_from_note.run(req.params))
 })
 
-const add_new_tag = db.prepare('insert into Tags (Name, IsExpanded) values ($name, false)')
+const add_new_tag = db.prepare('insert into Tags (Name, IsExpanded, ParentTagTagId) values ($name, false, $parent)')
 
 app.put('/api/tags/new', (req, res) => {
-  let r = add_new_tag.run(req.body)
+  let r = add_new_tag.run({parent: undefined, ...req.body})
   console.log(r)
   res.json({key: r.lastInsertRowid})
 })
@@ -190,7 +190,11 @@ app.put('/api/tags/new', (req, res) => {
 const update_tag = db.prepare('update Tags set Name = $name, ParentTagTagId = $parent where TagId = $tagId')
 
 app.post('/api/tags/:tagId', (req, res) => {
-  res.json(update_tag.run({...req.params, ...req.body}))
+  if (req.params.tagId === '-1') {
+    res.json({key: add_new_tag.run(req.body).lastInsertRowid})
+  } else {
+    res.json(update_tag.run({...req.params, ...req.body}))
+  }
 })
 
 const update_tag_expand = db.prepare('update Tags set IsExpanded = $expanded where TagId = $tagId')
