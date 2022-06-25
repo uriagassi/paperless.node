@@ -5,10 +5,10 @@
   module.exports.prepare = (db, att, tagservice) => {
 
     const add_note_to_inbox = db.prepare("insert into Notes \
-      (NotebookId, CreateTime, UpdateTime, Title, NoteData, UpdatedBy) values \
+      (notebookId, createTime, updateTime, title, noteData, updatedBy) values \
       ((select notebookId from Notebooks where Type = 'I'), $createTime, date('now'), $title, $noteData, $updateBy)")
     const add_note = db.prepare("insert into Notes \
-      (NotebookId, CreateTime, UpdateTime, Title, NoteData, UpdatedBy) values \
+      (notebookId, createTime, updateTime, title, noteData, updatedBy) values \
       ($notebookId, $createTime, date('now'), $title, $noteData, $updateBy)")
     //const get_auto_id = 'select last_insert_rowid() as id'
     const result = {}
@@ -37,18 +37,18 @@
       })
     }
 
-    const get_note_data = sql_helper.prepare_many(db, 'select Title, NoteData, CreateTime, NotebookId, GROUP_CONCAT(a.Hash) Hash, GROUP_CONCAT(t.Name) Tags\
-        from Notes left join Attachments a on a.NoteNodeId = NodeId \
-        left join NoteTags nt on NodeId = nt.NoteId left join Tags t on t.TagId=nt.TagId \
-        where NodeId in (#noteIds) group by NodeId', '#noteIds')
+    const get_note_data = sql_helper.prepare_many(db, 'select title, noteData, createTime, notebookId, GROUP_CONCAT(a.Hash) hash, GROUP_CONCAT(t.Name) tags\
+        from Notes n left join Attachments a on a.noteId = n.noteId \
+        left join NoteTags nt on n.noteId = nt.noteId left join Tags t on t.tagId=nt.tagId \
+        where n.noteId in (#noteIds) group by n.noteId', '#noteIds')
 
-    const update_note_data = db.prepare('update Notes set NoteData = ? where NodeId = ?')
+    const update_note_data = db.prepare('update Notes set noteData = ? where noteId = ?')
 
-    const move_attachments_note = sql_helper.prepare_many(db, 'update Attachments set NoteNodeId = ? where NoteNodeId in (#noteIds)', '#noteIds')
-    const find_missing_tags = sql_helper.prepare_many(db, 'select TagId from NoteTags where NoteId \
-    in (#noteIds) and TagId not in (select TagId from NoteTags where NoteId = ?)\
-     group by TagId', '#noteIds')
-    const delete_notes = sql_helper.prepare_many(db, 'delete from Notes where nodeId in (#noteIds)', '#noteIds')
+    const move_attachments_note = sql_helper.prepare_many(db, 'update Attachments set noteId = ? where noteId in (#noteIds)', '#noteIds')
+    const find_missing_tags = sql_helper.prepare_many(db, 'select tagId from NoteTags where noteId \
+    in (#noteIds) and tagId not in (select tagId from NoteTags where noteId = ?)\
+     group by tagId', '#noteIds')
+    const delete_notes = sql_helper.prepare_many(db, 'delete from Notes where noteId in (#noteIds)', '#noteIds')
 
     result.mergeNotes = (toNote, notes, callback) => {
       if (notes.length < 2) return null;
@@ -99,7 +99,7 @@
       return !input || !input.trim();
     }
 
-    const select_body = db.prepare('select NoteData data from Notes where NodeId = ?').raw(true)
+    const select_body = db.prepare('select NoteData data from Notes where noteId = ?').raw(true)
 
     result.body = (noteId) => {
       return select_body.get(noteId)?.[0]
@@ -117,7 +117,7 @@
 </html>`
     }
 
-    const count_parts = db.prepare("select length(replace(NoteData, 'paperless-merged-note-data', 'paperless-merged-note-data1')) - length(NoteData) as parts from Notes where NodeId = ?").raw(true)
+    const count_parts = db.prepare("select length(replace(noteData, 'paperless-merged-note-data', 'paperless-merged-note-data1')) - length(noteData) as parts from Notes where noteId = ?").raw(true)
 
     result.parts = (noteId) => {
       return count_parts.get(noteId)[0]

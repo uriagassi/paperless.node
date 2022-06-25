@@ -2,10 +2,10 @@
   module.exports.prepare = (db) => {
     const sql_helper = require('./sql_helper')
     const result = {}
-    const find_tag_by_name = db.prepare('select TagId as tagId from tags where name = ?')
-    const add_tag_to_note = db.prepare('insert into notetags (noteid, tagid) values ($noteId, $tagId)')
-    const add_tag = db.prepare('insert into Tags (Name, IsExpanded) values (?, false)')
-    const delete_tags = sql_helper.prepare_many(db, 'delete from NoteTags where NoteId in (#noteIds)', '#noteIds')
+    const find_tag_by_name = db.prepare('select tagId from tags where name = ?')
+    const add_tag_to_note = db.prepare('insert into noteTags (noteId, tagId) values ($noteId, $tagId)')
+    const add_tag = db.prepare('insert into Tags (name, isExpanded) values (?, false)')
+    const delete_tags = sql_helper.prepare_many(db, 'delete from NoteTags where noteId in (#noteIds)', '#noteIds')
 
     function addTagId(noteId, tagId, callback) {
       add_tag_to_note.run({noteId: noteId, tagId: tagId})

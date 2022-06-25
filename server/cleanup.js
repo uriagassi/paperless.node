@@ -8,10 +8,10 @@
   module.exports.start = function (app, config, db, notes, att) {
     const attachmentsDir = config.get('paperless.baseDir') + '/attachments/'
 
-    const delete_tags_for_note = db.prepare('delete from NoteTags where NoteId = ?')
-    const select_attachments = db.prepare('select UniqueFileName from Attachments where NoteNodeId = ?').raw()
-    const delete_attachments = db.prepare('delete from Attachments where NoteNodeId = ?')
-    const delete_note = db.prepare('delete from Notes where NodeId = ?')
+    const delete_tags_for_note = db.prepare('delete from NoteTags where noteId = ?')
+    const select_attachments = db.prepare('select uniqueFileName from Attachments where noteId = ?').raw()
+    const delete_attachments = db.prepare('delete from Attachments where noteId = ?')
+    const delete_note = db.prepare('delete from Notes where noteId = ?')
 
     function deleteNote(noteId) {
       // 1. get attachments to delete
@@ -38,11 +38,11 @@
       res.json({result: 'OK'})
     })
 
-    const all_notes_in_trash = db.prepare("select NodeId from Notes where NotebookId = (select NotebookId from Notebooks where Type = 'D')")
+    const all_notes_in_trash = db.prepare("select noteId from Notes where notebookId = (select notebookId from Notebooks where type = 'D')")
 
     app.delete('/api/trash', (req, res) => {
       const notes = all_notes_in_trash.all();
-      notes.forEach(i => deleteNote(i.NodeId))
+      notes.forEach(i => deleteNote(i.noteId))
       res.json({deleted: notes.length})
     })
   }

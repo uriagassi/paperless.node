@@ -8,11 +8,11 @@
   const readline = require('readline')
   const attachmentsDir = config.get('paperless.baseDir') + '/attachments/'
 
-  const delete_unused_tags = db.prepare("delete from tags where tagid not in (select parenttagtagid from tags where parenttagtagid is not null) and tagid not in (select tagid from notetags)")
+  const delete_unused_tags = db.prepare("delete from Tags where tagId not in (select parentId from Tags where parentId is not null) and tagId not in (select tagId from NoteTags)")
 
-  const find_unused_tags = db.prepare("select name from tags where tagid not in (select parenttagtagid from tags where parenttagtagid is not null) and tagid not in (select tagid from notetags)")
+  const find_unused_tags = db.prepare("select name from Tags where tagId not in (select parentId from tags where parentId is not null) and tagId not in (select tagId from notetags)")
 
-  const find_all_filenames = db.prepare('select UniqueFileName from attachments')
+  const find_all_filenames = db.prepare('select uniqueFileName from Attachments')
 
   function findOrphanFiles() {
     const connectedFiles = new Set(find_all_filenames.all().map(f => f.UniqueFileName));

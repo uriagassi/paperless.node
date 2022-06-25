@@ -16,7 +16,7 @@
   module.exports.prepare = (db) => {
     const result = {}
     const add_attachment = db.prepare('insert into Attachments \
-     (FileName, UniqueFilename, Mime, Hash, Size, NoteNodeId) values \
+     (fileName, uniqueFilename, mime, hash, size, noteId) values \
      ($fileName, $uniqueFilename, $mime, $hash, $size, $noteId)')
     result.getHtmlForAttachment = (attachmentData) => {
       if (attachmentData.mime.startsWith("image")) {
@@ -50,7 +50,7 @@
       attachment.uniqueFilename = uniqueFilename
     }
 
-    const move_attachment = db.prepare('update attachments set noteNodeId = ? where hash = $hash and noteNodeId = $noteId')
+    const move_attachment = db.prepare('update attachments set noteId = ? where hash = $hash and noteId = $noteId')
 
     result.addAttachment = (attachment, noteId, callback) => {
       if (attachment.noteId && attachment.noteId !== noteId) {
