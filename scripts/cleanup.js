@@ -1,8 +1,8 @@
 (function () {
   const config = require('config')
-  const sqlite3 = require('better-sqlite3');
+  const Sqlite3 = require('better-sqlite3');
   const baseDir = config.get('paperless.baseDir')
-  const db = new sqlite3(baseDir + '/paperless.sqlite');
+  const db = new Sqlite3(baseDir + '/paperless.sqlite');
   const fs = require('fs')
   const path = require('path')
   const readline = require('readline')

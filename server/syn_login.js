@@ -7,7 +7,7 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 const sso = (req, res, next) => {
   const nonSecurePaths = ['/api/body/css', '/api/body/js'];
   if (nonSecurePaths.find(p => req.path.startsWith(p))) return next();
-  if (req.cookies?.['x-syn-token-user'] && req.path != '/api/user') {
+  if (req.cookies?.['x-syn-token-user'] && req.path !== '/api/user') {
     req.user_name = req.cookies?.['x-syn-token-user']
     return next()
   }

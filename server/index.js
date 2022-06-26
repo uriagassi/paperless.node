@@ -5,9 +5,9 @@ const bodyParser = require("body-parser");
 const config = require('config')
 
 const PORT = process.env.PORT || config.get('server.port');
-const sqlite3 = require('better-sqlite3');
+const Sqlite3 = require('better-sqlite3');
 const baseDir = config.get('paperless.baseDir')
-const db = new sqlite3(baseDir + '/paperless.sqlite', { verbose: console.log});
+const db = new Sqlite3(baseDir + '/paperless.sqlite', { verbose: console.log});
 const app = express();
 const sso = require(config.get('sso.handler'))
 const cookieParser = require('cookie-parser')
@@ -210,7 +210,7 @@ app.get('/api/user', (req, res) => {
 app.get('/api/logout', (req, res) => {
   console.log(req.cookies)
   for (const c in req.cookies)  {
-      console.log('clearing cookie ' + c)
+    console.log('clearing cookie ' + c)
     res.clearCookie(c)
   }
   res.json('OK')

@@ -1,11 +1,8 @@
 (function () {
-  const formidable = require("formidable");
   const path = require('path');
   const fs = require('fs');
-  const mime = require('mime-types');
-  const md5 = require('md5');
 
-  module.exports.start = function (app, config, db, notes, att) {
+  module.exports.start = function (app, config, db) {
     const attachmentsDir = config.get('paperless.baseDir') + '/attachments/'
 
     const delete_tags_for_note = db.prepare('delete from NoteTags where noteId = ?')

@@ -20,9 +20,7 @@
      ($fileName, $uniqueFilename, $mime, $hash, $size, $noteId)')
     result.getHtmlForAttachment = (attachmentData) => {
       if (attachmentData.mime.startsWith("image")) {
-        return "<img class='paperless-attachment' src='attachments/"
-          + attachmentData.uniqueFilename + "' hash='" + attachmentData.hash
-          + "'/>";
+        return `<img class='paperless-attachment' src='attachments/${attachmentData.uniqueFilename}' alt='${attachmentData.fileName}' hash='${attachmentData.hash}'/>`;
       } else if (attachmentData.mime.endsWith("pdf")) {
         return "<embed class='paperless-attachment' src='attachments/"
           + attachmentData.uniqueFilename + "' type='" + attachmentData.mime

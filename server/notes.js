@@ -19,7 +19,7 @@
         const new_note = note.notebookId ? add_note.run(note) : add_note_to_inbox.run(note)
         console.log(`adding ${attachments?.size}`)
         if (attachments || tags) {
-          if (new_note.changes != 0) {
+          if (new_note.changes !== 0) {
             attachments.forEach(attachment => {
               att.addAttachment(attachment, new_note.lastInsertRowid,
                 attachmentCallback)
@@ -37,7 +37,7 @@
       })
     }
 
-    const get_note_data = sql_helper.prepare_many(db, 'select title, noteData, createTime, notebookId, GROUP_CONCAT(a.Hash) hash, GROUP_CONCAT(t.Name) tags\
+    const get_note_data = sql_helper.prepare_many(db, 'select title, noteData, createTime, notebookId, GROUP_CONCAT(a.hash) hashes, GROUP_CONCAT(t.name) tags\
         from Notes n left join Attachments a on a.noteId = n.noteId \
         left join NoteTags nt on n.noteId = nt.noteId left join Tags t on t.tagId=nt.tagId \
         where n.noteId in (#noteIds) group by n.noteId', '#noteIds')
@@ -54,29 +54,29 @@
       if (notes.length < 2) return null;
       notes = notes.filter(n => n !== toNote)
       const mainNote = get_note_data(1).get(toNote)
-      let noteData = mainNote.NoteData
+      let noteData = mainNote.noteData
       get_note_data(notes.length).all(notes).forEach(note => {
-        noteData += `<div class='paperless-merged-note'>\
-        <div class='paperless-merged-note-data'>\
-        <div class='paperless-merged-note-title'>${note.Title}</div>\n`;
-        if (note.Hash?.length > 0) {
-          noteData += `<div class='paperless-merged-note-attachments' data='${note.Hash.replaceAll(
+        noteData += `<div class='paperless-merged-note'>
+        <div class='paperless-merged-note-data'>
+        <div class='paperless-merged-note-title'>${note.title}</div>\n`;
+        if (note.hashes?.length > 0) {
+          noteData += `<div class='paperless-merged-note-attachments' data='${note.hashes.replaceAll(
             /,/g, ' ')}'></div>`;
         }
         noteData += "<div class='paperless-merged-note-tags'>\n";
-        note.Tags?.split(',').forEach(t => {
+        note.tags?.split(',').forEach(t => {
           noteData += `<div class='paperless-merged-note-tag'>${t}</div>\n`;
         })
 
-        noteData += `</div>\
-        <div class='paperless-merged-note-create-date'>${note.CreateTime}</div>\
+        noteData += `</div>
+        <div class='paperless-merged-note-create-date'>${note.createTime}</div>
         </div>\n`;
-        if (note.NoteData != null) {
-          noteData += `<div class='paperless-merged-note-contents'>\
-          ${note.NoteData}\
+        if (note.noteData != null) {
+          noteData += `<div class='paperless-merged-note-contents'>
+          ${note.noteData}
           </div>`;
         }
-        toNote.NoteData += "\n</div>";
+        toNote.noteData += "\n</div>";
       })
       // update papa note
       update_note_data.run(noteData, toNote)
@@ -84,7 +84,7 @@
       move_attachments_note(notes.length).run(toNote, ...notes)
       // add missing tags
       find_missing_tags(notes.length).all(...notes, toNote).forEach(tagId =>
-        tagservice.addTagId(toNote, tagId.TagId)
+        tagservice.addTagId(toNote, tagId.tagId)
       )
       //delete orphan tags
       tagservice.removeTags(notes)
@@ -99,7 +99,7 @@
       return !input || !input.trim();
     }
 
-    const select_body = db.prepare('select NoteData data from Notes where noteId = ?').raw(true)
+    const select_body = db.prepare('select noteData data from Notes where noteId = ?').raw(true)
 
     result.body = (noteId) => {
       return select_body.get(noteId)?.[0]
@@ -125,14 +125,14 @@
 
     result.splitNote = async (updateBy, originalNoteId) => {
       const originalNote = get_note_data(1).get(originalNoteId)
-      const jsdom1 = new JSDOM(result.html(originalNote.NoteData));
+      const jsdom1 = new JSDOM(result.html(originalNote.noteData));
       const document = jsdom1.window.document.body
       let splitDone = false;
       document.querySelectorAll('.paperless-merged-note').forEach(d => {
         const tags = []
         const newNote =
           {
-            notebookId: originalNote.NotebookId,
+            notebookId: originalNote.notebookId,
             updateBy: updateBy
           }
         const attachments = []
