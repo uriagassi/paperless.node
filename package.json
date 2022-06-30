@@ -45,9 +45,9 @@
   ],
   "scripts": {
     "dev": "concurrently \"yarn start\" \"cd client && HTTPS=true yarn start\"",
-    "start": "ts-node --files server/index.ts",
-    "setup_wizard": "yarn ts-node --files scripts/setup_wizard.ts",
+    "start": "ts-node --files --transpile-only server/index.ts",
+    "setup_wizard": "yarn ts-node --files --transpile-only scripts/setup_wizard.ts",
     "postinstall": "semantic-ui-css-patch",
-    "cleanup": "yarn ts-node --files scripts/cleanup.ts"
+    "cleanup": "yarn ts-node --files --transpile-only scripts/cleanup.ts"
   }
 }
