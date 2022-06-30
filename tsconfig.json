@@ -1,0 +1,32 @@
+{
+  "extends": "ts-node/node16/tsconfig.json",
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    //"noEmit": true,
+    "outDir": "./built",
+    "types": ["node"]
+  },
+  "ts-node": {
+    "esm": true
+  },
+  "include": [
+    "./scripts/**/*",
+    "server"
+  ]
+}

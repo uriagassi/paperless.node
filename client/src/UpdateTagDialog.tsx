@@ -31,13 +31,13 @@ export const UpdateTagDialog: React.FunctionComponent<
 
       const notChildOfSelected = (tag : ITagWithChildren | undefined) : boolean => {
         if (!tag) return true;
-        if (Number(tag.key) == Number(props.tag?.key)) {
+        if (+tag.key === Number(props.tag?.key)) {
           return false;
         }
-        if (Number(tag.parent) == 0) {
+        if (Number(tag.parent) === 0) {
           return true;
         }
-        return notChildOfSelected(props.availableTags?.find(t => Number(t.key) == Number(tag.parent)))
+        return notChildOfSelected(props.availableTags?.find(t => +t.key === Number(tag.parent)))
       }
 
       useEffect(() => {

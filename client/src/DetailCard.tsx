@@ -80,7 +80,7 @@ export const DetailCard: React.FunctionComponent<
                 let tagIds = data.tagIds?.split(',') ?? []
 
                 for (let i = 0; i < tagNames.length; i++) {
-                  note.tags.push({name: tagNames[i], key: Number(tagIds[i])})
+                  note.tags.push({name: tagNames[i], key: +tagIds[i]})
                 }
                 setNote(note);
               });
@@ -160,7 +160,7 @@ export const DetailCard: React.FunctionComponent<
 
       const onNotebookChanged = (event: any, option?: IDropdownOption) => {
         if (option && note?.notebookId && note?.notebookId != option.key) {
-          const newNote = {...note, notebookId: Number(option.key)};
+          const newNote = {...note, notebookId: +option.key};
           updateNote(newNote);
           setNote(newNote)
           eventBus.dispatch('note-collection-change',

@@ -1,24 +1,26 @@
 // server/index.js
 
-const express = require("express");
-const bodyParser = require("body-parser");
-const config = require('config')
+import express from "express";
+import bodyParser from "body-parser";
+import config from "config";
+import Sqlite3 from "better-sqlite3";
+import cookieParser from "cookie-parser";
+import {AddNotes} from "./AddNotes.js";
+import {Gmail} from "./Gmail.js";
+import {sql_helper} from "./sql_helper.js";
+import {Trash} from "./Trash.js";
+import {Attachments} from "./Attachment.js";
+import {Tags} from "./Tags.js";
+import {Notes} from "./Notes.js";
 
 const PORT = process.env.PORT || config.get('server.port');
-const Sqlite3 = require('better-sqlite3');
 const baseDir = config.get('paperless.baseDir')
 const db = new Sqlite3(baseDir + '/paperless.sqlite', { verbose: console.log});
 const app = express();
-const sso = require(config.get('sso.handler'))
-const cookieParser = require('cookie-parser')
-
-const addNotes = require("./addNotes");
-const gmail = require('./gmail')
-const sql_helper = require('./sql_helper')
-const cleanup = require('./cleanup')
-const att = require('./attachment').prepare(db)
-const tagservice = require('./tags').prepare(db)
-const notes = require('./notes').prepare(db, att, tagservice)
+const { sso } = await import(config.get('sso.handler'))
+const att = new Attachments(db)
+const tagservice = new Tags(db)
+const notes = new Notes(db, att, tagservice)
 
 const tag_query = db.prepare(
   'select name, tags.tagId as key, ifnull(parentId, 0) as parent, \
@@ -40,12 +42,11 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.get("/api/tags", (req, res) => {
-  let result = {tags: []}
-  tag_query.all().forEach(r => {
+  const tags = tag_query.all().map(r => {
     r.parent = r.parent || 0
-    result.tags.push(r);
+    return r
   })
-  res.json(result)
+  res.json({tags: tags})
 })
 
 app.get("/api/notebooks", (req, res) => {
@@ -54,13 +55,11 @@ app.get("/api/notebooks", (req, res) => {
 })
 
 app.get("/api/notebooks_and_tags", (req, res) => {
-  let result = {notebooks: notebooks_query.all(), tags: []}
-
-    tag_query.all().forEach(r => {
+  const tags = tag_query.all().map(r => {
       r.parent = r.parent || 0
-      result.tags.push(r);
+      return r
     })
-  res.json(result)
+  res.json({notebooks: notebooks_query.all(), tags: tags})
 })
 
 const add_notebook = db.prepare('insert into Notebooks (name) values (?)')
@@ -128,7 +127,7 @@ app.get("/api/notes/:noteId", (req, res) => {
 })
 
 app.post("/api/notes/:noteId/split", (req, res) => {
-  notes.splitNote(req.user_name, req.params.noteId).then(_ => res.json('OK'))
+  notes.splitNote(req.user_name!, +req.params.noteId).then(() => res.json('OK'))
 })
 
 app.get('/api/body/:noteId', (req, res) => {
@@ -155,7 +154,7 @@ const find_notebook = db.prepare('select notebookId from Notebooks where type=?'
 app.post('/api/notes/:noteIds/notebook/:notebookId', (req, res) => {
   let ids = req.params.noteIds.split(',')
   let notebookId =  req.params.notebookId
-  if (isNaN(req.params.notebookId)) {
+  if (isNaN(+req.params.notebookId)) {
     notebookId = find_notebook.get(req.params.notebookId).notebookId
   }
   res.json(move_notes(ids.length).run(
@@ -234,11 +233,11 @@ app.delete('/api/notebooks/:notebookId', (req, res) => {
   res.json(delete_notebook.run(req.params.notebookId))
 })
 
-addNotes.start(app, config, db, notes, att)
+new AddNotes(notes, att).listen(app)
 
-gmail.start(app, config, notes, att)
+new Gmail(notes, att).listen(app)
 
-cleanup.start(app, config, db, notes, att)
+new Trash(db).listen(app)
 
 app.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);

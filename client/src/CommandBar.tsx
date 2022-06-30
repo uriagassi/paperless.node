@@ -37,6 +37,7 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
   const [gmailUnsupported, setGmailUnsupported] = useState(false)
   const [personaCMElement, setPersonaCMElement] = useState<Element>()
   const [gmailCMElement, setGmailCMElement] = useState<Element>()
+  const [failedOnce, setFailedOnce] = useState(false)
 
   useEffect(() => {
     if (window.location.pathname == '/gmail') {
@@ -83,7 +84,9 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
     fetch('/api/files/checkStatus')
         .then(result => {
           if (result.status == 403) {
-            window.location.hash = '#'
+            if (failedOnce) {
+              window.location.hash = '#'
+            } else setFailedOnce(true)
           }
           return result.json()
         })

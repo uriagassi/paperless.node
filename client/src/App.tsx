@@ -58,7 +58,7 @@ export const App: React.FunctionComponent = () => {
   const [loadingText, setLoadingText] = useState<string>()
   const storedTheme = localStorage.getItem("theme");
   const [sideViewCollapsed, setSideViewCollapsed] = useState<boolean>()
-  const [listViewWidth, setListViewWidth] = useState({ width: Number(localStorage.getItem('listViewWidth') ?? 350) })
+  const [listViewWidth, setListViewWidth] = useState({ width: +(localStorage.getItem('listViewWidth') ?? 350) })
   const [listViewOffsetStart, setListViewOffsetStart] = useState<{ startValue: number, startPosition: number}>()
 
   const setDark = () => {

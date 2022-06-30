@@ -140,9 +140,9 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) =>
       let affectedList = { notebooks : [3], tags: [0]}
       if (props.filterId) {
         if (props.filterId.split('/')[0] == 'notebooks') {
-          affectedList.notebooks.push(Number(props.filterId.split('/')[1]))
+          affectedList.notebooks.push(+props.filterId.split('/')[1])
         } else {
-          affectedList.tags = [Number(props.filterId.split('/')[1])];
+          affectedList.tags = [+props.filterId.split('/')[1]];
         }
       }
       eventBus.dispatch('note-collection-change', affectedList)

@@ -1,21 +1,23 @@
-const config = require('config')
-const sanitizer = require('sanitize')()
-const axios = require('axios')
+import config from "config";
+import sanitizer from "string-sanitizer";
+import axios from "axios";
+import {Request, Response, NextFunction} from "express";
 
 const synologyURL = `https://${config.get('synology.hostname')}:${config.get('synology.port')}/webman/sso/SSOAccessToken.cgi?action=exchange&app_id=${config.get('synology.appId')}&access_token=`
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-const sso = (req, res, next) => {
+export const sso  = (req:Request, res:Response, next:NextFunction) => {
   const nonSecurePaths = ['/api/body/css', '/api/body/js'];
   if (nonSecurePaths.find(p => req.path.startsWith(p))) return next();
   if (req.cookies?.['x-syn-token-user'] && req.path !== '/api/user') {
     req.user_name = req.cookies?.['x-syn-token-user']
     return next()
   }
-  const token = sanitizer.value(  req.query?.token ||
-    req.body?.token || req.query?.token || req.headers["x-access-token"] || req.cookies?.['x-syn-access-token'], /\w+/);
-  if (!token) {
+  const tok = req.query?.token ||
+      req.body?.token || req.query?.token || req.headers["x-access-token"] || req.cookies?.['x-syn-access-token'];
+  if (!tok) {
     return res.status(403).send("Not supported for unknown users or in Incognito Mode (no cookies)");
   }
+  const token = sanitizer.sanitize(tok);
   try {
     axios
       .get(synologyURL + token)
@@ -47,4 +49,5 @@ const sso = (req, res, next) => {
   }
 }
 
-module.exports = sso
+export default sso
+
