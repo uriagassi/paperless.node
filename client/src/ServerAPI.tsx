@@ -34,7 +34,7 @@ export class ServerAPI {
 }
 
 interface RawNote {
-  attachments: [{id: number, filename: string, uniqueFilename: string}]
+  attachments: [{id: number, fileName: string, uniqueFileName: string}]
   notebookId: number;
   title: string;
   createTime: string;

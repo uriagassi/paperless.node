@@ -346,10 +346,10 @@ export const DetailCard: React.FunctionComponent<
           hidden: !note?.attachments.length,
           subMenuProps: (note?.attachments.length ?? 0) > 0 ? {
             items: note?.attachments.map(a => {return {
-              key: 'download' + a.filename,
-              text: a.filename,
+              key: 'download' + a.fileName,
+              text: a.fileName,
               iconProps: { iconName: 'Attach'},
-              onClick: () => download(`/api/body/attachments/${a.uniqueFilename}`, a.filename),
+              onClick: () => download(`/api/body/attachments/${a.uniqueFileName}`, a.fileName),
             }}) || []} : undefined
         },
       ]
@@ -395,7 +395,7 @@ export const DetailCard: React.FunctionComponent<
 
 interface Note {
   id: number,
-  attachments: [{id: number, filename: string, uniqueFilename: string}]
+  attachments: [{id: number, fileName: string, uniqueFileName: string}]
   notebookId: number;
   title: string;
   createTime: Date;
