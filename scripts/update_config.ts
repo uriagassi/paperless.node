@@ -46,6 +46,20 @@ export module update {
     return obj
   }
 
+  export function remove(location: string) {
+    save_config(remove_from(location))
+  }
+
+  export function remove_from(location: string, obj: Config = get_config()) {
+    const location_parts = location.split('.')
+    if (location_parts.length > 1 && obj[location_parts[0]]) {
+      obj[location_parts[0]] = remove_from(location_parts.slice(1).join('.'), obj[location_parts[0]])
+    } else {
+      obj[location_parts[0]] = undefined
+    }
+    return obj
+  }
+
   function resolveHome(filepath: string) {
     if (filepath[0] === '~') {
       return path.join(process.env.HOME ?? '', filepath.slice(1));
@@ -64,11 +78,7 @@ export module update {
         })
   }
 
-  export function query_for_path(rl: Interface, q: string, config_location: string, {
-    exists,
-    created,
-    done
-  }: { exists?: (s: string) => any, created?: (s: string) => any, done?: () => any }) {
+  export function query_for_path(rl: Interface, q: string, config_location: string, { exists, created, done }: { exists?: (s: string) => any, created?: (s: string) => any, done?: () => any }) {
     query(rl, q, config_location, (newLocation: string) => {
       newLocation = resolveHome(newLocation.trim())
       if (newLocation.toUpperCase() === 'Q') {
@@ -93,6 +103,27 @@ export module update {
       }
       merge_config(inject(config_location, newLocation))
       done?.()
+    })
+  }
+
+  export function query_for_file(rl: Interface, q: string, config_location: string, callback: (s: string) => any) {
+    query(rl, q, config_location, (newLocation: string) => {
+      newLocation = resolveHome(newLocation.trim())
+      if (newLocation.toUpperCase() === 'Q') {
+        rl.close();
+      }
+      if (!path.isAbsolute(newLocation)) {
+        console.log('Please enter a valid absolute path')
+        query_for_file(rl, q, config_location, callback)
+        return;
+      }
+      if (!fs.existsSync(newLocation)) {
+        console.log("Please enter a valid file")
+        query_for_file(rl, q, config_location, callback)
+        return;
+      }
+      merge_config(inject(config_location, newLocation))
+      callback(newLocation)
     })
   }
 

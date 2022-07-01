@@ -1,7 +1,11 @@
 
 export class SSO {
   access_token : string | null = null;
-  constructor() {
+  constructor(params: {oauthserver_url: string,
+    app_id: string,
+    redirect_uri: string}) {
+    console.log("starting Synology SSO")
+    this.synology = params
     if (window.location.pathname == '/') {
       const queryParams = new URLSearchParams(window.location.hash.replace(/^#/, '?'));
       console.log(queryParams)
@@ -16,9 +20,9 @@ export class SSO {
     return this.access_token ?? ''
   }
 
-  synology = {oauthserver_url: process.env.REACT_APP_SYNOLOGY_DOMAIN,
-    app_id: process.env.REACT_APP_SYNOLOGY_APP_ID,
-    redirect_uri: process.env.REACT_APP_SYNOLOGY_REDIRECT_URI}
+  synology : {oauthserver_url: string,
+    app_id: string,
+    redirect_uri: string}
 
   authenticate(url: string) : string {
     return url + '?token=' + this.access_token

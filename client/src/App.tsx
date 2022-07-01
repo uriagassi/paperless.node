@@ -26,7 +26,7 @@ import {ISSO} from "./sso/ISSO";
 import {ServerAPI} from "./ServerAPI";
 import {themeDark, themeLight} from "./themes";
 
-const SSO = import('./sso/' + (process.env.REACT_APP_SSO_HANDLER ?? 'EmptySSO') + '.tsx');
+
 initializeIcons();
 
 const stackTokens: IStackTokens = { childrenGap: 15 };
@@ -88,15 +88,18 @@ export const App: React.FunctionComponent = () => {
   }
 
   useEffect(() => {
-    SSO.then(m => setAuth(new m.SSO()))
+        fetch('/sso').then(r => r.json()).then(params => {
+          const SSO = import('./sso/' + (params.handler ?? 'EmptySSO') + '.tsx');
+          SSO.then(m => setAuth(new m.SSO(params)))
+        })
       }
-  ,[])
+      ,[])
 
   function loadNotebooks() {
     serverAPI.loadNotebooks().then((data: { tags: ITagWithChildren[], notebooks: any[] }) => {
-          setNotebooks(data.notebooks);
-          setTags(data.tags);
-        });
+      setNotebooks(data.notebooks);
+      setTags(data.tags);
+    });
   }
 
   useEffect(() => {
@@ -187,51 +190,51 @@ export const App: React.FunctionComponent = () => {
 
   return (
       <ThemeProvider applyTo="body" theme={theme?.uiTheme} data-theme={theme?.darkMode ? 'dark' : 'light'} className='MainWindow' onMouseUp={() => stopListViewResize()} onMouseMove={e => updateListViewWidth(e.pageX)} style={listViewOffsetStart ? { cursor: 'col-resize'} : {}}>
-      <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={e => setKeyState({...e, update: Date.now()})}
-             onKeyUp={e => setKeyState({...e, update: Date.now()})} onClick={e => setKeyState({...e, update: Date.now()})} className='MainWindow'>
-        <Stack horizontal verticalAlign='baseline'>
-          <IconButton className='Command' iconProps={{iconName:'GlobalNavButton'}} onClick={() => setSideViewCollapsed(!sideViewCollapsed)}/>
-          <h1 className='App-header'>Paperless</h1>
-          <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch} onClear={() => doSearch('')}/>
-          <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth} isDark={theme?.darkMode ?? false} onDarkChanged={() => toggleDarkMode()}
-          onLoadingText={setLoadingText}/>
-        </Stack>
-        <Stack horizontal className='MainView'>
-          <Stack className={css('SideView', sideViewCollapsed ? 'collapsed' : undefined)}>
-            <DefaultButton className='NewNoteButton' name='New Note' text='New Note' iconProps={{iconName: 'BulkUpload'}} onClick={clickUpload}/>
-            <input ref={fileUploadRef} style={{ display: "none" }} type="file" onChange={uploadFile} />
-          <TagList  selectedId={selectedFolder}
-                   onSelectedIdChanged={(key) => {
-                     if (selectedFolder != key) {
-                       setActiveNote(undefined)
-                       setSelectedFolder(key)
-                     }
-                   }}
-                   tags={tags} notebooks={notebooks} updateTag={setTagToUpdate}/>
-            <ActionButton text='Add Tag' iconProps={{iconName: 'Tag'}} className='NewTagButton' name='Add Tag' onClick={() => setTagToUpdate({key: -1, name: '', notes:0}) }/>
+        <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={e => setKeyState({...e, update: Date.now()})}
+               onKeyUp={e => setKeyState({...e, update: Date.now()})} onClick={e => setKeyState({...e, update: Date.now()})} className='MainWindow'>
+          <Stack horizontal verticalAlign='baseline'>
+            <IconButton className='Command' iconProps={{iconName:'GlobalNavButton'}} onClick={() => setSideViewCollapsed(!sideViewCollapsed)}/>
+            <h1 className='App-header'>Paperless</h1>
+            <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch} onClear={() => doSearch('')}/>
+            <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth} isDark={theme?.darkMode ?? false} onDarkChanged={() => toggleDarkMode()}
+                        onLoadingText={setLoadingText}/>
           </Stack>
-          <NoteList style={listViewWidth} tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={activeNote}
-                    api={serverAPI}
-                    selectedNotes={selectedNotes}
-                    onSelectedIdChanged={(key, selectedKeys) => {
-            setActiveNote(key);
-            setSelectedNotes(selectedKeys)
-          }} keyState={keyState}/>
-          <div className='ResizeHandle' onMouseDown={e => setListViewOffsetStart({startValue: listViewWidth.width, startPosition: e.pageX})}/>
-          {!activeNote ?
-              <div className='EmptyDetails'>
-                <div>There are no notes in this {selectedFolder?.split('s')[0]}.</div>
-              </div>
-          :selectedNotes.size > 1 ?
-              <MultiNoteScreen selectedNotes={selectedNotes} availableNotebooks={notebooks} filterId={selectedFolder} activeNote={activeNote}/>
-              : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks} updateTag={setTagToUpdate} api={serverAPI} focusTag={t => setSelectedFolder(`tags/${t.key}?`)}
-              sso={auth}/>}
+          <Stack horizontal className='MainView'>
+            <Stack className={css('SideView', sideViewCollapsed ? 'collapsed' : undefined)}>
+              <DefaultButton className='NewNoteButton' name='New Note' text='New Note' iconProps={{iconName: 'BulkUpload'}} onClick={clickUpload}/>
+              <input ref={fileUploadRef} style={{ display: "none" }} type="file" onChange={uploadFile} />
+              <TagList  selectedId={selectedFolder}
+                        onSelectedIdChanged={(key) => {
+                          if (selectedFolder != key) {
+                            setActiveNote(undefined)
+                            setSelectedFolder(key)
+                          }
+                        }}
+                        tags={tags} notebooks={notebooks} updateTag={setTagToUpdate}/>
+              <ActionButton text='Add Tag' iconProps={{iconName: 'Tag'}} className='NewTagButton' name='Add Tag' onClick={() => setTagToUpdate({key: -1, name: '', notes:0}) }/>
+            </Stack>
+            <NoteList style={listViewWidth} tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={activeNote}
+                      api={serverAPI}
+                      selectedNotes={selectedNotes}
+                      onSelectedIdChanged={(key, selectedKeys) => {
+                        setActiveNote(key);
+                        setSelectedNotes(selectedKeys)
+                      }} keyState={keyState}/>
+            <div className='ResizeHandle' onMouseDown={e => setListViewOffsetStart({startValue: listViewWidth.width, startPosition: e.pageX})}/>
+            {!activeNote ?
+                <div className='EmptyDetails'>
+                  <div>There are no notes in this {selectedFolder?.split('s')[0]}.</div>
+                </div>
+                :selectedNotes.size > 1 ?
+                    <MultiNoteScreen selectedNotes={selectedNotes} availableNotebooks={notebooks} filterId={selectedFolder} activeNote={activeNote}/>
+                    : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks} updateTag={setTagToUpdate} api={serverAPI} focusTag={t => setSelectedFolder(`tags/${t.key}?`)}
+                                  sso={auth}/>}
+          </Stack>
         </Stack>
-      </Stack>
         <UpdateTagDialog tag={tagToUpdate} availableTags={tags} onClose={onUpdateTagClose}/>
         <div className='LoadingModalView' hidden={!loadingText}>
           <Spinner size={SpinnerSize.large} label={loadingText}/>
         </div>
-        </ThemeProvider>
+      </ThemeProvider>
   );
 };

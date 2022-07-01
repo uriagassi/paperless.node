@@ -12,8 +12,14 @@ import {Trash} from "./Trash.js";
 import {Attachments} from "./Attachment.js";
 import {Tags} from "./Tags.js";
 import {Notes} from "./Notes.js";
+import https from "https";
+import fs from "fs";
+import cors from "cors";
+import {fileURLToPath} from "url";
+import path from "path/posix";
 
-const PORT = process.env.PORT || config.get('server.port');
+const IS_PROXY = process.argv[process.argv.length - 1] === 'proxy';
+const PORT = process.env.PORT || IS_PROXY ? config.get('server.proxyPort'):config.get('server.port');
 const baseDir = config.get('paperless.baseDir')
 const db = new Sqlite3(baseDir + '/paperless.sqlite', { verbose: console.log});
 const app = express();
@@ -40,6 +46,12 @@ app.get("/api", (req, res) => {
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+if (!IS_PROXY && config.has('cors.use') && config.get('cors.use') == true) {
+  const origins = Object.entries(config.get('cors.origins')).map( ([k, v]) => v) as string[]
+  if (origins.length > 0) {
+    app.use(cors({origin: origins}))
+  }
+}
 
 app.get("/api/tags", (req, res) => {
   const tags = tag_query.all().map(r => {
@@ -139,6 +151,16 @@ app.use('/api/body/attachments', express.static(baseDir +'/attachments'))
 app.use('/api/body/css', express.static('server/public/css'))
 app.use('/api/body/js', express.static('server/public/js'))
 app.use('/api/body/images', express.static('server/public/images'))
+
+if (!IS_PROXY) {
+  app.use(express.static('client/build'))
+  app.get('/', (req, res) => {
+    res.sendFile('client/build/index.html')
+  })
+  app.get('/gmail', (req, res) => {
+    res.sendFile('client/build/index.html', {root: path.join(path.dirname(fileURLToPath(import.meta.url)), '../')})
+  })
+}
 
 const update_note = db.prepare("update Notes set title = $title, createTime = $createTime, notebookId = $notebookId, updateTime = date('now'), updatedBy = $updatedBy where noteId = $noteId")
 
@@ -241,6 +263,14 @@ if (config.has('mail.credentials')) {
 
 new Trash(db).listen(app)
 
-app.listen(PORT, () => {
-  console.log(`Server listening on ${PORT}`);
-});
+if (!IS_PROXY && config.has('https.use') && config.get('https.use') == true) {
+  const key = fs.readFileSync(config.get('https.key'))
+  const cert = fs.readFileSync(config.get('https.cert'))
+  https.createServer({key: key, cert: cert}, app).listen(PORT, () => {
+    console.log(`Server listening on HTTPS ${PORT}`);
+  })
+} else {
+  app.listen(PORT, () => {
+    console.log(`Server listening on ${PORT}`);
+  });
+}

@@ -26,7 +26,8 @@ export class SetupMail {
           credentials: credLocation,
           pendingLabel: pendingLabel,
           doneLabel: doneLabel,
-          importedTag: importedTag}})
+          importedTag: importedTag},
+      cors: { use: true, origins: { gmail: 'https://accounts.google.com/'}}})
                               callback()
                             })
                         } else {
@@ -48,6 +49,7 @@ export class SetupMail {
           })
         } else if (do_start.toUpperCase() === 'N') {
           update.merge_config({mail: { supported: false }})
+          update.remove('cors.origins.gmail')
           callback()
         } else {
           callback()
