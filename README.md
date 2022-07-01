@@ -12,3 +12,26 @@ version using a [.Net desktop solution](https://dev.azure.com/uriagassi/Paperles
 
 This is a new web implementation, meant to be deployed on your local machine, or in your local intra network. It uses the same concepts,
 but is cleaner, leaner, and more available to non-Microsoft-centric machines.
+
+# Getting Started
+
+## Deployment
+The easiest way to use this application, is to install it locally on your machine
+
+1. Install [Node.js](https://nodejs.org/en/) and [yarn](https://classic.yarnpkg.com/lang/en/docs/install/)
+2. Clone this repo locally
+3. Build the app
+        
+        paperless.node$ yarn install
+        
+411. Run the Setup Wizard
+
+        paperless.node$ yarn setup_wizard 
+        
+     Fill up the location where you want your database to be in. You can skip the rest of the wizard for now.
+5. Run the app
+
+        paperless.node$ yarn prod
+        
+        (or for windows)
+        C:\paperless.node>yarn windows_start
