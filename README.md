@@ -21,17 +21,47 @@ The easiest way to use this application, is to install it locally on your machin
 1. Install [Node.js](https://nodejs.org/en/) and [yarn](https://classic.yarnpkg.com/lang/en/docs/install/)
 2. Clone this repo locally
 3. Build the app
-        
-        paperless.node$ yarn install
-        
-411. Run the Setup Wizard
 
-        paperless.node$ yarn setup_wizard 
-        
+```console
+paperless.node:~$ yarn install
+paperless.node:~$ yarn build
+```        
+4. Run the Setup Wizard
+
+```console
+paperless.node:~$ yarn setup_wizard 
+```
+
      Fill up the location where you want your database to be in. You can skip the rest of the wizard for now.
 5. Run the app
+```console
+paperless.node:~$ yarn start_prod
+```
 
-        paperless.node$ yarn prod
-        
-        (or for windows)
-        C:\paperless.node>yarn windows_start
+You can now see your database by going to http://localhost:3000
+
+# Basic Operation
+
+At this basic level, you can add notes by clicking the "Add Note" button. You can change the title of the added note, its "Create Date" and add tags.
+
+When you are done - click the `Archive` button, and it will be moved to the Archive Notebook.
+
+Rinse and Repeat.
+
+# Integrations
+
+You might want to better integrate a few more tools to your paperless work-flow. Currently - there are two main tools you can integrate into the paperless.node - your Scanner, and your GMail.
+
+## Scanner
+
+Most scanners scan to a JPG or a PDF, and sends the file to a folder on your disk.
+
+You can configure paperless.node to "listen" to that folder, show you when there are files on it, and if you press the "Import" button - will automatically add those files to the `Inbox`, and delete them from the scanner folder.
+
+To do that, in the `setup_wizard` configure the scanner folder:
+
+```console {highlight="context:/path,1"}
+paperless.node:~$ yarn setup_wizard
+What path should the DB be in? [~/paperless]
+What path should the files waiting from the scanner be in? [~/importToPaperless] /path/to/my/awsome/scanner
+```
