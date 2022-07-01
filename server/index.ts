@@ -235,7 +235,9 @@ app.delete('/api/notebooks/:notebookId', (req, res) => {
 
 new AddNotes(notes, att).listen(app)
 
-new Gmail(notes, att).listen(app)
+if (config.has('mail.credentials')) {
+  new Gmail(notes, att).listen(app)
+}
 
 new Trash(db).listen(app)
 

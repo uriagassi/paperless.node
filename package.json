@@ -45,6 +45,7 @@
   ],
   "scripts": {
     "dev": "concurrently \"yarn start\" \"cd client && HTTPS=true yarn start\"",
+    "windows_start": "concurrently \"yarn start\" \"cd client && set HTTPS=true&&yarn start\"",
     "start": "ts-node --files --transpile-only server/index.ts",
     "setup_wizard": "yarn ts-node --files --transpile-only scripts/setup_wizard.ts",
     "postinstall": "semantic-ui-css-patch",
