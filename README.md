@@ -65,3 +65,6 @@ paperless.node:~$ yarn setup_wizard
 What path should the DB be in? [~/paperless]
 What path should the files waiting from the scanner be in? [~/importToPaperless] /path/to/my/awsome/scanner
 ```
+To use this feature look for the scanner button on the upper right command bar ![scanner](/images/scanner.svg), if there are new scanned files in that
+folder, you will see a bubble with the number of pending files. Pressing the button will import every file in the folder into its own new note, and 
+delete it from the scanner folder.
