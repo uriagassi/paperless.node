@@ -50,7 +50,7 @@ Rinse and Repeat.
 
 # Integrations
 
-You might want to better integrate a few more tools to your paperless work-flow. Currently - there are two main tools you can integrate into the paperless.node - your Scanner, and your GMail.
+You might want to better integrate a few more tools to your paperless work-flow. Currently - there are two main tools you can integrate into the paperless.node - your Scanner, and your Gmail.
 
 ## Scanner
 
@@ -68,3 +68,9 @@ What path should the files waiting from the scanner be in? [~/importToPaperless]
 To use this feature look for the scanner button on the upper right command bar ![scanner](/images/scanner.svg), if there are new scanned files in that
 folder, you will see a bubble with the number of pending files. Pressing the button will import every file in the folder into its own new note, and 
 delete it from the scanner folder.
+
+## Gmail
+When you get mail you want to index in paperless.node, or perhaps there is a digital file you want to add, but the app is not reachable 
+(you are on mobile, or in your work computer), it could be very convenient if you could simply send this mail/file straight to the app.
+
+You can do it by assigning a label to this mail, and tell paperless.node to import all mail items that contain that label.
