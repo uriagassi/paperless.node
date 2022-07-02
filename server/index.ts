@@ -268,10 +268,10 @@ if (!IS_PROXY && config.has('https.use') && config.get('https.use') == true) {
   const key = fs.readFileSync(config.get('https.key'))
   const cert = fs.readFileSync(config.get('https.cert'))
   https.createServer({key: key, cert: cert}, app).listen(PORT, hostname, () => {
-    console.log(`Server listening on HTTPS ${PORT}`);
+    console.log(`Server listening on https://${hostname}:${PORT}`);
   })
 } else {
   app.listen(PORT, hostname, () => {
-    console.log(`Server listening on ${PORT}`);
+    console.log(`Server listening on http://${hostname}:${PORT}`);
   });
 }

@@ -9,12 +9,12 @@ export class SetupHostname {
         rl.question('THIS OPTION SHOULD NOT BE SET WITHOUT A GOOD AUTHORIZATION SOLUTION\
         \nAre you sure you want this server to be accessible from outside? ', result => {
           if (result.toUpperCase() === 'Y') {
-            update.merge_config({server: {onlyLocal: false}})
+            update.merge_config({server: {localOnly: false}})
           }
           callback()
         })
       } else if (result.toUpperCase() === 'N') {
-        update.merge_config({server: {onlyLocal: true}})
+        update.merge_config({server: {localOnly: true}})
         callback()
       } else if (result.trim() === '') {
         callback()
