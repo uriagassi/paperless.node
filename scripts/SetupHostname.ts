@@ -1,5 +1,6 @@
 import update from "./update_config.js";
 import {Interface} from "readline";
+import config from "config";
 
 export class SetupHostname {
 
@@ -17,6 +18,11 @@ export class SetupHostname {
         update.merge_config({server: {localOnly: true}})
         callback()
       } else if (result.trim() === '') {
+        if (config.get('server.localOnly')) {
+          console.log('currently listening only locally')
+        } else {
+          console.log('currently set to SERVE OUTSIDE TRAFFIC')
+        }
         callback()
       } else {
         console.log('Please answer Y or N')

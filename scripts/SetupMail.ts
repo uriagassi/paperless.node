@@ -2,6 +2,7 @@ import fs from "fs";
 
 import update from "./update_config.js";
 import {Interface} from "readline";
+import config from "config";
 
 export class SetupMail {
   doUpdate(rl : Interface, callback: () => any) {
@@ -52,6 +53,11 @@ export class SetupMail {
           update.remove('cors.origins.gmail')
           callback()
         } else {
+          if (config.get('mail.supported')) {
+            console.log('keeping current Gmail setup')
+          } else {
+            console.log('Gmail currently not setup')
+          }
           callback()
         }
       }

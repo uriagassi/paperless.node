@@ -1,15 +1,33 @@
 import update from "./update_config.js";
 import {Interface} from "readline";
+import config from "config";
 
 export class SetupSSO {
 
   doUpdate(rl:Interface, callback: () => any) {
     rl.question('Do you want to use Synology SSO? [Y/N] ', result => {
+
       if (!(result.toUpperCase() === 'Y')) {
-        update.merge_config({ sso: {
-          handler: "./empty_sso.js"
-        }})
+        if (result.trim() === '') {
+          if (config.get('sso.handler') === './syn_login.js') {
+            console.log('currently using Synology SSO')
+          } else {
+            console.log('currently not using any SSO')
+          }
+        } else {
+          console.log('not setting any SSO')
+          update.merge_config({
+            sso: {
+              handler: "./empty_sso.js"
+            }
+          })
+        }
         rl.question('Do you want to run HTTPS? [Y/N] ', result => {
+          if (result.trim() === '') {
+            console.log(`currently running HTTP${config.get('https.use') ? 'S' : ''}`)
+            callback()
+            return
+          }
           if (result.toUpperCase() === 'Y') {
             this.setupSSL(rl, callback)
           } else {
