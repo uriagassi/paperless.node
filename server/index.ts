@@ -19,7 +19,7 @@ import {fileURLToPath} from "url";
 import path from "path/posix";
 
 const IS_PROXY = process.argv[process.argv.length - 1] === 'proxy';
-const PORT = process.env.PORT || IS_PROXY ? config.get('server.proxyPort'):config.get('server.port');
+const PORT : number = process.env.PORT || IS_PROXY ? config.get('server.proxyPort'):config.get('server.port');
 const baseDir = config.get('paperless.baseDir')
 const db = new Sqlite3(baseDir + '/paperless.sqlite', { verbose: console.log});
 const app = express();
@@ -263,14 +263,15 @@ if (config.has('mail.credentials')) {
 
 new Trash(db).listen(app)
 
+const hostname = config.get('server.localOnly') == true ? '127.0.0.1' : '0.0.0.0';
 if (!IS_PROXY && config.has('https.use') && config.get('https.use') == true) {
   const key = fs.readFileSync(config.get('https.key'))
   const cert = fs.readFileSync(config.get('https.cert'))
-  https.createServer({key: key, cert: cert}, app).listen(PORT, () => {
+  https.createServer({key: key, cert: cert}, app).listen(PORT, hostname, () => {
     console.log(`Server listening on HTTPS ${PORT}`);
   })
 } else {
-  app.listen(PORT, () => {
+  app.listen(PORT, hostname, () => {
     console.log(`Server listening on ${PORT}`);
   });
 }
