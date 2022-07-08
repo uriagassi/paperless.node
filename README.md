@@ -84,4 +84,12 @@ Since this is an open source project, and does not include its own app_api, the 
     1. In the `Authorized JavaScript Origins` enter the root of the Paperless App (as long as you are running it locally - it should be `http://localhost:3000`)
     2. In the `Authorized redirect URIs` enter the same value you've set in the previous step, but with the `/gmail` path (i.e. `http://localhost:3000/gmail`)
 4. Download the OAuth Client
-    ![](images/download_oauth.png)
+    1. ![](images/download_oauth.png)
+5. Put it in a safe location, accessible for the paperless.node app to read
+
+### Step 2: Configure the paperless.node app
+1. Run `yarn setup_wizard` again
+2. Skip what you've already entered (press Enter to skip)
+3. Enter your newly downloaded credentials location when asked `Where is your credentials.json file?`
+4. You can customize the labels to be used by the app, or leave them as the default `Paperless` and `Paperless/Archived`(for the processed files)
+5. Restart the app.
