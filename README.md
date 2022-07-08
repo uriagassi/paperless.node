@@ -93,3 +93,17 @@ Since this is an open source project, and does not include its own app_api, the 
 3. Enter your newly downloaded credentials location when asked `Where is your credentials.json file?`
 4. You can customize the labels to be used by the app, or leave them as the default `Paperless` and `Paperless/Archived`(for the processed files)
 5. Restart the app.
+
+### Step 3: Prepare your Gmail Account
+1. Add the labels you indicated above to your account in the [Settings](https://mail.google.com/mail/#settings/labels)
+2. (Optional): [Add `Filters`](https://mail.google.com/mail/#settings/filters) that will automatically set relevant threads to be downloaded into the app by assigning the `Paperless` label to them. (My favorite is to automatically Archive and assign the `Paperless` label to all mail sent to `<my_address>+paperless@gmail.com`, which enables me to "send" new notes straight to the paperless app - see [here](https://support.google.com/a/users/answer/9308648?hl=en) for details about that magic if you were not aware of it)
+3. To test that integration was successful - label one or more threads with the new `Paperless` label.
+
+### Step 4: Authorize the App to connect to your account
+1. In the app you will see now an envelope icon in the upper right corner. When you click it, you will be able to `Login`. Press that option, 
+and you will be prompted to authorize the app to read your mail and modify your labels (remember that you are authorizing _your own_ api key,
+so you are not granting anyone any permission to do anything beyond that)
+2. You should now be able to see a number bubble near the envelope icon, showing how many pending mail items are there, waiting to be imported
+to your app. Press `Import...` to import them
+3. Note that nothing is deleted in your gmail account - processed mail have their `Paperless` removed, and `Paperless/Archived` added, so you
+can retrace these items if anything does not go according to plan.
