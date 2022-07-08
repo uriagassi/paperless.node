@@ -74,3 +74,14 @@ When you get mail you want to index in paperless.node, or perhaps there is a dig
 (you are on mobile, or in your work computer), it could be very convenient if you could simply send this mail/file straight to the app.
 
 You can do it by assigning a label to this mail, and tell paperless.node to import all mail items that contain that label.
+
+Since this is an open source project, and does not include its own app_api, the integration with Gmail entails a few steps:
+
+### Step 1: Obtain a credentials.json file from Google Cloud
+1. [Create a new GCP Project](https://developers.google.com/workspace/guides/create-project)
+2. [Enable Gmail APIs](https://console.cloud.google.com/apis/library/gmail.googleapis.com)
+3. [Create an OAuth Client ID](https://developers.google.com/workspace/guides/create-credentials#oauth-client-id)
+    1. In the `Authorized JavaScript Origins` enter the root of the Paperless App (as long as you are running it locally - it should be `http://localhost:3000`)
+    2. In the `Authorized redirect URIs` enter the same value you've set in the previous step, but with the `/gmail` path (i.e. `http://localhost:3000/gmail`)
+4. Download the OAuth Client
+    ![](images/download_oauth.png)
