@@ -2,9 +2,9 @@ import config from "config";
 import sanitizer from "string-sanitizer";
 import axios from "axios";
 import {Request, Response, NextFunction} from "express";
+import https from "https";
 
 const synologyURL = `https://${config.get('synology.hostname')}:${config.get('synology.port')}/webman/sso/SSOAccessToken.cgi?action=exchange&app_id=${config.get('synology.appId')}&access_token=`
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 export const sso  = (req:Request, res:Response, next:NextFunction) => {
   if (req.path === '/sso') {
     return res.json({ handler: 'SynologySSO',
@@ -28,8 +28,9 @@ export const sso  = (req:Request, res:Response, next:NextFunction) => {
   }
   const token = sanitizer.sanitize(tok);
   try {
+    const agent = new https.Agent({ rejectUnauthorized: !(config.has('synology.self_signed') && config.get('synology.self_signed') === 'Y') });
     axios
-        .get(synologyURL + token)
+        .get(synologyURL + token, {httpsAgent: agent })
         .then(res1 => {
           if (!res1.data.data) {
             console.log(res1.data)
@@ -54,6 +55,7 @@ export const sso  = (req:Request, res:Response, next:NextFunction) => {
           return res.status(401).send("Invalid Token")
         });
   } catch (err) {
+    console.log(err)
     return res.status(401).send("Invalid Token");
   }
 }
