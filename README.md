@@ -146,3 +146,12 @@ integration, you can do most of the remote archiving by sending mail to yourself
 
 Also, if you implement a robust authentication (either by integrating with another SSO system, or building a [standalone one](https://www.section.io/engineering-education/how-to-build-authentication-api-with-jwt-token-in-nodejs/)) - consider contributing it to the source code
 via a Pull Request :)
+
+## Server Outside Traffic
+Once you've handled both considerations above, you can direct the server to listen to outside traffic. Again run `yarn setup_wizard` and skip to 
+`Is this server going to be used outside this computer?`, which you can now answer `Y`. You will get a warning to make sure you really intended to 
+do that, and if you reiterate your response, the server will be configured to listen to `0.0.0.0`, and you would be able to reach it from outside
+the computer.
+
+Assuming you will no longer query the server from `https://localhost:3000`, but from some other domain, remember to fix all the registered redirect
+URIs from the previous sections before attempting to use them.
