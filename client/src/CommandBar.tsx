@@ -8,7 +8,7 @@ import {
   Stack
 } from "@fluentui/react";
 import eventBus from "./EventBus";
-import {ISSO} from "./sso/ISSO";
+import {IAuth} from "./auth/IAuth";
 
 const MINUTE_MS = 600000;
 
@@ -29,7 +29,7 @@ registerIcons({
   }
 })
 
-export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: string, text: string}, isDark: boolean, onDarkChanged: () => any, sso: ISSO | undefined, onLoadingText: (text: string | undefined) => any}> = props => {
+export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: string, text: string}, isDark: boolean, onDarkChanged: () => any, auth: IAuth | undefined, onLoadingText: (text: string | undefined) => any}> = props => {
   const [pendingImport, setPendingImport] = useState<number>(0)
   const [gmailAuthenticateURL, setGmailAuthenticateURL] = useState<string>()
   const [gmailAddress, setGmailAddress] = useState<string>()
@@ -122,7 +122,7 @@ export const CommandBar: React.FunctionComponent<{loggedIn: {imageInitials: stri
   }
 
   function logout() {
-    props.sso?.logout().then(() =>
+    props.auth?.logout().then(() =>
         fetch('/api/logout').then(
         ).then(() => {
               window.location.hash = ''

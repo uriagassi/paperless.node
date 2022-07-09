@@ -22,7 +22,7 @@ import {CommandBar} from "./CommandBar";
 import {MultiNoteScreen} from "./MultiNoteScreen";
 import {UpdateTagDialog} from "./UpdateTagDialog";
 import 'semantic-ui-css/semantic.css'
-import {ISSO} from "./sso/ISSO";
+import {IAuth} from "./auth/IAuth";
 import {ServerAPI} from "./ServerAPI";
 import {themeDark, themeLight} from "./themes";
 
@@ -52,7 +52,7 @@ export const App: React.FunctionComponent = () => {
   const [keyState, setKeyState] = useState<KeyState>()
   const [tagToUpdate, setTagToUpdate] = useState<ITagWithChildren | undefined>()
   const [loggedInUser, setLoggedInUser] = useState<{imageInitials: string, text: string, secondaryText?: string}>()
-  const [auth, setAuth] = useState<ISSO>()
+  const [auth, setAuth] = useState<IAuth>()
   const fileUploadRef = createRef<HTMLInputElement>()
   const [theme, setTheme] = useState<{uiTheme: PartialTheme, darkMode: boolean}>()
   const [loadingText, setLoadingText] = useState<string>()
@@ -88,9 +88,9 @@ export const App: React.FunctionComponent = () => {
   }
 
   useEffect(() => {
-        fetch('/sso').then(r => r.json()).then(params => {
-          const SSO = import('./sso/' + (params.handler ?? 'EmptySSO') + '.tsx');
-          SSO.then(m => setAuth(new m.SSO(params)))
+        fetch('/auth').then(r => r.json()).then(params => {
+          const Auth = import('./auth/' + (params.handler ?? 'EmptyAuth') + '.tsx');
+          Auth.then(m => setAuth(new m.Auth(params)))
         })
       }
       ,[])
@@ -196,7 +196,7 @@ export const App: React.FunctionComponent = () => {
             <IconButton className='Command' iconProps={{iconName:'GlobalNavButton'}} onClick={() => setSideViewCollapsed(!sideViewCollapsed)}/>
             <h1 className='App-header'>Paperless</h1>
             <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch} onClear={() => doSearch('')}/>
-            <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} sso={auth} isDark={theme?.darkMode ?? false} onDarkChanged={() => toggleDarkMode()}
+            <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} auth={auth} isDark={theme?.darkMode ?? false} onDarkChanged={() => toggleDarkMode()}
                         onLoadingText={setLoadingText}/>
           </Stack>
           <Stack horizontal className='MainView'>
@@ -228,7 +228,7 @@ export const App: React.FunctionComponent = () => {
                 :selectedNotes.size > 1 ?
                     <MultiNoteScreen selectedNotes={selectedNotes} availableNotebooks={notebooks} filterId={selectedFolder} activeNote={activeNote}/>
                     : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks} updateTag={setTagToUpdate} api={serverAPI} focusTag={t => setSelectedFolder(`tags/${t.key}?`)}
-                                  sso={auth}/>}
+                                  auth={auth}/>}
           </Stack>
         </Stack>
         <UpdateTagDialog tag={tagToUpdate} availableTags={tags} onClose={onUpdateTagClose}/>

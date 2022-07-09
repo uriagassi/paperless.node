@@ -17,13 +17,14 @@ import fs from "fs";
 import cors from "cors";
 import {fileURLToPath} from "url";
 import path from "path/posix";
+import {Auth} from "./auth/Auth.js";
 
 const IS_PROXY = process.argv[process.argv.length - 1] === 'proxy';
 const PORT : number = process.env.PORT || IS_PROXY ? config.get('server.proxyPort'):config.get('server.port');
 const baseDir = config.get('paperless.baseDir')
 const db = new Sqlite3(baseDir + '/paperless.sqlite', { verbose: console.log});
 const app = express();
-const { sso } = await import(config.get('sso.handler'))
+const { AuthHandler } = await import(config.get('auth.handler'))
 const att = new Attachments(db)
 const tagservice = new Tags(db)
 const notes = new Notes(db, att, tagservice)
@@ -39,7 +40,8 @@ const notebooks_query = db.prepare(
 // db.connect
 
 app.use(cookieParser())
-app.use(sso)
+const auth = new Auth(new AuthHandler());
+app.use((req, res, next) => auth.auth(req, res, next))
 app.get("/api", (req, res) => {
   res.json({ message: "Hello from server!" });
 });

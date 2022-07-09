@@ -1,4 +1,4 @@
-export class SSO {
+export class Auth {
   access_token : string | null = 'none';
 
 

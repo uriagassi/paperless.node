@@ -2,23 +2,23 @@ import update from "./update_config.js";
 import {Interface} from "readline";
 import config from "config";
 
-export class SetupSSO {
+export class SetupAuth {
 
   doUpdate(rl:Interface, callback: () => any) {
     rl.question('Do you want to use Synology SSO? [Y/N] ', result => {
 
       if (!(result.toUpperCase() === 'Y')) {
         if (result.trim() === '') {
-          if (config.get('sso.handler') === './syn_login.js') {
+          if (config.get('auth.handler') === './auth/SynologySSO.js') {
             console.log('currently using Synology SSO')
           } else {
-            console.log('currently not using any SSO')
+            console.log('currently not using any Auth')
           }
         } else {
-          console.log('not setting any SSO')
+          console.log('not setting any Auth')
           update.merge_config({
-            sso: {
-              handler: "./empty_sso.js"
+            auth: {
+              handler: "./auth/EmptyAuth.js"
             }
           })
         }
@@ -47,7 +47,7 @@ export class SetupSSO {
                       use: true,
                       origins: {sso: `https://${hostname}:${port}`}
                     },
-                    sso: {handler: './syn_login.js'},
+                    auth: {handler: './auth/SynologySSO.js'},
                     synology: {
                       hostname,
                       port: port ?? 443,

@@ -10,8 +10,8 @@
     "importDir": "~/importToPaperless",
     "defaultNotebook": "Inbox"
   },
-  "sso": {
-    "handler": "./empty_sso"
+  "auth": {
+    "handler": "./auth/EmptyAuth.js"
   },
   "mail": {
     "redirect_uri": "https://localhost:3000/gmail",

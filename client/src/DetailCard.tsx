@@ -17,7 +17,7 @@ import {
 import {ITagWithChildren} from "./TagList";
 import {TagContextMenu} from "./TagContextMenu";
 import {ServerAPI} from "./ServerAPI";
-import {ISSO} from "./sso/ISSO";
+import {IAuth} from "./auth/IAuth";
 
 export const DetailCard: React.FunctionComponent<
     DetailCardProps> =
@@ -386,7 +386,7 @@ export const DetailCard: React.FunctionComponent<
       </Shimmer>
       <Shimmer isDataLoaded={note && props.noteId == note.id} className='BodyFieldShimmer'>
         <iframe className='BodyField'
-                src={props.sso?.authenticate(props.noteId ? ('/api/body/' + props.noteId) : 'text.html')}/>
+                src={props.auth?.authenticate(props.noteId ? ('/api/body/' + props.noteId) : 'text.html')}/>
       </Shimmer>
       </Stack>
           ;
@@ -412,5 +412,5 @@ interface DetailCardProps {
   updateTag: (tag : ITagWithChildren) => any,
   focusTag: (tag : ITagWithChildren) => any,
   api: ServerAPI,
-  sso: ISSO | undefined
+  auth: IAuth | undefined
 }

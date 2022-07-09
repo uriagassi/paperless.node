@@ -1,11 +1,8 @@
 
-export class SSO {
+export class Auth {
   access_token : string | null = null;
-  constructor(params: {oauthserver_url: string,
-    app_id: string,
-    redirect_uri: string}) {
-    console.log("starting Synology SSO")
-    this.synology = params
+  constructor(params: {login_href: string, logout_href: string}) {
+    this.oauth_params = params
     if (window.location.pathname == '/') {
       const queryParams = new URLSearchParams(window.location.hash.replace(/^#/, '?'));
       console.log(queryParams)
@@ -15,14 +12,12 @@ export class SSO {
 
   login() : string {
     if (!this.access_token && window.location.pathname == '/') {
-      window.location.href = `${this.synology.oauthserver_url}/webman/sso/SSOOauth.cgi?scope=user_id&redirect_uri=${this.synology.redirect_uri}&synossoJSSDK=false&app_id=${this.synology.app_id}`;
+      window.location.href = this.oauth_params.login_href
     }
     return this.access_token ?? ''
   }
 
-  synology : {oauthserver_url: string,
-    app_id: string,
-    redirect_uri: string}
+  oauth_params : {login_href: string, logout_href: string}
 
   authenticate(url: string) : string {
     return url + '?token=' + this.access_token
@@ -32,7 +27,7 @@ export class SSO {
     return new Promise<any>(resolve => {
       const iframe = document.createElement('iframe')
       iframe.onload = () => resolve(null)
-      iframe.src = `${this.synology.oauthserver_url}/webman/sso/SSOOauth.cgi?scope=user_id&redirect_uri=${this.synology.redirect_uri}&synossoJSSDK=false&app_id=${this.synology.app_id}&method=logout`;
+      iframe.src = this.oauth_params.logout_href
       document.body.appendChild(iframe)
     })
   }
