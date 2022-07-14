@@ -101,7 +101,7 @@ export class AddNotes {
           updateBy: user,
         };
         this.notes
-          .insertNote(newNote, [attachment], [], (e) => {
+          .insertNote(newNote, [named], [], (e) => {
             console.log(e);
             fs.unlinkSync(fullName);
           })

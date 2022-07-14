@@ -18,7 +18,7 @@ import {
 import "./App.css";
 import { ITagWithChildren, TagList } from "./TagList";
 import { DetailCard } from "./DetailCard";
-import { KeyState, NoteList } from "./NoteList";
+import { Folder, KeyState, NoteList } from "./NoteList";
 import eventBus from "./EventBus";
 import { CommandBar } from "./CommandBar";
 import { MultiNoteScreen } from "./MultiNoteScreen";
@@ -44,14 +44,14 @@ const stackStyles: Partial<IStackStyles> = {
 
 const serverAPI = new ServerAPI();
 export const App: React.FunctionComponent = () => {
-  const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
-  const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
-  const [activeNote, setActiveNote] = useState<number | undefined>(undefined);
+  const [selectedFolder, setSelectedFolder] = useState<Folder>();
+  const [searchTerm, setSearchTerm] = useState<string>();
+  const [activeNote, setActiveNote] = useState<number>();
   const [selectedNotes, setSelectedNotes] = useState<Set<number>>(new Set());
-  const [notebooks, setNotebooks] = useState<ITagWithChildren[] | undefined>(undefined);
-  const [tags, setTags] = useState<ITagWithChildren[] | undefined>(undefined);
+  const [notebooks, setNotebooks] = useState<ITagWithChildren[]>();
+  const [tags, setTags] = useState<ITagWithChildren[]>();
   const [keyState, setKeyState] = useState<KeyState>();
-  const [tagToUpdate, setTagToUpdate] = useState<ITagWithChildren | undefined>();
+  const [tagToUpdate, setTagToUpdate] = useState<ITagWithChildren>();
   const [loggedInUser, setLoggedInUser] = useState<{ imageInitials: string; text: string; secondaryText?: string }>();
   const [auth, setAuth] = useState<IAuth>();
   const fileUploadRef = createRef<HTMLInputElement>();
@@ -97,7 +97,7 @@ export const App: React.FunctionComponent = () => {
   }, []);
 
   function loadNotebooks() {
-    serverAPI.loadNotebooks().then((data: { tags: ITagWithChildren[]; notebooks: ITagWithChildren[] }) => {
+    serverAPI.loadNotebooks().then((data) => {
       setNotebooks(data.notebooks);
       setTags(data.tags);
     });
@@ -150,7 +150,7 @@ export const App: React.FunctionComponent = () => {
 
   const onUpdateTagClose = (key: string | undefined) => {
     if (key && tagToUpdate?.key === -1) {
-      setSelectedFolder(`tags/${key}?`);
+      setSelectedFolder({ filterId: `tags/${key}?` });
     }
     setTagToUpdate(undefined);
   };
@@ -162,7 +162,7 @@ export const App: React.FunctionComponent = () => {
       const formData = new FormData();
       formData.append("newNote", e.target.files[0], e.target.files[0].name);
       fetch("/api/files/new", { method: "POST", body: formData }).then(() => {
-        eventBus.dispatch("note-collection-change", { notebooks: [2] });
+        eventBus.dispatch("note-collection-change", { notebooks: ["I"] });
       });
     }
   }
@@ -259,7 +259,7 @@ export const App: React.FunctionComponent = () => {
           <NoteList
             style={listViewWidth}
             tabIndex={2}
-            filterId={selectedFolder}
+            selectedFolder={selectedFolder}
             searchTerm={searchTerm}
             selectedId={activeNote}
             api={serverAPI}
@@ -276,13 +276,13 @@ export const App: React.FunctionComponent = () => {
           />
           {!activeNote ? (
             <div className="EmptyDetails">
-              <div>There are no notes in this {selectedFolder?.split("s")[0]}.</div>
+              <div>There are no notes in this {selectedFolder?.filterId?.split("s")[0]}.</div>
             </div>
           ) : selectedNotes.size > 1 ? (
             <MultiNoteScreen
               selectedNotes={selectedNotes}
               availableNotebooks={notebooks}
-              filterId={selectedFolder}
+              filterId={selectedFolder?.filterId}
               activeNote={activeNote}
             />
           ) : (
@@ -292,7 +292,7 @@ export const App: React.FunctionComponent = () => {
               availableNotebooks={notebooks}
               updateTag={setTagToUpdate}
               api={serverAPI}
-              focusTag={(t) => setSelectedFolder(`tags/${t.key}?`)}
+              focusTag={(t) => setSelectedFolder({ filterId: `tags/${t.key}?` })}
               auth={auth}
             />
           )}

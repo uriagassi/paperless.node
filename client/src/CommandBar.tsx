@@ -93,7 +93,7 @@ export const CommandBar: React.FunctionComponent<CommandBarProps> = (props) => {
 
   function importFiles() {
     fetch("/api/files/import").then(() => {
-      eventBus.dispatch("note-collection-change", { notebooks: [2] });
+      eventBus.dispatch("note-collection-change", { notebooks: ["I"] });
       refreshPendingCount(false);
     });
   }
@@ -110,7 +110,7 @@ export const CommandBar: React.FunctionComponent<CommandBarProps> = (props) => {
           setPendingMail(r.pendingThreads);
         }
         console.log(r);
-        eventBus.dispatch("note-collection-change", { notebooks: [2] });
+        eventBus.dispatch("note-collection-change", { notebooks: ["I"] });
         props.onLoadingText(undefined);
       });
   }

@@ -2,6 +2,7 @@ import React from "react";
 import { CommandBar, ICommandBarItemProps, Stack } from "@fluentui/react";
 import eventBus from "./EventBus";
 import { ITagWithChildren } from "./TagList";
+import { NoteCollectionChange } from "./NoteList";
 
 export const MultiNoteScreen: React.FunctionComponent<{
   selectedNotes: Set<number>;
@@ -10,10 +11,10 @@ export const MultiNoteScreen: React.FunctionComponent<{
   activeNote?: number;
 }> = (props) => {
   function currentUpdated() {
-    const affectedList = { notebooks: [3], tags: [0] };
+    const affectedList: NoteCollectionChange = { notebooks: ["D"] };
     if (props.filterId) {
       if (props.filterId.split("/")[0] == "notebooks") {
-        affectedList.notebooks.push(+props.filterId.split("/")[1]);
+        affectedList.notebooks?.push(+props.filterId.split("/")[1]);
       } else {
         affectedList.tags = [+props.filterId.split("/")[1]];
       }
@@ -27,10 +28,10 @@ export const MultiNoteScreen: React.FunctionComponent<{
         method: "POST",
       };
       fetch(`api/notes/${Array.from(props.selectedNotes).join(",")}/notebook/${notebook}`, requestOptions).then(() => {
-        const affectedList = { notebooks: [notebook], tags: [0] };
+        const affectedList: NoteCollectionChange = { notebooks: [notebook] };
         if (props.filterId) {
           if (props.filterId.split("/")[0] == "notebooks") {
-            affectedList.notebooks.push(+props.filterId.split("/")[1]);
+            affectedList.notebooks?.push(+props.filterId.split("/")[1]);
           } else {
             affectedList.tags = [+props.filterId.split("/")[1]];
           }

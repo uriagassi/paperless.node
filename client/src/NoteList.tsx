@@ -45,19 +45,19 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
     return () => {
       eventBus.remove("note-detail-change", eventLoadNotes);
     };
-  }, [props.filterId, props.searchTerm, props.selectedId, props.limit, props.onSelectedIdChanged]);
+  }, [props.selectedFolder, props.searchTerm, props.selectedId, props.limit, props.onSelectedIdChanged]);
 
   useEffect(() => {
-    const eventCheckChange = (e: CustomEvent<{ notebooks?: number[]; tags?: number[] }>) => checkChange(e.detail);
+    const eventCheckChange = (e: CustomEvent<NoteCollectionChange>) => checkChange(e.detail);
     eventBus.on("note-collection-change", eventCheckChange);
     return () => {
       eventBus.remove("note-collection-change", eventCheckChange);
     };
-  }, [props.filterId]);
+  }, [props.selectedFolder]);
 
   useEffect(() => {
     loadNotes();
-  }, [props.filterId, props.searchTerm]);
+  }, [props.selectedFolder, props.searchTerm]);
 
   useEffect(() => {
     console.log("selecting note " + props.selectedId + "(" + Array.from(props.selectedNotes) + ")");
@@ -74,11 +74,11 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
   };
 
   const loadNotes = (withSetLoading = true) => {
-    if (props.filterId || props.searchTerm) {
+    if (props.selectedFolder?.filterId || props.searchTerm) {
       if (withSetLoading) {
         setLoading(true);
       }
-      let filter = props.filterId ?? "";
+      let filter = props.selectedFolder?.filterId ?? "";
       if (props.searchTerm ?? "" != "") {
         filter = "search?term=" + encodeURIComponent(props.searchTerm ?? "") + "&";
       }
@@ -108,13 +108,17 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
     }
   };
 
-  const checkChange = (data: { notebooks?: number[]; tags?: number[] }) => {
-    if (props.filterId?.startsWith("notebook")) {
-      if (data.notebooks?.filter((n) => props.filterId == "notebooks/" + n + "?")) {
+  const checkChange = (data: NoteCollectionChange) => {
+    if (props.selectedFolder?.filterId?.startsWith("notebook")) {
+      if (
+        data.notebooks?.filter(
+          (n) => props.selectedFolder?.filterId == "notebooks/" + n + "?" || props.selectedFolder?.type == n
+        )
+      ) {
         loadNotes(false);
       }
-    } else if (props.filterId?.startsWith("tag")) {
-      if (data.tags?.filter((n) => props.filterId == "tags/" + n + "?")) {
+    } else if (props.selectedFolder?.filterId?.startsWith("tag")) {
+      if (data.tags?.filter((n) => props.selectedFolder?.filterId == "tags/" + n + "?")) {
         loadNotes(false);
       }
     }
@@ -131,12 +135,12 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
       method: "POST",
     };
     fetch(`api/notes/${id}/notebook/D`, requestOptions).then(() => {
-      const affectedList = { notebooks: [3], tags: [0] };
-      if (props.filterId) {
-        if (props.filterId.split("/")[0] == "notebooks") {
-          affectedList.notebooks.push(+props.filterId.split("/")[1]);
+      const affectedList = { notebooks: ["D"] } as NoteCollectionChange;
+      if (props.selectedFolder?.filterId) {
+        if (props.selectedFolder?.filterId.split("/")[0] == "notebooks") {
+          affectedList.notebooks?.push(+props.selectedFolder?.filterId.split("/")[1]);
         } else {
-          affectedList.tags = [+props.filterId.split("/")[1]];
+          affectedList.tags = [+props.selectedFolder?.filterId.split("/")[1]];
         }
       }
       eventBus.dispatch("note-collection-change", affectedList);
@@ -246,7 +250,12 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
   return (
     <FocusZone className="ListView" style={props.style}>
       <Shimmer isDataLoaded={!loading} customElementsGroup={getCustomElements()} width="100%">
-        <Stack tabIndex={props.tabIndex} key={props.filterId} horizontalAlign="start" verticalAlign="start">
+        <Stack
+          tabIndex={props.tabIndex}
+          key={props.selectedFolder?.filterId}
+          horizontalAlign="start"
+          verticalAlign="start"
+        >
           {notes}
         </Stack>
       </Shimmer>
@@ -261,9 +270,14 @@ export interface KeyState {
   update: number;
 }
 
+export interface Folder {
+  filterId: string | undefined;
+  type?: string | undefined;
+}
+
 interface NoteListProps {
   style: { width: string | number };
-  filterId: string | undefined;
+  selectedFolder: Folder | undefined;
   selectedId?: number | undefined;
   onSelectedIdChanged?: (key: number, selectedKeys: Set<number>) => void;
   limit?: number;
@@ -272,4 +286,9 @@ interface NoteListProps {
   selectedNotes: Set<number>;
   keyState?: KeyState;
   api: ServerAPI;
+}
+
+export interface NoteCollectionChange {
+  notebooks?: (number | string)[];
+  tags?: number[];
 }

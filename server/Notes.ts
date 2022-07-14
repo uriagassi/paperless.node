@@ -196,7 +196,7 @@ export class Notes {
   }
 
   parts(noteId: number | bigint | string) {
-    return this.count_parts.get(noteId)[0];
+    return this.count_parts.get(noteId)?.[0];
   }
 
   async splitNote(updateBy: string, originalNoteId: number | bigint) {

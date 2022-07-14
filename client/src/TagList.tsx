@@ -17,10 +17,11 @@ import { TagContextMenu } from "./TagContextMenu";
 import { AddNotebookDialog } from "./AddNotebookDialog";
 import { useBoolean } from "@fluentui/react-hooks";
 import eventBus from "./EventBus";
+import { Folder } from "./NoteList";
 
 interface TagListProps {
-  selectedId: string | undefined;
-  onSelectedIdChanged: (key?: string) => void;
+  selectedId: Folder | undefined;
+  onSelectedIdChanged: (key?: Folder) => void;
   tags: ITagWithChildren[] | undefined;
   notebooks: ITagWithChildren[] | undefined;
   updateTag: (tag: ITagWithChildren) => unknown;
@@ -36,13 +37,24 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
   const [addNotebook, { toggle: toggleAddNotebook }] = useBoolean(false);
   const tagListRef = createRef<HTMLDivElement>();
 
-  function addNote(notebooks: INavLink[], n: ITagWithChildren, icon: string) {
-    notebooks.push({
-      key: "notebooks/" + n.key + "?",
-      name: n.name + (n.notes ? " (" + n.notes + ")" : ""),
-      icon: icon,
-      isExpanded: n.isExpanded,
-    } as INavLink);
+  function addToNotebooks(
+    notebooks: INavLink[],
+    n: ITagWithChildren | string,
+    icon: string,
+    callback?: (l: INavLink) => unknown
+  ) {
+    const notebook = typeof n === "string" ? props.notebooks?.find((i) => i.type === n) : n;
+    if (notebook) {
+      const link = {
+        url: "#",
+        key: "notebooks/" + notebook.key + "?",
+        name: notebook.name + (notebook.notes ? " (" + notebook.notes + ")" : ""),
+        icon: icon,
+        itag: n,
+      } as INavLink;
+      callback?.(link);
+      notebooks.push(link);
+    }
   }
 
   useEffect(() => {
@@ -57,6 +69,7 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
         isExpanded: tag.isExpanded,
         url: "#",
         links: [],
+        itag: tag,
       };
     });
     props.tags?.forEach((item) => {
@@ -67,19 +80,24 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
         tags["" + (item.parent ?? "")]?.links?.push(current);
       }
     });
-    props.notebooks?.filter((n) => n.type == "I").forEach((n) => addNote(notebooks, n, "Inbox"));
-    const isArchiveExpanded = tagList?.[0]?.links?.find((l) => l.icon == "Archive")?.isExpanded ?? true;
-    props.notebooks
-      ?.filter((n) => n.type == "A")
-      .forEach((n) => addNote(notebooks, { ...n, isExpanded: isArchiveExpanded }, "Archive"));
+    addToNotebooks(notebooks, "I", "Inbox");
+    addToNotebooks(
+      notebooks,
+      "A",
+      "Archive",
+      (n) => (n.isExpanded = tagList?.[0]?.links?.find((l) => l.icon == "Archive")?.isExpanded ?? true)
+    );
     if (notebooks.length > 0) {
       const customNotebookLinks: INavLink[] = [];
-      props.notebooks?.filter((n) => !n.type).forEach((n) => addNote(customNotebookLinks, n, "BookAnswers"));
+      props.notebooks?.filter((n) => !n.type).forEach((n) => addToNotebooks(customNotebookLinks, n, "BookAnswers"));
       notebooks[notebooks.length - 1].links = customNotebookLinks;
     }
-    props.notebooks?.filter((n) => n.type == "D").forEach((n) => addNote(notebooks, n, "Delete"));
-    const selectedId = props.selectedId || notebooks[0]?.key;
-    if (selectedId != props.selectedId) {
+    addToNotebooks(notebooks, "D", "Delete");
+    const selectedId =
+      props.selectedId || notebooks.length === 0
+        ? undefined
+        : { filterId: notebooks[0].key, type: notebooks[0].type as string };
+    if (selectedId != props.selectedId && selectedId?.filterId) {
       props.onSelectedIdChanged(selectedId);
     }
     setTagList([
@@ -95,7 +113,8 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
   }, [props.tags, props.notebooks]);
 
   const onSelect = (ev?: React.MouseEvent<HTMLElement>, item?: INavLink) => {
-    props.onSelectedIdChanged(item?.key);
+    const notebook = item?.itag as ITagWithChildren;
+    props.onSelectedIdChanged({ filterId: item?.key, type: notebook?.type });
   };
 
   const [dialogData, setDialogData] = useState<{ props: IDialogContentProps; callback: () => unknown }>();
@@ -234,7 +253,7 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
   function emptyTrash() {
     eventBus.dispatch("wait-screen", "Emptying Trash...");
     fetch("api/trash", { method: "DELETE" }).then(() => {
-      eventBus.dispatch("note-collection-change", { notebooks: [props.notebooks?.find((n) => n.type == "D")?.key] });
+      eventBus.dispatch("note-collection-change", { notebooks: ["D"] });
       eventBus.dispatch("wait-screen", undefined);
     });
   }
@@ -243,7 +262,7 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
     <div className="TagList" onContextMenu={onShowContextualMenu} ref={tagListRef}>
       <Shimmer isDataLoaded={!!props.tags}>
         <Nav
-          selectedKey={props.selectedId}
+          selectedKey={props.selectedId?.filterId}
           groups={tagList ?? []}
           onLinkClick={onSelect}
           onLinkExpandClick={onExpand}
