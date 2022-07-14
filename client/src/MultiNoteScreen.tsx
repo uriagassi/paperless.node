@@ -1,99 +1,99 @@
 import React from "react";
-import {CommandBar, ICommandBarItemProps, ITag,  Stack} from "@fluentui/react";
+import { CommandBar, ICommandBarItemProps, Stack } from "@fluentui/react";
 import eventBus from "./EventBus";
-import {ITagWithChildren} from "./TagList";
+import { ITagWithChildren } from "./TagList";
 
-export const MultiNoteScreen: React.FunctionComponent<{selectedNotes: Set<number>, availableNotebooks: ITagWithChildren[] | undefined, filterId: string | undefined, activeNote?: number}> = (props) => {
-
+export const MultiNoteScreen: React.FunctionComponent<{
+  selectedNotes: Set<number>;
+  availableNotebooks: ITagWithChildren[] | undefined;
+  filterId: string | undefined;
+  activeNote?: number;
+}> = (props) => {
   function currentUpdated() {
-    let affectedList = {notebooks: [3], tags: [0]}
+    const affectedList = { notebooks: [3], tags: [0] };
     if (props.filterId) {
-      if (props.filterId.split('/')[0] == 'notebooks') {
-        affectedList.notebooks.push(+props.filterId.split('/')[1])
+      if (props.filterId.split("/")[0] == "notebooks") {
+        affectedList.notebooks.push(+props.filterId.split("/")[1]);
       } else {
-        affectedList.tags = [+props.filterId.split('/')[1]];
+        affectedList.tags = [+props.filterId.split("/")[1]];
       }
     }
-    eventBus.dispatch('note-collection-change', affectedList)
-  }
-
-  const doDelete = () => {
-    const requestOptions = {
-      method: 'DELETE' }
-    fetch('api/notes/' + Array.from(props.selectedNotes).join(','), requestOptions).then(() => {
-      currentUpdated();
-    })
+    eventBus.dispatch("note-collection-change", affectedList);
   }
 
   const doMove = (notebook: string | number | undefined) => {
     if (notebook) {
       const requestOptions = {
-        method: 'POST'
-      }
-      fetch(`api/notes/${Array.from(props.selectedNotes).join(',')}/notebook/${notebook}`, requestOptions).then(() => {
-        let affectedList = {notebooks: [notebook], tags: [0]}
+        method: "POST",
+      };
+      fetch(`api/notes/${Array.from(props.selectedNotes).join(",")}/notebook/${notebook}`, requestOptions).then(() => {
+        const affectedList = { notebooks: [notebook], tags: [0] };
         if (props.filterId) {
-          if (props.filterId.split('/')[0] == 'notebooks') {
-            affectedList.notebooks.push(+props.filterId.split('/')[1])
+          if (props.filterId.split("/")[0] == "notebooks") {
+            affectedList.notebooks.push(+props.filterId.split("/")[1]);
           } else {
-            affectedList.tags = [+props.filterId.split('/')[1]];
+            affectedList.tags = [+props.filterId.split("/")[1]];
           }
         }
-        eventBus.dispatch('note-collection-change', affectedList)
-      })
+        eventBus.dispatch("note-collection-change", affectedList);
+      });
     }
-  }
+  };
 
   const doMerge = () => {
-    console.log(props.selectedNotes)
+    console.log(props.selectedNotes);
     const requestOptions = {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         notes: Array.from(props.selectedNotes),
-        toNote: props.activeNote
-      })
-    }
+        toNote: props.activeNote,
+      }),
+    };
     fetch(`api/notes/${props.activeNote}/merge`, requestOptions).then(() => {
-      currentUpdated()
-    })
-  }
-
+      currentUpdated();
+    });
+  };
 
   return (
-      <>
-        <div style={{flex: 1}}/>
-        <Stack className='MultiNote' horizontalAlign='center' verticalAlign='center'>
-          <img className='MultiFolderIcon' src={'multipleNotes.svg'}/>
-          <CommandBar items={[{
-            key: 'merge',
-            text: 'Merge Items',
-            iconProps: {iconName: 'Merge'},
-            onClick: () => doMerge()
-          },
+    <>
+      <div style={{ flex: 1 }} />
+      <Stack className="MultiNote" horizontalAlign="center" verticalAlign="center">
+        <img className="MultiFolderIcon" src={"multipleNotes.svg"} />
+        <CommandBar
+          items={[
             {
-              key: 'delete',
-              text: 'Delete ' + props.selectedNotes.size + ' Notes',
-              iconProps: {iconName: 'Delete'},
-              onClick: () => doMove(props.availableNotebooks?.find(n => n.type == 'D')?.key)
+              key: "merge",
+              text: "Merge Items",
+              iconProps: { iconName: "Merge" },
+              onClick: () => doMerge(),
             },
             {
-              key: 'move',
-              text: 'Move ' + props.selectedNotes.size + ' Notes...',
-              iconProps: { iconName: 'Folder'},
+              key: "delete",
+              text: "Delete " + props.selectedNotes.size + " Notes",
+              iconProps: { iconName: "Delete" },
+              onClick: () => doMove(props.availableNotebooks?.find((n) => n.type == "D")?.key),
+            },
+            {
+              key: "move",
+              text: "Move " + props.selectedNotes.size + " Notes...",
+              iconProps: { iconName: "Folder" },
               subMenuProps: {
-                items: props.availableNotebooks?.map(n => {
-                  return  {
-                    key: n.key,
-                    text: n.name,
-                    iconProps: {iconName: 'Inbox'},
-                    onClick: () => doMove(n.key)
-                  } as ICommandBarItemProps}) ?? []
-              }
-            }]}/>
-        </Stack>
-        <div style={{flex: 1}}/>
-
-      </>
-  )
-}
+                items:
+                  props.availableNotebooks?.map((n) => {
+                    return {
+                      key: n.key,
+                      text: n.name,
+                      iconProps: { iconName: "Inbox" },
+                      onClick: () => doMove(n.key),
+                    } as ICommandBarItemProps;
+                  }) ?? [],
+              },
+            },
+          ]}
+        />
+      </Stack>
+      <div style={{ flex: 1 }} />
+    </>
+  );
+};

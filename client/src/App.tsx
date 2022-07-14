@@ -1,81 +1,81 @@
-import React, {createRef, useEffect, useState} from 'react';
+import React, { createRef, useEffect, useState } from "react";
 import {
   ActionButton,
   css,
-  DefaultButton, getRTL,
+  DefaultButton,
+  getRTL,
   IconButton,
   initializeIcons,
   IStackStyles,
-  IStackTokens, PartialTheme,
+  IStackTokens,
+  PartialTheme,
   SearchBox,
   Spinner,
   SpinnerSize,
   Stack,
-  ThemeProvider
-} from '@fluentui/react';
-import './App.css';
-import {ITagWithChildren, TagList} from "./TagList";
-import {DetailCard} from "./DetailCard";
-import {KeyState, NoteList} from "./NoteList";
+  ThemeProvider,
+} from "@fluentui/react";
+import "./App.css";
+import { ITagWithChildren, TagList } from "./TagList";
+import { DetailCard } from "./DetailCard";
+import { KeyState, NoteList } from "./NoteList";
 import eventBus from "./EventBus";
-import {CommandBar} from "./CommandBar";
-import {MultiNoteScreen} from "./MultiNoteScreen";
-import {UpdateTagDialog} from "./UpdateTagDialog";
-import 'semantic-ui-css/semantic.css'
-import {IAuth} from "./auth/IAuth";
-import {ServerAPI} from "./ServerAPI";
-import {themeDark, themeLight} from "./themes";
-
+import { CommandBar } from "./CommandBar";
+import { MultiNoteScreen } from "./MultiNoteScreen";
+import { UpdateTagDialog } from "./UpdateTagDialog";
+import "semantic-ui-css/semantic.css";
+import { IAuth } from "./auth/IAuth";
+import { ServerAPI } from "./ServerAPI";
+import { themeDark, themeLight } from "./themes";
 
 initializeIcons();
 
 const stackTokens: IStackTokens = { childrenGap: 15 };
 const stackStyles: Partial<IStackStyles> = {
   root: {
-    width: '100%',
-    margin: '0 auto',
-    textAlign: 'center',
-    color: '#605e5c',
+    width: "100%",
+    margin: "0 auto",
+    textAlign: "center",
+    color: "#605e5c",
     display: "flex",
-    maxHeight: '100vh'
+    maxHeight: "100vh",
   },
 };
 
-const serverAPI = new ServerAPI()
+const serverAPI = new ServerAPI();
 export const App: React.FunctionComponent = () => {
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
-  const [activeNote, setActiveNote] = useState<number | undefined>(undefined)
-  const [selectedNotes, setSelectedNotes] = useState<Set<number>>(new Set())
-  const [notebooks, setNotebooks] = useState<ITagWithChildren[] | undefined>(undefined)
-  const [tags, setTags] = useState<ITagWithChildren[] | undefined>(undefined)
-  const [keyState, setKeyState] = useState<KeyState>()
-  const [tagToUpdate, setTagToUpdate] = useState<ITagWithChildren | undefined>()
-  const [loggedInUser, setLoggedInUser] = useState<{imageInitials: string, text: string, secondaryText?: string}>()
-  const [auth, setAuth] = useState<IAuth>()
-  const fileUploadRef = createRef<HTMLInputElement>()
-  const [theme, setTheme] = useState<{uiTheme: PartialTheme, darkMode: boolean}>()
-  const [loadingText, setLoadingText] = useState<string>()
+  const [activeNote, setActiveNote] = useState<number | undefined>(undefined);
+  const [selectedNotes, setSelectedNotes] = useState<Set<number>>(new Set());
+  const [notebooks, setNotebooks] = useState<ITagWithChildren[] | undefined>(undefined);
+  const [tags, setTags] = useState<ITagWithChildren[] | undefined>(undefined);
+  const [keyState, setKeyState] = useState<KeyState>();
+  const [tagToUpdate, setTagToUpdate] = useState<ITagWithChildren | undefined>();
+  const [loggedInUser, setLoggedInUser] = useState<{ imageInitials: string; text: string; secondaryText?: string }>();
+  const [auth, setAuth] = useState<IAuth>();
+  const fileUploadRef = createRef<HTMLInputElement>();
+  const [theme, setTheme] = useState<{ uiTheme: PartialTheme; darkMode: boolean }>();
+  const [loadingText, setLoadingText] = useState<string>();
   const storedTheme = localStorage.getItem("theme");
-  const [sideViewCollapsed, setSideViewCollapsed] = useState<boolean>()
-  const [listViewWidth, setListViewWidth] = useState({ width: +(localStorage.getItem('listViewWidth') ?? 350) })
-  const [listViewOffsetStart, setListViewOffsetStart] = useState<{ startValue: number, startPosition: number}>()
+  const [sideViewCollapsed, setSideViewCollapsed] = useState<boolean>();
+  const [listViewWidth, setListViewWidth] = useState({ width: +(localStorage.getItem("listViewWidth") ?? 350) });
+  const [listViewOffsetStart, setListViewOffsetStart] = useState<{ startValue: number; startPosition: number }>();
 
   const setDark = () => {
-
     // 2
     localStorage.setItem("theme", "dark");
 
     // 3
     if (!theme?.darkMode) {
-      setTheme({uiTheme: themeDark, darkMode: true});
+      setTheme({ uiTheme: themeDark, darkMode: true });
     }
   };
 
   const setLight = () => {
     localStorage.setItem("theme", "light");
     if (theme?.darkMode) {
-      setTheme({uiTheme: themeLight, darkMode: false});
+      setTheme({ uiTheme: themeLight, darkMode: false });
     }
   };
 
@@ -88,15 +88,16 @@ export const App: React.FunctionComponent = () => {
   }
 
   useEffect(() => {
-        fetch('/auth').then(r => r.json()).then(params => {
-          const Auth = import('./auth/' + (params.handler ?? 'EmptyAuth') + '.tsx');
-          Auth.then(m => setAuth(new m.Auth(params)))
-        })
-      }
-      ,[])
+    fetch("/auth")
+      .then((r) => r.json())
+      .then((params) => {
+        const Auth = import("./auth/" + (params.handler ?? "EmptyAuth") + ".tsx");
+        Auth.then((m) => setAuth(new m.Auth(params)));
+      });
+  }, []);
 
   function loadNotebooks() {
-    serverAPI.loadNotebooks().then((data: { tags: ITagWithChildren[], notebooks: any[] }) => {
+    serverAPI.loadNotebooks().then((data: { tags: ITagWithChildren[]; notebooks: ITagWithChildren[] }) => {
       setNotebooks(data.notebooks);
       setTags(data.tags);
     });
@@ -104,68 +105,65 @@ export const App: React.FunctionComponent = () => {
 
   useEffect(() => {
     if (!theme) {
-      const prefersDark =
-          window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-      const defaultDark =
-          storedTheme === "dark" || (storedTheme === null && prefersDark);
+      const defaultDark = storedTheme === "dark" || (storedTheme === null && prefersDark);
 
       if (defaultDark) {
         setDark();
       }
     } else {
       if (theme.darkMode) {
-        setDark()
+        setDark();
       } else {
-        setLight()
+        setLight();
       }
     }
-  }, [theme])
+  }, [theme]);
 
   function waitScreen(e: CustomEvent) {
-    setLoadingText(e.detail)
+    setLoadingText(e.detail);
   }
 
   useEffect(() => {
     if (auth) {
-      serverAPI.setHeader({key: 'x-access-token', value: auth.login()})
-      serverAPI.user().then(u => {
+      serverAPI.setHeader({ key: "x-access-token", value: auth.login() });
+      serverAPI.user().then((u) => {
         setLoggedInUser({
           text: u.user_name,
-          imageInitials: Array.from(u.user_name.matchAll(/\b\w/g)).join(' ')
-        })
-      })
+          imageInitials: Array.from(u.user_name.matchAll(/\b\w/g)).join(" "),
+        });
+      });
       loadNotebooks();
-      eventBus.on('note-collection-change', loadNotebooks)
-      eventBus.on('wait-screen', waitScreen)
+      eventBus.on("note-collection-change", loadNotebooks);
+      eventBus.on("wait-screen", waitScreen);
     }
     return () => {
-      eventBus.remove('note-collection-change', loadNotebooks)
-      eventBus.remove('wait-screen', waitScreen)
-    }
-  }, [auth])
+      eventBus.remove("note-collection-change", loadNotebooks);
+      eventBus.remove("wait-screen", waitScreen);
+    };
+  }, [auth]);
 
   function doSearch(newValue: string) {
-    setSearchTerm(newValue)
+    setSearchTerm(newValue);
   }
 
   const onUpdateTagClose = (key: string | undefined) => {
     if (key && tagToUpdate?.key === -1) {
-      setSelectedFolder(`tags/${key}?`)
+      setSelectedFolder(`tags/${key}?`);
     }
-    setTagToUpdate(undefined)
-  }
+    setTagToUpdate(undefined);
+  };
 
   function uploadFile(e: React.ChangeEvent<HTMLInputElement>) {
-    console.log(e.target.files)
+    console.log(e.target.files);
     if (e.target.files) {
-      console.log(e.target.files?.[0])
+      console.log(e.target.files?.[0]);
       const formData = new FormData();
-      formData.append('newNote', e.target.files[0], e.target.files[0].name)
-      fetch('/api/files/new', { method: 'POST', body: formData}).then(() => {
-        eventBus.dispatch('note-collection-change', { notebooks: [2]})
-      })
+      formData.append("newNote", e.target.files[0], e.target.files[0].name);
+      fetch("/api/files/new", { method: "POST", body: formData }).then(() => {
+        eventBus.dispatch("note-collection-change", { notebooks: [2] });
+      });
     }
   }
 
@@ -177,64 +175,133 @@ export const App: React.FunctionComponent = () => {
     if (listViewOffsetStart) {
       let change = newPos - listViewOffsetStart.startPosition;
       if (getRTL()) {
-        change = -change
+        change = -change;
       }
-      setListViewWidth({width: Math.min(480, Math.max(240, listViewOffsetStart.startValue + change))})
+      setListViewWidth({ width: Math.min(480, Math.max(240, listViewOffsetStart.startValue + change)) });
     }
   }
 
   function stopListViewResize() {
-    setListViewOffsetStart(undefined)
-    localStorage.setItem('listViewWidth', `${listViewWidth.width}`)
+    setListViewOffsetStart(undefined);
+    localStorage.setItem("listViewWidth", `${listViewWidth.width}`);
   }
 
   return (
-      <ThemeProvider applyTo="body" theme={theme?.uiTheme} data-theme={theme?.darkMode ? 'dark' : 'light'} className='MainWindow' onMouseUp={() => stopListViewResize()} onMouseMove={e => updateListViewWidth(e.pageX)} style={listViewOffsetStart ? { cursor: 'col-resize'} : {}}>
-        <Stack tokens={stackTokens} styles={stackStyles} onKeyDown={e => setKeyState({...e, update: Date.now()})}
-               onKeyUp={e => setKeyState({...e, update: Date.now()})} onClick={e => setKeyState({...e, update: Date.now()})} className='MainWindow'>
-          <Stack horizontal verticalAlign='baseline'>
-            <IconButton className='Command' iconProps={{iconName:'GlobalNavButton'}} onClick={() => setSideViewCollapsed(!sideViewCollapsed)}/>
-            <h1 className='App-header'>Paperless</h1>
-            <SearchBox tabIndex={0} className='SearchBox' placeholder='Search Paperless' onSearch={doSearch} onClear={() => doSearch('')}/>
-            <CommandBar loggedIn={loggedInUser ?? {imageInitials: '?', text:'Unknown'}} auth={auth} isDark={theme?.darkMode ?? false} onDarkChanged={() => toggleDarkMode()}
-                        onLoadingText={setLoadingText}/>
-          </Stack>
-          <Stack horizontal className='MainView'>
-            <Stack className={css('SideView', sideViewCollapsed ? 'collapsed' : undefined)}>
-              <DefaultButton className='NewNoteButton' name='New Note' text='New Note' iconProps={{iconName: 'BulkUpload'}} onClick={clickUpload}/>
-              <input ref={fileUploadRef} style={{ display: "none" }} type="file" onChange={uploadFile} />
-              <TagList  selectedId={selectedFolder}
-                        onSelectedIdChanged={(key) => {
-                          if (selectedFolder != key) {
-                            setActiveNote(undefined)
-                            setSelectedFolder(key)
-                          }
-                        }}
-                        tags={tags} notebooks={notebooks} updateTag={setTagToUpdate}/>
-              <ActionButton text='Add Tag' iconProps={{iconName: 'Tag'}} className='NewTagButton' name='Add Tag' onClick={() => setTagToUpdate({key: -1, name: '', notes:0}) }/>
-            </Stack>
-            <NoteList style={listViewWidth} tabIndex={2} filterId={selectedFolder} searchTerm={searchTerm} selectedId={activeNote}
-                      api={serverAPI}
-                      selectedNotes={selectedNotes}
-                      onSelectedIdChanged={(key, selectedKeys) => {
-                        setActiveNote(key);
-                        setSelectedNotes(selectedKeys)
-                      }} keyState={keyState}/>
-            <div className='ResizeHandle' onMouseDown={e => setListViewOffsetStart({startValue: listViewWidth.width, startPosition: e.pageX})}/>
-            {!activeNote ?
-                <div className='EmptyDetails'>
-                  <div>There are no notes in this {selectedFolder?.split('s')[0]}.</div>
-                </div>
-                :selectedNotes.size > 1 ?
-                    <MultiNoteScreen selectedNotes={selectedNotes} availableNotebooks={notebooks} filterId={selectedFolder} activeNote={activeNote}/>
-                    : <DetailCard noteId={activeNote} availableTags={tags} availableNotebooks={notebooks} updateTag={setTagToUpdate} api={serverAPI} focusTag={t => setSelectedFolder(`tags/${t.key}?`)}
-                                  auth={auth}/>}
-          </Stack>
+    <ThemeProvider
+      applyTo="body"
+      theme={theme?.uiTheme}
+      data-theme={theme?.darkMode ? "dark" : "light"}
+      className="MainWindow"
+      onMouseUp={() => stopListViewResize()}
+      onMouseMove={(e) => updateListViewWidth(e.pageX)}
+      style={listViewOffsetStart ? { cursor: "col-resize" } : {}}
+    >
+      <Stack
+        tokens={stackTokens}
+        styles={stackStyles}
+        onKeyDown={(e) => setKeyState({ ...e, update: Date.now() })}
+        onKeyUp={(e) => setKeyState({ ...e, update: Date.now() })}
+        onClick={(e) => setKeyState({ ...e, update: Date.now() })}
+        className="MainWindow"
+      >
+        <Stack horizontal verticalAlign="baseline">
+          <IconButton
+            className="Command"
+            iconProps={{ iconName: "GlobalNavButton" }}
+            onClick={() => setSideViewCollapsed(!sideViewCollapsed)}
+          />
+          <h1 className="App-header">Paperless</h1>
+          <SearchBox
+            tabIndex={0}
+            className="SearchBox"
+            placeholder="Search Paperless"
+            onSearch={doSearch}
+            onClear={() => doSearch("")}
+          />
+          <CommandBar
+            loggedIn={loggedInUser ?? { imageInitials: "?", text: "Unknown" }}
+            auth={auth}
+            isDark={theme?.darkMode ?? false}
+            onDarkChanged={() => toggleDarkMode()}
+            onLoadingText={setLoadingText}
+          />
         </Stack>
-        <UpdateTagDialog tag={tagToUpdate} availableTags={tags} onClose={onUpdateTagClose}/>
-        <div className='LoadingModalView' hidden={!loadingText}>
-          <Spinner size={SpinnerSize.large} label={loadingText}/>
-        </div>
-      </ThemeProvider>
+        <Stack horizontal className="MainView">
+          <Stack className={css("SideView", sideViewCollapsed ? "collapsed" : undefined)}>
+            <DefaultButton
+              className="NewNoteButton"
+              name="New Note"
+              text="New Note"
+              iconProps={{ iconName: "BulkUpload" }}
+              onClick={clickUpload}
+            />
+            <input ref={fileUploadRef} style={{ display: "none" }} type="file" onChange={uploadFile} />
+            <TagList
+              selectedId={selectedFolder}
+              onSelectedIdChanged={(key) => {
+                if (selectedFolder != key) {
+                  setActiveNote(undefined);
+                  setSelectedFolder(key);
+                }
+              }}
+              tags={tags}
+              notebooks={notebooks}
+              updateTag={setTagToUpdate}
+            />
+            <ActionButton
+              text="Add Tag"
+              iconProps={{ iconName: "Tag" }}
+              className="NewTagButton"
+              name="Add Tag"
+              onClick={() => setTagToUpdate({ key: -1, name: "", notes: 0 })}
+            />
+          </Stack>
+          <NoteList
+            style={listViewWidth}
+            tabIndex={2}
+            filterId={selectedFolder}
+            searchTerm={searchTerm}
+            selectedId={activeNote}
+            api={serverAPI}
+            selectedNotes={selectedNotes}
+            onSelectedIdChanged={(key, selectedKeys) => {
+              setActiveNote(key);
+              setSelectedNotes(selectedKeys);
+            }}
+            keyState={keyState}
+          />
+          <div
+            className="ResizeHandle"
+            onMouseDown={(e) => setListViewOffsetStart({ startValue: listViewWidth.width, startPosition: e.pageX })}
+          />
+          {!activeNote ? (
+            <div className="EmptyDetails">
+              <div>There are no notes in this {selectedFolder?.split("s")[0]}.</div>
+            </div>
+          ) : selectedNotes.size > 1 ? (
+            <MultiNoteScreen
+              selectedNotes={selectedNotes}
+              availableNotebooks={notebooks}
+              filterId={selectedFolder}
+              activeNote={activeNote}
+            />
+          ) : (
+            <DetailCard
+              noteId={activeNote}
+              availableTags={tags}
+              availableNotebooks={notebooks}
+              updateTag={setTagToUpdate}
+              api={serverAPI}
+              focusTag={(t) => setSelectedFolder(`tags/${t.key}?`)}
+              auth={auth}
+            />
+          )}
+        </Stack>
+      </Stack>
+      <UpdateTagDialog tag={tagToUpdate} availableTags={tags} onClose={onUpdateTagClose} />
+      <div className="LoadingModalView" hidden={!loadingText}>
+        <Spinner size={SpinnerSize.large} label={loadingText} />
+      </div>
+    </ThemeProvider>
   );
 };

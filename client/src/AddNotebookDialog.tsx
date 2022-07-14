@@ -1,83 +1,99 @@
-import React, {createRef, useEffect, useRef, useState} from "react";
+import React, { createRef, useEffect, useState } from "react";
 import {
   ContextualMenu,
   Dialog,
   DialogType,
   Stack,
-  ITag, TextField, Label, DialogFooter, PrimaryButton, DefaultButton, ITextField
+  TextField,
+  DialogFooter,
+  PrimaryButton,
+  DefaultButton,
+  ITextField,
 } from "@fluentui/react";
-import {useBoolean} from '@fluentui/react-hooks';
-import {ITagWithChildren} from "./TagList";
+import { useBoolean } from "@fluentui/react-hooks";
+import { ITagWithChildren } from "./TagList";
 import eventBus from "./EventBus";
 
-
 const dragOptions = {
-  moveMenuItemText: 'Move',
-  closeMenuItemText: 'Close',
+  moveMenuItemText: "Move",
+  closeMenuItemText: "Close",
   menu: ContextualMenu,
 };
-export const AddNotebookDialog: React.FunctionComponent<
-    {
-      show: boolean
-      availableNotebooks: ITagWithChildren[] | undefined,
-      onClose: () => any }> =
-    (props) => {
-      const [hideDialog, {toggle: toggleHideDialog}] = useBoolean(true);
-      const [notebookName, setNotebookName] = useState<string>()
-      const [tagNameErrorMessage, setTagNameErrorMessage] = useState<string|undefined>()
+export const AddNotebookDialog: React.FunctionComponent<{
+  show: boolean;
+  availableNotebooks: ITagWithChildren[] | undefined;
+  onClose: () => unknown;
+}> = (props) => {
+  const [hideDialog, { toggle: toggleHideDialog }] = useBoolean(true);
+  const [notebookName, setNotebookName] = useState<string>();
+  const [tagNameErrorMessage, setTagNameErrorMessage] = useState<string | undefined>();
 
-      const textField = createRef<ITextField>()
+  const textField = createRef<ITextField>();
 
-
-      useEffect(() => {
-        if (props.show) {
-          toggleHideDialog()
-          setNotebookName(undefined)
-          setTagNameErrorMessage(undefined)
-        }
-      }, [props.show])
-
-
-      const cancelChange = () => {
-        toggleHideDialog()
-        props.onClose()
-      }
-      let nameChanged = (e : any, newValue?: string) => {
-        if (props.availableNotebooks?.find(t => newValue == t.name)) {
-          setTagNameErrorMessage("Name already exists")
-        } else {
-          setTagNameErrorMessage(undefined)
-        }
-        setNotebookName(newValue)
-      };
-
-      let doAdd = () => {
-        if (tagNameErrorMessage) {
-          textField.current?.focus();
-          return;
-        }
-        if (notebookName) {
-          fetch(`/api/notebooks/${notebookName}`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'}
-          }).then((r) => {
-            console.log(r)
-            eventBus.dispatch('note-collection-change', { notebooks: notebookName })
-            toggleHideDialog()
-            props.onClose()
-          })
-        }
-      }
-
-      return (
-          <Dialog className='TagDialog' hidden={hideDialog} onDismiss={cancelChange} modalProps={{dragOptions: dragOptions}} dialogContentProps={{type: DialogType.normal, title: 'Add Notebook'}}>
-            <Stack onKeyUp={(e) => { if (e.key === 'Enter') doAdd() }}>
-              <TextField componentRef={textField} label="Notebook Name:" value={notebookName} onChange={nameChanged} errorMessage={tagNameErrorMessage}/>
-            </Stack>
-            <DialogFooter>
-              <PrimaryButton text='Add' onClick={doAdd}/>
-              <DefaultButton text='Cancel' onClick={cancelChange}/>
-            </DialogFooter>
-          </Dialog>
-      )
+  useEffect(() => {
+    if (props.show) {
+      toggleHideDialog();
+      setNotebookName(undefined);
+      setTagNameErrorMessage(undefined);
     }
+  }, [props.show]);
+
+  const cancelChange = () => {
+    toggleHideDialog();
+    props.onClose();
+  };
+  const nameChanged = (e: unknown, newValue?: string) => {
+    if (props.availableNotebooks?.find((t) => newValue == t.name)) {
+      setTagNameErrorMessage("Name already exists");
+    } else {
+      setTagNameErrorMessage(undefined);
+    }
+    setNotebookName(newValue);
+  };
+
+  const doAdd = () => {
+    if (tagNameErrorMessage) {
+      textField.current?.focus();
+      return;
+    }
+    if (notebookName) {
+      fetch(`/api/notebooks/${notebookName}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }).then((r) => {
+        console.log(r);
+        eventBus.dispatch("note-collection-change", { notebooks: notebookName });
+        toggleHideDialog();
+        props.onClose();
+      });
+    }
+  };
+
+  return (
+    <Dialog
+      className="TagDialog"
+      hidden={hideDialog}
+      onDismiss={cancelChange}
+      modalProps={{ dragOptions: dragOptions }}
+      dialogContentProps={{ type: DialogType.normal, title: "Add Notebook" }}
+    >
+      <Stack
+        onKeyUp={(e) => {
+          if (e.key === "Enter") doAdd();
+        }}
+      >
+        <TextField
+          componentRef={textField}
+          label="Notebook Name:"
+          value={notebookName}
+          onChange={nameChanged}
+          errorMessage={tagNameErrorMessage}
+        />
+      </Stack>
+      <DialogFooter>
+        <PrimaryButton text="Add" onClick={doAdd} />
+        <DefaultButton text="Cancel" onClick={cancelChange} />
+      </DialogFooter>
+    </Dialog>
+  );
+};

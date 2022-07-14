@@ -1,11 +1,11 @@
-const { createProxyMiddleware } = require('http-proxy-middleware');
+import { createProxyMiddleware } from "http-proxy-middleware";
 
-module.exports = function(app) {
+export default function (app) {
   app.use(
-    '/api',
+    "/api",
     createProxyMiddleware({
-      target: 'http://localhost:3001',
+      target: "http://localhost:3001",
       changeOrigin: false,
     })
   );
-};
+}

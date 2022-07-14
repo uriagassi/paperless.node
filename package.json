@@ -31,6 +31,7 @@
     "lodash": "^4.17.21",
     "md5": "^2.3.0",
     "mime-types": "^2.1.35",
+    "prettier": "^2.7.1",
     "semantic-ui-react": "^2.1.2",
     "string-sanitizer": "^2.0.2",
     "ts-node": "^10.8.1",
@@ -53,5 +54,10 @@
     "setup_wizard": "yarn ts-node --files --transpile-only scripts/setup_wizard.ts",
     "postinstall": "semantic-ui-css-patch",
     "cleanup": "yarn ts-node --files --transpile-only scripts/cleanup.ts"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "latest",
+    "@typescript-eslint/parser": "latest",
+    "eslint": "^8.19.0"
   }
 }
