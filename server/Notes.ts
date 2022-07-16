@@ -2,7 +2,11 @@ import { JSDOM } from "jsdom";
 
 import { prepare_many } from "./sql_helper.js";
 import { Database, RunResult, Statement } from "better-sqlite3";
-import { Attachments, ExistingAttachment, NamedAttachment } from "./Attachment.js";
+import {
+  Attachments,
+  ExistingAttachment,
+  NamedAttachment,
+} from "./Attachment.js";
 import { Tags } from "./Tags.js";
 
 export class Notes {

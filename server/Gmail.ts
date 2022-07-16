@@ -9,6 +9,7 @@ import { Notes, Note } from "./Notes.js";
 import { NamedAttachment, Attachments, Attachment } from "./Attachment.js";
 import config from "config";
 import { OAuth2Client } from "google-auth-library";
+import { GaxiosPromise } from "googleapis-common";
 
 export class Gmail {
   // If modifying these scopes, delete token.json.
@@ -37,160 +38,129 @@ export class Gmail {
       this.authenticate(req.query.access_token as string, res);
     });
 
-    app.get("/api/mail/pending", (_req, res) => {
-      this.authorize(res, (gmail, auth) => {
-        gmail.users.getProfile({ userId: "me" }, (err, r) => {
-          if (err) {
-            console.log(err);
-            return res
-              .status(500)
-              .json({ authenticate: this.getNewToken(auth) });
-          }
+    app.get("/api/mail/pending", async (_req, res) => {
+      try {
+        const gmail = await this.authorize(res);
 
-          const emailAddress = r?.data.emailAddress;
-          gmail.users.labels.list({ userId: "me" }, (_err, r) => {
-            const mainLabel = r?.data.labels?.find(
-              (l) => l.name == config.get("mail.pendingLabel")
-            );
-            if (mainLabel) {
-              gmail.users.threads.list(
-                {
-                  userId: "me",
-                  labelIds: [mainLabel.id ?? ""],
-                  includeSpamTrash: false,
-                },
-                (err, r) => {
-                  if (err) {
-                    return res.status(500).json(r);
-                  }
-                  res.json({
-                    pendingThreads: r?.data.threads?.length || 0,
-                    emailAddress: emailAddress,
-                  });
-                }
-              );
-            } else {
-              res.json({
-                pendingThreads: 0,
-                emailAddress: emailAddress,
-              });
-            }
+        const {
+          data: { emailAddress },
+        } = await gmail.users.getProfile({ userId: "me" });
+        const { mainLabel } = await this.getLabelData(gmail);
+
+        if (mainLabel) {
+          const {
+            data: { threads },
+          } = await gmail.users.threads.list({
+            userId: "me",
+            labelIds: [mainLabel],
+            includeSpamTrash: false,
           });
-        });
-      });
+
+          res.json({
+            pendingThreads: threads?.length || 0,
+            emailAddress: emailAddress,
+          });
+        } else {
+          res.json({
+            pendingThreads: 0,
+            emailAddress: emailAddress,
+          });
+        }
+      } catch (err) {
+        console.log(err);
+        return res.status(500).json(err);
+      }
     });
 
-    app.post("/api/mail/import", (req, res) => {
-      this.authorize(res, (gmail) => {
-        gmail.users.labels.list({ userId: "me" }, (_err, labelRecords) => {
-          if (labelRecords?.data.labels) {
-            const allLabels = labelRecords.data.labels;
-            const mainLabel = allLabels.find(
-              (l) => l.name == config.get("mail.pendingLabel")
-            );
-            const doneLabel = allLabels.find(
-              (l) => l.name == config.get("mail.doneLabel")
-            );
-            if (mainLabel?.id) {
-              const mainLabelId = mainLabel.id;
-              gmail.users.threads.list(
-                {
-                  userId: "me",
-                  labelIds: [mainLabelId],
-                  includeSpamTrash: false,
-                },
-                (err, r) => {
-                  if (err) {
-                    return res.status(500).json(r);
-                  }
-                  const numOfNotes = 10;
-                  const partialThreads =
-                    r?.data.threads?.slice(0, numOfNotes) ?? [];
-                  const note = this.importMessages(
-                    gmail,
-                    req.user_name ?? "",
-                    partialThreads,
-                    mainLabelId,
-                    doneLabel?.id,
-                    allLabels
-                  );
-                  note.then((r1) => {
-                    console.log(r1);
-                    res.json({
-                      pendingThreads:
-                        (r?.data.threads?.length ?? 0) - partialThreads.length,
-                    });
-                  });
-                }
+    app.post("/api/mail/import", async (req, res) => {
+      try {
+        const gmail = await this.authorize(res);
+        const { mainLabel, doneLabel, labels } = await this.getLabelData(gmail);
+        if (mainLabel && labels) {
+          const {
+            data: { threads },
+          } = await gmail.users.threads.list({
+            userId: "me",
+            labelIds: [mainLabel],
+            includeSpamTrash: false,
+          });
+
+          const numOfNotes = 10;
+          const messages =
+            threads?.slice(0, numOfNotes).map((thread) => {
+              if (thread.id)
+                return gmail.users.threads.get({ userId: "me", id: thread.id });
+            }) || [];
+          for (const message of messages) {
+            if (message) {
+              await this.importMessage(
+                gmail,
+                req.user_name ?? "",
+                message,
+                mainLabel,
+                doneLabel,
+                labels
               );
             }
           }
-        });
-      });
-    });
-  }
-
-  importMessages(
-    gmail: gmail_v1.Gmail,
-    user_name: string,
-    threads: { id?: string | null }[],
-    pendingLabel: string,
-    doneLabel: string | undefined | null,
-    allLabels: gmail_v1.Schema$Label[]
-  ) {
-    return new Promise((resolve) => {
-      if (threads[0]?.id) {
-        this.importMessage(
-          gmail,
-          user_name,
-          threads[0].id,
-          pendingLabel,
-          doneLabel,
-          allLabels
-        )
-          .then(() =>
-            this.importMessages(
-              gmail,
-              user_name,
-              threads.slice(1),
-              pendingLabel,
-              doneLabel,
-              allLabels
-            )
-          )
-          .then(() => resolve("OK"));
-      } else {
-        resolve("OK");
+          res.json({
+            pendingThreads: (threads?.length ?? 0) - messages.length,
+          });
+        }
+      } catch (err) {
+        console.log(err);
+        return res.status(500).json(err);
       }
     });
   }
 
-  authorize(
-    res: Response,
-    callback: (arg0: gmail_v1.Gmail, arg1: OAuth2Client) => unknown
-  ) {
+  async getLabelData(gmail: gmail_v1.Gmail) {
+    const {
+      data: { labels: raw_labels },
+    } = await gmail.users.labels.list({ userId: "me" });
+    const labels: { [id: string]: string } = {};
+    if (raw_labels) {
+      const pendingLabelName = config.get("mail.pendingLabel");
+      const doneLabelName = config.get("mail.doneLabel");
+      let mainLabel: string | null = null;
+      let doneLabel: string | null = null;
+      for (const { id, name, type } of raw_labels) {
+        if (name && id) {
+          if (name == pendingLabelName) {
+            mainLabel = id;
+          } else if (name == doneLabelName) {
+            doneLabel = id;
+          } else if (type === "user") {
+            labels[id] = name;
+          }
+        }
+      }
+      return { mainLabel, doneLabel, labels };
+    }
+    return { mainLabel: null, doneLabel: null, labels };
+  }
+
+  async authorize(res: Response) {
     if (config.has("mail.supported") && !config.get("mail.supported")) {
       res.status(402).json({ notSupported: true });
-      return;
+      return Promise.reject(null);
     }
     const { client_secret, client_id } = this.credentials.web;
-    const oAuth2Client = new google.auth.OAuth2(
+    const auth = new google.auth.OAuth2(
       client_id,
       client_secret,
       config.get("mail.redirect_uri")
     );
 
-    // Check if we have previously stored a token.
-    fs.readFile(this.TOKEN_PATH, (err, token) => {
-      if (err) {
-        console.log(err);
-        res.status(500).json({ authenticate: this.getNewToken(oAuth2Client) });
-        return;
-      }
-      oAuth2Client.setCredentials(JSON.parse(token.toString()));
-      const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
-      callback(gmail, oAuth2Client);
-    });
+    try {
+      // Check if we have previously stored a token.
+      const token = fs.readFileSync(this.TOKEN_PATH);
+      auth.setCredentials(JSON.parse(token.toString()));
+      return google.gmail({ version: "v1", auth });
+    } catch (err) {
+      console.log(err);
+      return Promise.reject({ authenticate: this.getNewToken(auth) });
+    }
   }
 
   /**
@@ -198,8 +168,8 @@ export class Gmail {
    * execute the given callback with the authorized OAuth2 client.
    * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
    */
-  getNewToken(oAuth2Client: OAuth2Client) {
-    return oAuth2Client.generateAuthUrl({
+  getNewToken(auth: OAuth2Client) {
+    return auth.generateAuthUrl({
       access_type: "offline",
       scope: this.SCOPES,
     });
@@ -226,92 +196,70 @@ export class Gmail {
 
   attachmentsDir = config.get("paperless.baseDir") + "/attachments/";
 
-  importMessage(
+  async importMessage(
     gmail: gmail_v1.Gmail,
     username: string,
-    threadId: string,
+    thread: GaxiosPromise<gmail_v1.Schema$Thread>,
     pendingLabel: string,
     doneLabel: string | null | undefined,
-    labels: gmail_v1.Schema$Label[]
+    labels: { [id: string]: string }
   ) {
-    return new Promise((resolve) => {
-      gmail.users.threads.get(
-        { userId: "me", id: threadId },
-        (err, threadData) => {
-          console.log(err);
-          const message =
-            threadData?.data?.messages?.[threadData.data?.messages?.length - 1];
-          if (
-            message == null ||
-            (doneLabel && message.labelIds?.includes(doneLabel))
-          ) {
-            gmail.users.threads.modify({
-              requestBody: {
-                removeLabelIds: [pendingLabel],
-              },
-              userId: "me",
-              id: threadId,
-            });
-            resolve("not imported");
-            return;
-          }
-          this.messageToNote(gmail, username, message, labels).then(
-            (note: ExtendedNote) => {
-              const doneLabels: string[] = [];
-              if (doneLabel) doneLabels.push(doneLabel);
-              this.notes
-                .insertNote(
-                  {
-                    createTime: note.createTime,
-                    title: note.title ?? "(no subject)",
-                    noteData: note.noteData,
-                    updateBy: username,
-                  },
-                  note.attachments,
-                  note.tags
-                )
-                .then(() => {
-                  gmail.users.threads.modify({
-                    requestBody: {
-                      addLabelIds: doneLabels,
-                      removeLabelIds: [pendingLabel],
-                    },
-                    userId: "me",
-                    id: threadId,
-                  });
-
-                  resolve("OK");
-                });
-            }
-          );
-        }
-      );
+    const {
+      data: { messages },
+    } = await thread;
+    const message = messages?.[messages?.length - 1];
+    if (message == null) {
+      return "not imported";
+    }
+    if (doneLabel && message.labelIds?.includes(doneLabel)) {
+      await gmail.users.threads.modify({
+        requestBody: {
+          removeLabelIds: [pendingLabel],
+        },
+        userId: "me",
+        id: message.threadId ?? "",
+      });
+      return "not imported";
+    }
+    const note = await this.messageToNote(gmail, username, message, labels);
+    const doneLabels = doneLabel ? [doneLabel] : [];
+    await this.notes.insertNote(
+      {
+        createTime: note.createTime,
+        title: note.title ?? "(no subject)",
+        noteData: note.noteData,
+        updateBy: username,
+      },
+      note.attachments,
+      note.tags
+    );
+    await gmail.users.threads.modify({
+      requestBody: {
+        addLabelIds: doneLabels,
+        removeLabelIds: [pendingLabel],
+      },
+      userId: "me",
+      id: message.threadId ?? "",
     });
+
+    return "OK";
   }
 
-  messageToNote(
+  async messageToNote(
     gmail: gmail_v1.Gmail,
     username: string,
     message: gmail_v1.Schema$Message,
-    labels: gmail_v1.Schema$Label[]
+    labels: { [id: string]: string }
   ): Promise<ExtendedNote> {
     const note = {
       attachments: [],
       title: "(no subject)",
-      tags: [],
+      tags: message.labelIds?.map((l) => labels[l]).filter((n) => !!n) || [],
       updateBy: username,
       createTime: "",
       noteData: "",
     } as ExtendedNote;
-    message.labelIds?.forEach((label) => {
-      const l = labels.find((x) => x.id == label);
-      if (
-        l?.name &&
-        l.type === "user" &&
-        l.name != config.get("mail.pendingLabel")
-      )
-        note.tags.push(l.name);
-    });
+
     if (config.get("mail.importedTag")) {
       note.tags.push(config.get("mail.importedTag"));
     }
@@ -320,9 +268,15 @@ export class Gmail {
     message.payload?.headers?.forEach((mParts) => {
       switch (mParts.name) {
         case "Date":
-          note.createTime = new Date(mParts.value ?? 0)
-            .toISOString()
-            .replace(/T.*/, "");
+          try {
+            note.createTime = new Date(mParts.value ?? 0)
+              .toISOString()
+              .replace(/T.*/, "");
+          } catch (err) {
+            console.log(
+              `could not parse date ${mParts.value} - falling back on received`
+            );
+          }
           break;
         case "From":
           note.noteData = `<div class='paperless-email-import-from'>From: ${escape(
@@ -330,83 +284,87 @@ export class Gmail {
           )}</div>`;
           break;
         case "Subject":
+        case "subject":
           if (mParts.value) {
             note.title = mParts.value;
+          }
+          break;
+        case "Received":
+          if (!note.createTime && mParts.value) {
+            const dateString = mParts.value.split(";")[1].trim();
+            note.createTime = new Date(dateString)
+              .toISOString()
+              .replace(/T.*/, "");
           }
       }
     });
     if (message.payload?.parts) {
-      return message.payload.parts.reduce((last, p) => {
-        return last.then(() => this.processPart(gmail, message, note, p));
-      }, Promise.resolve(note));
+      for (const p of message.payload.parts) {
+        await this.processPart(gmail, message, note, p);
+      }
     } else if (message.payload) {
-      return this.processPart(gmail, message, note, message.payload);
-    } else {
-      return Promise.resolve(note);
+      await this.processPart(gmail, message, note, message.payload);
     }
+    return note;
   }
 
-  processPart(
+  async processPart(
     gmail: gmail_v1.Gmail,
     message: gmail_v1.Schema$Message,
     note: ExtendedNote,
     part: gmail_v1.Schema$MessagePart
-  ): Promise<ExtendedNote> {
-    return new Promise((resolve) => {
-      if (part.filename && part.body?.attachmentId && message.id) {
-        const attId = part.body.attachmentId;
-        return gmail.users.messages.attachments.get(
-          { userId: "me", messageId: message.id, id: attId },
-          (_err, attachPart) => {
-            if (attachPart && attachPart.data.data) {
-              const data = this.fromBase64ForUrlString(attachPart.data.data);
-              const attachment = {
-                fileName: part.filename,
-                mime: part.mimeType,
-                hash: md5(data),
-                size: attachPart.data.size ?? 0,
-              } as Attachment;
-              console.log(attachment);
-              if (attachment.mime === "application/octet-stream")
-                attachment.mime =
-                  mime.lookup(attachment.fileName) ||
-                  "application/octet-stream";
-              const named = this.att.setUniqueFilename(attachment);
-              console.log(`writing file ${named.uniqueFilename}`);
-              fs.writeFileSync(
-                path.join(this.attachmentsDir, named.uniqueFilename),
-                Buffer.from(data)
-              );
-              note.attachments.push(named);
-              note.noteData += this.att.getHtmlForAttachment(named);
-            }
-            resolve(note);
-          }
+  ) {
+    if (part.filename && part.body?.attachmentId && message.id) {
+      const {
+        data: { data, size },
+      } = await gmail.users.messages.attachments.get({
+        userId: "me",
+        messageId: message.id,
+        id: part.body.attachmentId,
+      });
+
+      if (data) {
+        const binaryData = this.fromBase64ForUrlString(data);
+        const attachment = {
+          fileName: part.filename,
+          mime: part.mimeType,
+          hash: md5(binaryData),
+          size: size ?? 0,
+        } as Attachment;
+        if (attachment.mime === "application/octet-stream")
+          attachment.mime =
+            mime.lookup(attachment.fileName) || "application/octet-stream";
+        const named = this.att.setUniqueFilename(attachment);
+        console.log(`writing file ${named.uniqueFilename}`);
+        fs.writeFileSync(
+          path.join(this.attachmentsDir, named.uniqueFilename),
+          Buffer.from(binaryData)
         );
-      } else {
-        let data: Buffer | null = null;
-        if (part.mimeType === "text/html" && part.body?.data) {
-          data = this.fromBase64ForUrlString(part.body.data);
-        } else if (part.parts) {
-          let subpart: gmail_v1.Schema$MessagePart | undefined;
-          if (
-            (subpart = part.parts.find((i) => i.mimeType === "text/html"))?.body
-              ?.data
-          ) {
-            data = this.fromBase64ForUrlString(subpart.body.data);
-          } else if (
-            (subpart = part.parts.find((i) => i.mimeType === "text/plain"))
-              ?.body?.data
-          ) {
-            data = this.fromBase64ForUrlString(subpart.body.data);
-          }
-        }
-        if (data) {
-          note.noteData += `<div class='paperless-email-text'>${data.toString()}</div>`;
-        }
-        resolve(note);
+        note.attachments.push(named);
+        note.noteData += this.att.getHtmlForAttachment(named);
       }
-    });
+    } else {
+      let data: Buffer | null = null;
+      if (part.mimeType === "text/html" && part.body?.data) {
+        data = this.fromBase64ForUrlString(part.body.data);
+      } else if (part.parts) {
+        let subpart: gmail_v1.Schema$MessagePart | undefined;
+        if (
+          (subpart = part.parts.find((i) => i.mimeType === "text/html"))?.body
+            ?.data
+        ) {
+          data = this.fromBase64ForUrlString(subpart.body.data);
+        } else if (
+          (subpart = part.parts.find((i) => i.mimeType === "text/plain"))?.body
+            ?.data
+        ) {
+          data = this.fromBase64ForUrlString(subpart.body.data);
+        }
+      }
+      if (data) {
+        note.noteData += `<div class='paperless-email-text'>${data.toString()}</div>`;
+      }
+    }
   }
 
   fromBase64ForUrlString(data: string) {

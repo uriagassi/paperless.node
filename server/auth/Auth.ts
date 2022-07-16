@@ -25,7 +25,12 @@ export class Auth {
     if (req.path === "/auth") {
       return res.json(this.authHandler.clientData());
     }
-    const nonSecurePaths = ["/api/body/css", "/api/body/js", "/static", "/manifest.json"];
+    const nonSecurePaths = [
+      "/api/body/css",
+      "/api/body/js",
+      "/static",
+      "/manifest.json",
+    ];
     if (nonSecurePaths.find((p) => req.path.startsWith(p))) return next();
     if (req.path === "/") return next();
 
