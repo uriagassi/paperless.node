@@ -18,6 +18,7 @@ import { AddNotebookDialog } from "./AddNotebookDialog";
 import { useBoolean } from "@fluentui/react-hooks";
 import eventBus from "./EventBus";
 import { Folder } from "./NoteList";
+import { ServerAPI } from "./ServerAPI";
 
 interface TagListProps {
   selectedId: Folder | undefined;
@@ -25,6 +26,7 @@ interface TagListProps {
   tags: ITagWithChildren[] | undefined;
   notebooks: ITagWithChildren[] | undefined;
   updateTag: (tag: ITagWithChildren) => unknown;
+  api: ServerAPI | undefined;
 }
 
 export const TagList: React.FunctionComponent<TagListProps> = (props) => {
@@ -137,10 +139,9 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
     }
   };
 
-  const doDeleteTag = (tag: ITagWithChildren) => {
-    fetch(`/api/tags/${tag.key}`, { method: "DELETE" }).then(() => {
-      eventBus.dispatch("note-collection-change", { tags: [tag.key] });
-    });
+  const doDeleteTag = async (tag: ITagWithChildren) => {
+    await props.api?.deleteTag(+tag.key);
+    eventBus.dispatch("note-collection-change", { tags: [tag.key] });
   };
 
   const onDeleteNotebook = () => {
@@ -164,10 +165,9 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
     }
   };
 
-  const doDeleteNotebook = (notebook: ITagWithChildren) => {
-    fetch(`/api/notebooks/${notebook.key}`, { method: "DELETE" }).then(() => {
-      eventBus.dispatch("note-collection-change", { notebooks: [notebook.key] });
-    });
+  const doDeleteNotebook = async (notebook: ITagWithChildren) => {
+    props.api?.deleteNotebook(notebook.key);
+    eventBus.dispatch("note-collection-change", { notebooks: [notebook.key] });
   };
 
   useEffect(() => {
@@ -241,21 +241,16 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
   };
 
   function onExpand(ev?: React.MouseEvent<HTMLElement, MouseEvent>, item?: INavLink) {
-    if (item) {
-      fetch(`/api/${item.key?.replace("?", "/")}expand`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expanded: `${!item.isExpanded}` }),
-      }).then((r) => console.log(r));
+    if (item?.key) {
+      props.api?.toggleExpand(item.key?.replace("?", "/"), item.isExpanded);
     }
   }
 
-  function emptyTrash() {
+  async function emptyTrash() {
     eventBus.dispatch("wait-screen", "Emptying Trash...");
-    fetch("api/trash", { method: "DELETE" }).then(() => {
-      eventBus.dispatch("note-collection-change", { notebooks: ["D"] });
-      eventBus.dispatch("wait-screen", undefined);
-    });
+    await props.api?.emptyTrash();
+    eventBus.dispatch("note-collection-change", { notebooks: ["D"] });
+    eventBus.dispatch("wait-screen", undefined);
   }
 
   return (
@@ -289,7 +284,16 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
         onDismiss={() => setShowArchiveContext(undefined)}
       />
       <ContextualMenu
-        items={[{ key: "empty-trash", text: "Empty...", onClick: emptyTrash, iconProps: { iconName: "Trash" } }]}
+        items={[
+          {
+            key: "empty-trash",
+            text: "Empty...",
+            onClick: () => {
+              emptyTrash();
+            },
+            iconProps: { iconName: "Trash" },
+          },
+        ]}
         hidden={!showTrashContext}
         target={showTrashContext}
         onDismiss={() => setShowTrashContext(undefined)}
@@ -307,7 +311,12 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
         target={showDeleteNotebookContext?.target}
         onDismiss={() => setShowDeleteNotebookContext(undefined)}
       />
-      <AddNotebookDialog show={addNotebook} availableNotebooks={props.notebooks} onClose={toggleAddNotebook} />
+      <AddNotebookDialog
+        show={addNotebook}
+        availableNotebooks={props.notebooks}
+        onClose={toggleAddNotebook}
+        api={props.api}
+      />
       <Dialog hidden={!dialogData} onDismiss={() => setDialogData(undefined)} dialogContentProps={dialogData?.props}>
         <DialogFooter>
           <PrimaryButton onClick={dialogData?.callback} text="Delete" />

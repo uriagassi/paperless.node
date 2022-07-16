@@ -11,9 +11,14 @@ export class Auth {
 
   login(): string {
     if (!this.access_token && window.location.pathname == "/") {
-      window.location.href = this.oauth_params.login_href;
+      this.forceLogin();
     }
+    console.log(this.access_token);
     return this.access_token ?? "";
+  }
+
+  forceLogin() {
+    window.location.href = this.oauth_params.login_href;
   }
 
   oauth_params: { login_href: string; logout_href: string };

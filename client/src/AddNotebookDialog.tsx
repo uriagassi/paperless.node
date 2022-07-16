@@ -13,6 +13,8 @@ import {
 import { useBoolean } from "@fluentui/react-hooks";
 import { ITagWithChildren } from "./TagList";
 import eventBus from "./EventBus";
+``;
+import { ServerAPI } from "./ServerAPI";
 
 const dragOptions = {
   moveMenuItemText: "Move",
@@ -23,6 +25,7 @@ export const AddNotebookDialog: React.FunctionComponent<{
   show: boolean;
   availableNotebooks: ITagWithChildren[] | undefined;
   onClose: () => unknown;
+  api?: ServerAPI;
 }> = (props) => {
   const [hideDialog, { toggle: toggleHideDialog }] = useBoolean(true);
   const [notebookName, setNotebookName] = useState<string>();
@@ -51,21 +54,16 @@ export const AddNotebookDialog: React.FunctionComponent<{
     setNotebookName(newValue);
   };
 
-  const doAdd = () => {
+  const doAdd = async () => {
     if (tagNameErrorMessage) {
       textField.current?.focus();
       return;
     }
     if (notebookName) {
-      fetch(`/api/notebooks/${notebookName}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      }).then((r) => {
-        console.log(r);
-        eventBus.dispatch("note-collection-change", { notebooks: notebookName });
-        toggleHideDialog();
-        props.onClose();
-      });
+      await props.api?.addNotebook(notebookName);
+      eventBus.dispatch("note-collection-change", { notebooks: notebookName });
+      toggleHideDialog();
+      props.onClose();
     }
   };
 

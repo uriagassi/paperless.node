@@ -21,7 +21,6 @@ import {
 import { ITagWithChildren } from "./TagList";
 import { TagContextMenu } from "./TagContextMenu";
 import { ServerAPI } from "./ServerAPI";
-import { IAuth } from "./auth/IAuth";
 
 export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
   const datePickerRef = React.createRef<IDatePicker>();
@@ -64,10 +63,11 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
     }
   };
 
-  const loadNote = () => {
+  const loadNote = async () => {
     if (props.noteId) {
       const noteId = props.noteId;
-      props.api.loadNote(noteId).then((data) => {
+      const data = await props.api?.loadNote(noteId);
+      if (data) {
         const note: Note = {
           id: noteId,
           attachments: data.attachments,
@@ -86,58 +86,46 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
           note.tags.push({ name: tagNames[i], key: +tagIds[i] });
         }
         setNote(note);
-      });
+      }
     }
   };
 
-  const addNewTags = (newTags: ITag[], callback: () => unknown, i = 0) => {
+  const addNewTags = async (newTags: ITag[], callback: () => unknown, i = 0) => {
     if (newTags.length > i) {
-      const requestOptions = {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newTags[i].name }),
-      };
-      fetch("/api/tags/new", requestOptions)
-        .then((r) => r.json())
-        .then((r) => {
-          newTags[i].key = r.key;
-          addNewTags(newTags, callback, i + 1);
-        });
+      const key = await props.api?.newTag(newTags[i].name);
+      if (key) {
+        newTags[i].key = key;
+        addNewTags(newTags, callback, i + 1);
+      }
     } else {
       callback();
     }
   };
 
-  const onTagsChanged = (newTags: ITag[] | undefined) => {
+  const onTagsChanged = async (newTags: ITag[] | undefined) => {
     const newlyCreatedTags = newTags?.filter((t) => t.key == "-1") ?? [];
     if (newlyCreatedTags.length > 0) {
       addNewTags(newlyCreatedTags, () => onTagsChanged(newTags));
       eventBus.dispatch("note-collection-change", {});
     } else if (note && note.tags != newTags) {
-      let removedTags: ITag[] = [];
-      let addedTags: ITag[] = [];
-      if (!newTags) {
-        removedTags = note.tags;
-      } else {
-        removedTags = note.tags.filter((t) => newTags.filter((nt) => nt.key == t.key).length == 0);
-        addedTags = newTags.filter((nt) => note?.tags.filter((t) => nt.key == t.key).length == 0);
+      if (props.noteId) {
+        const noteId = props.noteId;
+        let removedTags: ITag[] = [];
+        let addedTags: ITag[] = [];
+        if (!newTags) {
+          removedTags = note.tags;
+        } else {
+          removedTags = note.tags.filter((t) => newTags.filter((nt) => nt.key == t.key).length == 0);
+          addedTags = newTags.filter((nt) => note?.tags.filter((t) => nt.key == t.key).length == 0);
+        }
+        addedTags.forEach(async (tag) => await props.api?.addTagToNote(noteId, +tag.key));
+        removedTags.forEach(async (tag) => await props.api?.removeTagFromNote(noteId, +tag.key));
+        eventBus.dispatch("note-collection-change", {
+          tags: removedTags.map((t) => t.key).concat(addedTags.map((t) => t.key)),
+        });
+        setNote({ ...note, tags: newTags ?? [] });
       }
-      addedTags.forEach(addTag);
-      removedTags.forEach(removeTag);
-      eventBus.dispatch("note-collection-change", {
-        tags: removedTags.map((t) => t.key).concat(addedTags.map((t) => t.key)),
-      });
-      setNote({ ...note, tags: newTags ?? [] });
     }
-  };
-
-  const addTag = (tag: ITag) => {
-    const requestOptions = {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tagId: tag.key }),
-    };
-    fetch("/api/notes/" + props.noteId + "/addTag", requestOptions).then((d) => console.log(d));
   };
 
   useEffect(() => {
@@ -169,13 +157,14 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
     }
   };
 
-  const purge = () => {
-    fetch(`/api/notes/${props.noteId}`, { method: "DELETE" }).then(() => {
+  const purge = async () => {
+    if (props.noteId) {
+      await props.api?.purgeNote(props.noteId);
       eventBus.dispatch("note-collection-change", {
         notebooks: [note?.notebookId],
         tags: [note?.tags?.map((t) => t.key)],
       });
-    });
+    }
   };
 
   const onDateChanged = (newValue: Date | null | undefined) => {
@@ -188,18 +177,13 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
   };
 
   const updateNote = (note: Note) => {
-    const requestOptions = {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    if (props.noteId) {
+      props.api?.updateNote(props.noteId, {
         notebookId: note?.notebookId || 0,
         title: note?.title || "",
         createTime: format(note?.createTime || 0, "yyyy-MM-dd"),
-      }),
-    };
-    fetch("/api/notes/" + props.noteId, requestOptions)
-      .then((response) => response.json())
-      .then((d) => console.log(d));
+      });
+    }
   };
 
   const listContainsTagList = (tag: ITag, tagList?: ITag[]) => {
@@ -223,13 +207,6 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
           ...newTagList,
         ]
       : [];
-  };
-
-  const removeTag = (deletedTag: ITag) => {
-    const requestOptions = {
-      method: "DELETE",
-    };
-    fetch("/api/notes/" + props.noteId + "/tags/" + deletedTag.key, requestOptions).then((d) => console.log(d));
   };
 
   const pickerSuggestionsProps: IBasePickerSuggestionsProps = {
@@ -276,10 +253,11 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
       });
   };
 
-  function split() {
-    fetch(`/api/notes/${props.noteId}/split`, { method: "POST" }).then(() => {
+  async function split() {
+    if (props.noteId) {
+      await props.api?.split(props.noteId);
       eventBus.dispatch("note-collection-change", { notebooks: [note?.notebookId], tags: [note?.tags] });
-    });
+    }
   }
 
   const detailCommands: ICommandBarItemProps[] = [
@@ -437,10 +415,7 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
         </Stack>
       </Shimmer>
       <Shimmer isDataLoaded={note && props.noteId == note.id} className="BodyFieldShimmer">
-        <iframe
-          className="BodyField"
-          src={props.auth?.authenticate(props.noteId ? "/api/body/" + props.noteId : "text.html")}
-        />
+        <iframe className="BodyField" src={props.api?.noteBodySrc(props.noteId)} />
       </Shimmer>
     </Stack>
   );
@@ -464,6 +439,5 @@ interface DetailCardProps {
   availableNotebooks: ITagWithChildren[] | undefined;
   updateTag: (tag: ITagWithChildren) => unknown;
   focusTag: (tag: ITagWithChildren) => unknown;
-  api: ServerAPI;
-  auth: IAuth | undefined;
+  api?: ServerAPI;
 }

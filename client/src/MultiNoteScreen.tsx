@@ -3,12 +3,14 @@ import { CommandBar, ICommandBarItemProps, Stack } from "@fluentui/react";
 import eventBus from "./EventBus";
 import { ITagWithChildren } from "./TagList";
 import { NoteCollectionChange } from "./NoteList";
+import { ServerAPI } from "./ServerAPI";
 
 export const MultiNoteScreen: React.FunctionComponent<{
   selectedNotes: Set<number>;
   availableNotebooks: ITagWithChildren[] | undefined;
   filterId: string | undefined;
   activeNote?: number;
+  api: ServerAPI | undefined;
 }> = (props) => {
   function currentUpdated() {
     const affectedList: NoteCollectionChange = { notebooks: ["D"] };
@@ -22,38 +24,27 @@ export const MultiNoteScreen: React.FunctionComponent<{
     eventBus.dispatch("note-collection-change", affectedList);
   }
 
-  const doMove = (notebook: string | number | undefined) => {
+  const doMove = async (notebook: string | number | undefined) => {
     if (notebook) {
-      const requestOptions = {
-        method: "POST",
-      };
-      fetch(`api/notes/${Array.from(props.selectedNotes).join(",")}/notebook/${notebook}`, requestOptions).then(() => {
-        const affectedList: NoteCollectionChange = { notebooks: [notebook] };
-        if (props.filterId) {
-          if (props.filterId.split("/")[0] == "notebooks") {
-            affectedList.notebooks?.push(+props.filterId.split("/")[1]);
-          } else {
-            affectedList.tags = [+props.filterId.split("/")[1]];
-          }
+      await props.api?.move(notebook, ...props.selectedNotes);
+      const affectedList: NoteCollectionChange = { notebooks: [notebook] };
+      if (props.filterId) {
+        if (props.filterId.split("/")[0] == "notebooks") {
+          affectedList.notebooks?.push(+props.filterId.split("/")[1]);
+        } else {
+          affectedList.tags = [+props.filterId.split("/")[1]];
         }
-        eventBus.dispatch("note-collection-change", affectedList);
-      });
+      }
+      eventBus.dispatch("note-collection-change", affectedList);
     }
   };
 
-  const doMerge = () => {
-    console.log(props.selectedNotes);
-    const requestOptions = {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        notes: Array.from(props.selectedNotes),
-        toNote: props.activeNote,
-      }),
-    };
-    fetch(`api/notes/${props.activeNote}/merge`, requestOptions).then(() => {
+  const doMerge = async () => {
+    if (props.activeNote) {
+      console.log(props.selectedNotes);
+      await props.api?.mergeInto(props.activeNote, Array.from(props.selectedNotes));
       currentUpdated();
-    });
+    }
   };
 
   return (
@@ -67,7 +58,9 @@ export const MultiNoteScreen: React.FunctionComponent<{
               key: "merge",
               text: "Merge Items",
               iconProps: { iconName: "Merge" },
-              onClick: () => doMerge(),
+              onClick: () => {
+                doMerge();
+              },
             },
             {
               key: "delete",
@@ -86,7 +79,9 @@ export const MultiNoteScreen: React.FunctionComponent<{
                       key: n.key,
                       text: n.name,
                       iconProps: { iconName: "Inbox" },
-                      onClick: () => doMove(n.key),
+                      onClick: () => {
+                        doMove(n.key);
+                      },
                     } as ICommandBarItemProps;
                   }) ?? [],
               },

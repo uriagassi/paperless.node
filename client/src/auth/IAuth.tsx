@@ -3,4 +3,5 @@ export interface IAuth {
   login(): string;
   authenticate(url: string): string;
   logout(): Promise<unknown>;
+  forceLogin(): void;
 }

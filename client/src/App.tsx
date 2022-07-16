@@ -24,7 +24,6 @@ import { CommandBar } from "./CommandBar";
 import { MultiNoteScreen } from "./MultiNoteScreen";
 import { UpdateTagDialog } from "./UpdateTagDialog";
 import "semantic-ui-css/semantic.css";
-import { IAuth } from "./auth/IAuth";
 import { ServerAPI } from "./ServerAPI";
 import { themeDark, themeLight } from "./themes";
 
@@ -42,7 +41,6 @@ const stackStyles: Partial<IStackStyles> = {
   },
 };
 
-const serverAPI = new ServerAPI();
 export const App: React.FunctionComponent = () => {
   const [selectedFolder, setSelectedFolder] = useState<Folder>();
   const [searchTerm, setSearchTerm] = useState<string>();
@@ -53,7 +51,6 @@ export const App: React.FunctionComponent = () => {
   const [keyState, setKeyState] = useState<KeyState>();
   const [tagToUpdate, setTagToUpdate] = useState<ITagWithChildren>();
   const [loggedInUser, setLoggedInUser] = useState<{ imageInitials: string; text: string; secondaryText?: string }>();
-  const [auth, setAuth] = useState<IAuth>();
   const fileUploadRef = createRef<HTMLInputElement>();
   const [theme, setTheme] = useState<{ uiTheme: PartialTheme; darkMode: boolean }>();
   const [loadingText, setLoadingText] = useState<string>();
@@ -61,6 +58,7 @@ export const App: React.FunctionComponent = () => {
   const [sideViewCollapsed, setSideViewCollapsed] = useState<boolean>();
   const [listViewWidth, setListViewWidth] = useState({ width: +(localStorage.getItem("listViewWidth") ?? 350) });
   const [listViewOffsetStart, setListViewOffsetStart] = useState<{ startValue: number; startPosition: number }>();
+  const [serverAPI, setServerAPI] = useState<ServerAPI>();
 
   const setDark = () => {
     // 2
@@ -88,16 +86,23 @@ export const App: React.FunctionComponent = () => {
   }
 
   useEffect(() => {
-    fetch("/auth")
-      .then((r) => r.json())
-      .then((params) => {
-        const Auth = import("./auth/" + (params.handler ?? "EmptyAuth") + ".tsx");
-        Auth.then((m) => setAuth(new m.Auth(params)));
-      });
+    init();
   }, []);
 
+  useEffect(() => {
+    if (serverAPI) {
+      loadNotebooks();
+      eventBus.on("note-collection-change", loadNotebooks);
+      eventBus.on("wait-screen", waitScreen);
+      return () => {
+        eventBus.remove("note-collection-change", loadNotebooks);
+        eventBus.remove("wait-screen", waitScreen);
+      };
+    }
+  }, [serverAPI]);
+
   function loadNotebooks() {
-    serverAPI.loadNotebooks().then((data) => {
+    serverAPI?.loadNotebooks().then((data) => {
       setNotebooks(data.notebooks);
       setTags(data.tags);
     });
@@ -125,24 +130,16 @@ export const App: React.FunctionComponent = () => {
     setLoadingText(e.detail);
   }
 
-  useEffect(() => {
-    if (auth) {
-      serverAPI.setHeader({ key: "x-access-token", value: auth.login() });
-      serverAPI.user().then((u) => {
-        setLoggedInUser({
-          text: u.user_name,
-          imageInitials: Array.from(u.user_name.matchAll(/\b\w/g)).join(" "),
-        });
-      });
-      loadNotebooks();
-      eventBus.on("note-collection-change", loadNotebooks);
-      eventBus.on("wait-screen", waitScreen);
-    }
-    return () => {
-      eventBus.remove("note-collection-change", loadNotebooks);
-      eventBus.remove("wait-screen", waitScreen);
-    };
-  }, [auth]);
+  async function init() {
+    const s = new ServerAPI();
+    await s.authSetup();
+    const user = await s.user();
+    setLoggedInUser({
+      text: user.user_name,
+      imageInitials: Array.from(user.user_name.matchAll(/\b\w/g)).join(" "),
+    });
+    setServerAPI(s);
+  }
 
   function doSearch(newValue: string) {
     setSearchTerm(newValue);
@@ -155,15 +152,12 @@ export const App: React.FunctionComponent = () => {
     setTagToUpdate(undefined);
   };
 
-  function uploadFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function uploadFile(e: React.ChangeEvent<HTMLInputElement>) {
     console.log(e.target.files);
     if (e.target.files) {
       console.log(e.target.files?.[0]);
-      const formData = new FormData();
-      formData.append("newNote", e.target.files[0], e.target.files[0].name);
-      fetch("/api/files/new", { method: "POST", body: formData }).then(() => {
-        eventBus.dispatch("note-collection-change", { notebooks: ["I"] });
-      });
+      await serverAPI?.uploadNewNote(e.target.files[0]);
+      eventBus.dispatch("note-collection-change", { notebooks: ["I"] });
     }
   }
 
@@ -220,10 +214,10 @@ export const App: React.FunctionComponent = () => {
           />
           <CommandBar
             loggedIn={loggedInUser ?? { imageInitials: "?", text: "Unknown" }}
-            auth={auth}
             isDark={theme?.darkMode ?? false}
             onDarkChanged={() => toggleDarkMode()}
             onLoadingText={setLoadingText}
+            api={serverAPI}
           />
         </Stack>
         <Stack horizontal className="MainView">
@@ -247,6 +241,7 @@ export const App: React.FunctionComponent = () => {
               tags={tags}
               notebooks={notebooks}
               updateTag={setTagToUpdate}
+              api={serverAPI}
             />
             <ActionButton
               text="Add Tag"
@@ -284,6 +279,7 @@ export const App: React.FunctionComponent = () => {
               availableNotebooks={notebooks}
               filterId={selectedFolder?.filterId}
               activeNote={activeNote}
+              api={serverAPI}
             />
           ) : (
             <DetailCard
@@ -293,12 +289,11 @@ export const App: React.FunctionComponent = () => {
               updateTag={setTagToUpdate}
               api={serverAPI}
               focusTag={(t) => setSelectedFolder({ filterId: `tags/${t.key}?` })}
-              auth={auth}
             />
           )}
         </Stack>
       </Stack>
-      <UpdateTagDialog tag={tagToUpdate} availableTags={tags} onClose={onUpdateTagClose} />
+      <UpdateTagDialog tag={tagToUpdate} availableTags={tags} onClose={onUpdateTagClose} api={serverAPI} />
       <div className="LoadingModalView" hidden={!loadingText}>
         <Spinner size={SpinnerSize.large} label={loadingText} />
       </div>

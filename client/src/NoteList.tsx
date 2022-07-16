@@ -73,7 +73,7 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
     setNoteList(newNotes);
   };
 
-  const loadNotes = (withSetLoading = true) => {
+  const loadNotes = async (withSetLoading = true) => {
     if (props.selectedFolder?.filterId || props.searchTerm) {
       if (withSetLoading) {
         setLoading(true);
@@ -82,26 +82,25 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
       if (props.searchTerm ?? "" != "") {
         filter = "search?term=" + encodeURIComponent(props.searchTerm ?? "") + "&";
       }
-      props.api.loadNotes(filter, props.limit).then((data) => {
-        const notes: Note[] = [];
-        let selectedFound = false;
-        data.notes.forEach((n: Note) => {
-          let attachments = n.attachments;
-          const count = n.attachments?.match(/,/g)?.length || 0;
-          if (count > 0) {
-            attachments = "" + (count + 1) + " attachments";
-          }
-          selectedFound = selectedFound || props.selectedId == n.id;
-          notes.push({ ...n, attachments: attachments, active: props.selectedId == n.id });
-        });
-        setNoteList(notes);
-        if (withSetLoading) {
-          setLoading(false);
+      const data = await props.api?.loadNotes(filter, props.limit);
+      const notes: Note[] = [];
+      let selectedFound = false;
+      data?.notes.forEach((n) => {
+        let attachments = n.attachments;
+        const count = n.attachments?.match(/,/g)?.length || 0;
+        if (count > 0) {
+          attachments = "" + (count + 1) + " attachments";
         }
-        if (!selectedFound && data.notes.length > 0) {
-          props.onSelectedIdChanged?.(data.notes[0].id, new Set([data.notes[0].id]));
-        }
+        selectedFound = selectedFound || props.selectedId == n.id;
+        notes.push({ ...n, attachments: attachments, active: props.selectedId == n.id });
       });
+      setNoteList(notes);
+      if (withSetLoading) {
+        setLoading(false);
+      }
+      if (!selectedFound && data && data.notes.length > 0) {
+        props.onSelectedIdChanged?.(data.notes[0].id, new Set([data.notes[0].id]));
+      }
     } else {
       console.log("clearing list");
       setNoteList([]);
@@ -130,21 +129,17 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
     }
   };
 
-  const deleteNote = (id: number) => {
-    const requestOptions = {
-      method: "POST",
-    };
-    fetch(`api/notes/${id}/notebook/D`, requestOptions).then(() => {
-      const affectedList = { notebooks: ["D"] } as NoteCollectionChange;
-      if (props.selectedFolder?.filterId) {
-        if (props.selectedFolder?.filterId.split("/")[0] == "notebooks") {
-          affectedList.notebooks?.push(+props.selectedFolder?.filterId.split("/")[1]);
-        } else {
-          affectedList.tags = [+props.selectedFolder?.filterId.split("/")[1]];
-        }
+  const deleteNote = async (id: number) => {
+    await props.api?.delete(id);
+    const affectedList = { notebooks: ["D"] } as NoteCollectionChange;
+    if (props.selectedFolder?.filterId) {
+      if (props.selectedFolder?.filterId.split("/")[0] == "notebooks") {
+        affectedList.notebooks?.push(+props.selectedFolder?.filterId.split("/")[1]);
+      } else {
+        affectedList.tags = [+props.selectedFolder?.filterId.split("/")[1]];
       }
-      eventBus.dispatch("note-collection-change", affectedList);
-    });
+    }
+    eventBus.dispatch("note-collection-change", affectedList);
   };
 
   const onFocusChange = (note: Note) => {
@@ -285,7 +280,7 @@ interface NoteListProps {
   tabIndex: number | undefined;
   selectedNotes: Set<number>;
   keyState?: KeyState;
-  api: ServerAPI;
+  api?: ServerAPI;
 }
 
 export interface NoteCollectionChange {

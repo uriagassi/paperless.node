@@ -11,7 +11,7 @@ import {
   Stack,
 } from "@fluentui/react";
 import eventBus from "./EventBus";
-import { IAuth } from "./auth/IAuth";
+import { ServerAPI } from "./ServerAPI";
 
 const MINUTE_MS = 600000;
 
@@ -59,8 +59,8 @@ interface CommandBarProps {
   };
   isDark: boolean;
   onDarkChanged: () => unknown;
-  auth: IAuth | undefined;
   onLoadingText: (text: string | undefined) => unknown;
+  api: ServerAPI | undefined;
 }
 
 export const CommandBar: React.FunctionComponent<CommandBarProps> = (props) => {
@@ -71,75 +71,73 @@ export const CommandBar: React.FunctionComponent<CommandBarProps> = (props) => {
   const [gmailUnsupported, setGmailUnsupported] = useState(false);
   const [personaCMElement, setPersonaCMElement] = useState<Element>();
   const [gmailCMElement, setGmailCMElement] = useState<Element>();
-  const [failedOnce, setFailedOnce] = useState(false);
 
-  useEffect(() => {
+  async function authGmail() {
     if (window.location.pathname == "/gmail") {
       const queryParams = new URLSearchParams(window.location.search);
-      fetch("/api/mail/auth?access_token=" + (queryParams.get("code") ?? "")).then((res) => {
-        if (res.status == 200) {
+      const authCode = queryParams.get("code");
+      if (authCode) {
+        const authResult = await props.api?.authorizeGmail(authCode);
+        if (!authResult) {
           window.location.pathname = "/";
         } else {
-          console.log(res.body);
+          console.log(authResult);
         }
-      });
+      }
     }
-    refreshPendingCount(true);
-    const interval = setInterval(() => {
-      refreshPendingCount(false);
-    }, MINUTE_MS);
-    return () => clearInterval(interval);
-  }, []);
+  }
 
-  function importFiles() {
-    fetch("/api/files/import").then(() => {
-      eventBus.dispatch("note-collection-change", { notebooks: ["I"] });
-      refreshPendingCount(false);
-    });
+  useEffect(() => {
+    if (props.api) {
+      authGmail();
+      refreshPendingCount(true);
+      const interval = setInterval(() => {
+        refreshPendingCount(false);
+      }, MINUTE_MS);
+      return () => clearInterval(interval);
+    }
+  }, [props.api]);
+
+  async function importFiles() {
+    await props.api?.importFiles();
+    eventBus.dispatch("note-collection-change", { notebooks: ["I"] });
+    refreshPendingCount(false);
   }
 
   function importMail() {
     props.onLoadingText("Importing from Gmail...");
-    fetch("/api/mail/import", { method: "POST", headers: { "Content-Type": "application/json" } })
-      .then((r) => r.json())
-      .then((r) => {
-        if (r.authenticate) {
-          window.location.href = r.authenticate;
-        }
-        if (r.pendingThreads) {
-          setPendingMail(r.pendingThreads);
-        }
-        console.log(r);
-        eventBus.dispatch("note-collection-change", { notebooks: ["I"] });
-        props.onLoadingText(undefined);
-      });
+    doImportMail();
   }
 
-  function refreshPendingCount(force: boolean) {
-    fetch("/api/files/checkStatus")
-      .then((result) => {
-        if (result.status == 403) {
-          if (failedOnce) {
-            window.location.hash = "#";
-          } else setFailedOnce(true);
-        }
-        return result.json();
-      })
-      .then((r) => setPendingImport(r.pending));
-    if (force || pendingMail != "?") {
-      console.log(`pendingMail = ${pendingMail}, ${pendingMail == "?"}`);
-      fetch("/api/mail/pending")
-        .then((r) => r.json())
-        .then((r) => {
-          if (r.authenticate) {
-            setGmailAuthenticateURL(r.authenticate);
-          }
-          if (r.notSupported) {
-            setGmailUnsupported(true);
-          }
+  async function doImportMail() {
+    if (props.api) {
+      const r = await props.api.importMail();
+      if ("authenticate" in r) {
+        window.location.href = r.authenticate;
+      } else {
+        setPendingMail(r.pendingThreads);
+      }
+      console.log(r);
+      eventBus.dispatch("note-collection-change", { notebooks: ["I"] });
+      props.onLoadingText(undefined);
+    }
+  }
+
+  async function refreshPendingCount(force: boolean) {
+    if (props.api) {
+      props.api.checkFilesPending().then((pending) => setPendingImport(pending));
+      if (force || pendingMail != "?") {
+        console.log(`pendingMail = ${pendingMail}, ${pendingMail == "?"}`);
+        const r = await props.api.checkGmailPending();
+        if ("authenticate" in r) {
+          setGmailAuthenticateURL(r.authenticate);
+        } else if ("notSupported" in r) {
+          setGmailUnsupported(true);
+        } else {
           setGmailAddress(r.emailAddress);
           setPendingMail(r.pendingThreads ?? "?");
-        });
+        }
+      }
     }
   }
 
@@ -160,14 +158,9 @@ export const CommandBar: React.FunctionComponent<CommandBarProps> = (props) => {
   }
 
   function logout() {
-    props.auth?.logout().then(() =>
-      fetch("/api/logout").then(() => {
-        window.location.hash = "";
-        window.location.pathname = "";
-        window.location.reload();
-      })
-    );
+    props.api?.logout();
   }
+
   return (
     <Stack horizontal verticalAlign="baseline" className="CommandBar">
       <Persona

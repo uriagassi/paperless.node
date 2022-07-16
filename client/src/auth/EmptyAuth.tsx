@@ -5,6 +5,10 @@ export class Auth {
     return this.access_token ?? "";
   }
 
+  forceLogin(): void {
+    throw "Unsupported Method";
+  }
+
   authenticate(url: string): string {
     return url;
   }

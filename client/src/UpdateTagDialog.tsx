@@ -15,6 +15,7 @@ import { useBoolean } from "@fluentui/react-hooks";
 import { ITagWithChildren } from "./TagList";
 import { Dropdown, DropdownItemProps, DropdownProps } from "semantic-ui-react";
 import eventBus from "./EventBus";
+import { ServerAPI } from "./ServerAPI";
 
 const dragOptions = {
   moveMenuItemText: "Move",
@@ -25,6 +26,7 @@ interface UpdateTagDialogProps {
   tag: ITagWithChildren | undefined;
   availableTags: ITagWithChildren[] | undefined;
   onClose: (s: string | undefined) => unknown;
+  api: ServerAPI | undefined;
 }
 
 export const UpdateTagDialog: React.FunctionComponent<UpdateTagDialogProps> = (props) => {
@@ -85,29 +87,19 @@ export const UpdateTagDialog: React.FunctionComponent<UpdateTagDialogProps> = (p
     if (currentTag) setCurrentTag({ ...currentTag, parent: Number(data.value) });
   };
 
-  const doUpdate = () => {
+  const doUpdate = async () => {
     if (tagNameErrorMessage) {
       textField.current?.focus();
       return;
     }
     if (currentTag) {
-      fetch(`/api/tags/${currentTag.key}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: currentTag.name,
-          parent: currentTag.parent ?? 0,
-        }),
-      })
-        .then((r) => r.json())
-        .then((r) => {
-          console.log(r);
-          eventBus.dispatch("note-collection-change", {
-            tags: [currentTag.key, currentTag.parent],
-          });
-          toggleHideDialog();
-          props.onClose(r.key);
-        });
+      const r = await props.api?.updateTag(currentTag);
+      console.log(r);
+      eventBus.dispatch("note-collection-change", {
+        tags: [currentTag.key, currentTag.parent],
+      });
+      toggleHideDialog();
+      props.onClose(r?.key);
     }
   };
 
