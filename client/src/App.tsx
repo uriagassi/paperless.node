@@ -16,15 +16,15 @@ import {
   ThemeProvider,
 } from "@fluentui/react";
 import "./App.css";
-import { ITagWithChildren, TagList } from "./TagList";
+import { TagList } from "./TagList";
 import { DetailCard } from "./DetailCard";
-import { Folder, KeyState, NoteList } from "./NoteList";
+import { KeyState, NoteList } from "./NoteList";
 import eventBus from "./EventBus";
 import { CommandBar } from "./CommandBar";
 import { MultiNoteScreen } from "./MultiNoteScreen";
 import { UpdateTagDialog } from "./UpdateTagDialog";
 import "semantic-ui-css/semantic.css";
-import { ServerAPI } from "./ServerAPI";
+import { Folder, Notebook, ServerAPI, Tag } from "./ServerAPI";
 import { themeDark, themeLight } from "./themes";
 
 initializeIcons();
@@ -46,10 +46,10 @@ export const App: React.FunctionComponent = () => {
   const [searchTerm, setSearchTerm] = useState<string>();
   const [activeNote, setActiveNote] = useState<number>();
   const [selectedNotes, setSelectedNotes] = useState<Set<number>>(new Set());
-  const [notebooks, setNotebooks] = useState<ITagWithChildren[]>();
-  const [tags, setTags] = useState<ITagWithChildren[]>();
+  const [notebooks, setNotebooks] = useState<Notebook[]>();
+  const [tags, setTags] = useState<Tag[]>();
   const [keyState, setKeyState] = useState<KeyState>();
-  const [tagToUpdate, setTagToUpdate] = useState<ITagWithChildren>();
+  const [tagToUpdate, setTagToUpdate] = useState<Tag>();
   const [loggedInUser, setLoggedInUser] = useState<{ imageInitials: string; text: string; secondaryText?: string }>();
   const fileUploadRef = createRef<HTMLInputElement>();
   const [theme, setTheme] = useState<{ uiTheme: PartialTheme; darkMode: boolean }>();
@@ -145,9 +145,9 @@ export const App: React.FunctionComponent = () => {
     setSearchTerm(newValue);
   }
 
-  const onUpdateTagClose = (key: string | undefined) => {
+  const onUpdateTagClose = (key: number | undefined) => {
     if (key && tagToUpdate?.key === -1) {
-      setSelectedFolder({ filterId: `tags/${key}?` });
+      setSelectedFolder({ ...tagToUpdate, key });
     }
     setTagToUpdate(undefined);
   };
@@ -248,7 +248,7 @@ export const App: React.FunctionComponent = () => {
               iconProps={{ iconName: "Tag" }}
               className="NewTagButton"
               name="Add Tag"
-              onClick={() => setTagToUpdate({ key: -1, name: "", notes: 0 })}
+              onClick={() => setTagToUpdate({ kind: "tag", key: -1, name: "", notes: 0, parent: 0 })}
             />
           </Stack>
           <NoteList
@@ -271,13 +271,13 @@ export const App: React.FunctionComponent = () => {
           />
           {!activeNote ? (
             <div className="EmptyDetails">
-              <div>There are no notes in this {selectedFolder?.filterId?.split("s")[0]}.</div>
+              <div>There are no notes in this {selectedFolder?.kind}.</div>
             </div>
           ) : selectedNotes.size > 1 ? (
             <MultiNoteScreen
               selectedNotes={selectedNotes}
               availableNotebooks={notebooks}
-              filterId={selectedFolder?.filterId}
+              filterId={`${selectedFolder?.kind}s/${selectedFolder?.key}`}
               activeNote={activeNote}
               api={serverAPI}
             />
@@ -288,7 +288,7 @@ export const App: React.FunctionComponent = () => {
               availableNotebooks={notebooks}
               updateTag={setTagToUpdate}
               api={serverAPI}
-              focusTag={(t) => setSelectedFolder({ filterId: `tags/${t.key}?` })}
+              focusTag={setSelectedFolder}
             />
           )}
         </Stack>

@@ -1,5 +1,5 @@
+import { ITag } from "@fluentui/react";
 import { IAuth } from "./auth/IAuth";
-import { ITagWithChildren } from "./TagList";
 
 export class ServerAPI {
   auth?: IAuth;
@@ -25,14 +25,27 @@ export class ServerAPI {
     return result;
   }
 
-  async loadNotebooks(): Promise<{ tags: ITagWithChildren[]; notebooks: ITagWithChildren[] }> {
+  async loadNotebooks(): Promise<{ tags: Tag[]; notebooks: Notebook[] }> {
     const res = await this.make_call("/api/notebooks_and_tags");
-    return await (res.json() as Promise<{ tags: ITagWithChildren[]; notebooks: ITagWithChildren[] }>);
+    const object = await res.json();
+    return {
+      tags: object.tags.map((t: Tag) => {
+        return { ...t, kind: "tag" };
+      }),
+      notebooks: object.notebooks.map((t: Notebook) => {
+        return { ...t, kind: "notebook" };
+      }),
+    };
   }
 
-  async loadNotes(filter: string, limit?: number): Promise<{ notes: Note[] }> {
-    const res = await this.make_call("/api/" + filter + "limit=" + (limit ?? 100) + "&lastItem=0");
-    return await res.json();
+  async loadNotes(filter: Folder | string | undefined, limit?: number): Promise<{ notes: Note[] }> {
+    if (filter) {
+      const path =
+        typeof filter === "string" ? `search?term=${encodeURIComponent(filter)}&` : `${filter.kind}s/${filter.key}?`;
+      const res = await this.make_call(`/api/${path}limit=${limit ?? 100}&lastItem=0`);
+      return await res.json();
+    }
+    return { notes: [] };
   }
 
   async loadNote(noteId: string | number): Promise<RawNote> {
@@ -178,9 +191,8 @@ export class ServerAPI {
     await this.make_call(`/api/notebooks/${notebookId}`, { method: "DELETE" });
   }
 
-  // TODO!!
-  async toggleExpand(path: string, isExpanded: boolean | undefined) {
-    await this.make_call(`/api/${path}expand`, {
+  async toggleExpand(folder: Folder, isExpanded: boolean | undefined) {
+    await this.make_call(`/api/${folder.kind}s/${folder.key}/expand`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ expanded: isExpanded ? 0 : 1 }),
@@ -191,7 +203,7 @@ export class ServerAPI {
     await this.make_call(`/api/trash`, { method: "DELETE" });
   }
 
-  async updateTag(tag: ITagWithChildren): Promise<{ key?: string }> {
+  async updateTag(tag: Tag): Promise<{ key?: number }> {
     const result = await this.make_call(`/api/tags/${tag.key}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -229,4 +241,34 @@ export interface NoteUpdate {
   notebookId: number;
   title: string;
   createTime: string;
+}
+
+export interface BaseTag extends ITag {
+  key: number;
+  isExpanded?: boolean;
+  notes: number;
+}
+
+export interface Tag extends BaseTag {
+  kind: "tag";
+  parent?: number;
+}
+
+export interface Notebook extends BaseTag {
+  kind: "notebook";
+  type: string;
+}
+
+export type Folder = Tag | Notebook;
+
+export function isNotebook(folder: Folder | undefined): folder is Notebook {
+  return folder?.kind === "notebook";
+}
+export function isTag(folder: Folder | undefined): folder is Tag {
+  return folder?.kind === "tag";
+}
+
+export function key(folder: Folder | undefined) {
+  if (!folder) return undefined;
+  return `${folder.kind}s/${folder.key}?`;
 }

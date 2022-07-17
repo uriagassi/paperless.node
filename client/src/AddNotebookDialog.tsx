@@ -11,10 +11,8 @@ import {
   ITextField,
 } from "@fluentui/react";
 import { useBoolean } from "@fluentui/react-hooks";
-import { ITagWithChildren } from "./TagList";
 import eventBus from "./EventBus";
-``;
-import { ServerAPI } from "./ServerAPI";
+import { ServerAPI, Notebook } from "./ServerAPI";
 
 const dragOptions = {
   moveMenuItemText: "Move",
@@ -23,7 +21,7 @@ const dragOptions = {
 };
 export const AddNotebookDialog: React.FunctionComponent<{
   show: boolean;
-  availableNotebooks: ITagWithChildren[] | undefined;
+  availableNotebooks: Notebook[] | undefined;
   onClose: () => unknown;
   api?: ServerAPI;
 }> = (props) => {

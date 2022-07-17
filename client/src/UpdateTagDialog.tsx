@@ -12,10 +12,9 @@ import {
   ITextField,
 } from "@fluentui/react";
 import { useBoolean } from "@fluentui/react-hooks";
-import { ITagWithChildren } from "./TagList";
 import { Dropdown, DropdownItemProps, DropdownProps } from "semantic-ui-react";
 import eventBus from "./EventBus";
-import { ServerAPI } from "./ServerAPI";
+import { ServerAPI, Tag } from "./ServerAPI";
 
 const dragOptions = {
   moveMenuItemText: "Move",
@@ -23,29 +22,29 @@ const dragOptions = {
   menu: ContextualMenu,
 };
 interface UpdateTagDialogProps {
-  tag: ITagWithChildren | undefined;
-  availableTags: ITagWithChildren[] | undefined;
-  onClose: (s: string | undefined) => unknown;
+  tag: Tag | undefined;
+  availableTags: Tag[] | undefined;
+  onClose: (s: number | undefined) => unknown;
   api: ServerAPI | undefined;
 }
 
 export const UpdateTagDialog: React.FunctionComponent<UpdateTagDialogProps> = (props) => {
   const [hideDialog, { toggle: toggleHideDialog }] = useBoolean(true);
   const [parentOptions, setParentOptions] = useState<DropdownItemProps[]>([]);
-  const [currentTag, setCurrentTag] = useState<ITagWithChildren | undefined>();
+  const [currentTag, setCurrentTag] = useState<Tag | undefined>();
   const [tagNameErrorMessage, setTagNameErrorMessage] = useState<string | undefined>();
 
   const textField = createRef<ITextField>();
 
-  const notChildOfSelected = (tag: ITagWithChildren | undefined): boolean => {
+  const notChildOfSelected = (tag: Tag | undefined): boolean => {
     if (!tag) return true;
-    if (+tag.key === Number(props.tag?.key)) {
+    if (tag.key === props.tag?.key) {
       return false;
     }
-    if (Number(tag.parent) === 0) {
+    if ((tag.parent ?? 0) === 0) {
       return true;
     }
-    return notChildOfSelected(props.availableTags?.find((t) => +t.key === Number(tag.parent)));
+    return notChildOfSelected(props.availableTags?.find((t) => t.key === tag.parent));
   };
 
   useEffect(() => {

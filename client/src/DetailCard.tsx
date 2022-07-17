@@ -18,9 +18,8 @@ import {
   TagPicker,
   TextField,
 } from "@fluentui/react";
-import { ITagWithChildren } from "./TagList";
 import { TagContextMenu } from "./TagContextMenu";
-import { ServerAPI } from "./ServerAPI";
+import { Notebook, ServerAPI, Tag } from "./ServerAPI";
 
 export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
   const datePickerRef = React.createRef<IDatePicker>();
@@ -216,15 +215,17 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
 
   const getTextFromItem = (item: ITag) => item.name;
 
-  const [doUpdate, setDoUpdate] = useState<{ target: Element; tag: ITagWithChildren } | undefined>();
+  const [doUpdate, setDoUpdate] = useState<{ target: Element; tag: Tag } | undefined>();
 
   const onShowContextualMenu = (ev: React.MouseEvent<HTMLElement>) => {
     const tagItem = (ev.target as HTMLElement).closest(".ms-TagItem");
     if (tagItem) {
       const textContent = tagItem.querySelector(".ms-TagItem-text")?.textContent;
       const found = props.availableTags?.find((t) => t.name == textContent);
-      ev.preventDefault();
-      setDoUpdate({ target: tagItem, tag: found as ITagWithChildren });
+      if (found) {
+        ev.preventDefault();
+        setDoUpdate({ target: tagItem, tag: found });
+      }
     }
   };
 
@@ -435,9 +436,9 @@ interface Note {
 
 interface DetailCardProps {
   noteId: number | undefined;
-  availableTags: ITag[] | undefined;
-  availableNotebooks: ITagWithChildren[] | undefined;
-  updateTag: (tag: ITagWithChildren) => unknown;
-  focusTag: (tag: ITagWithChildren) => unknown;
+  availableTags: Tag[] | undefined;
+  availableNotebooks: Notebook[] | undefined;
+  updateTag: (tag: Tag) => unknown;
+  focusTag: (tag: Tag) => unknown;
   api?: ServerAPI;
 }

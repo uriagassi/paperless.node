@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { ITagWithChildren } from "./TagList";
 import { ContextualMenu, ITag } from "@fluentui/react";
+import { Tag } from "./ServerAPI";
 
 interface TagContextMenuProps {
-  updateTag: (tag: ITagWithChildren) => unknown;
-  focusTag?: (tag: ITagWithChildren) => unknown;
-  deleteTag?: (tag: ITagWithChildren) => unknown;
+  updateTag: (tag: Tag) => unknown;
+  focusTag?: (tag: Tag) => unknown;
+  deleteTag?: (tag: Tag) => unknown;
   availableTags: ITag[] | undefined;
   doUpdate:
     | {
         target: Element;
-        tag: ITagWithChildren;
+        tag: Tag;
       }
     | undefined;
   onDismiss: () => unknown;
@@ -19,7 +19,7 @@ interface TagContextMenuProps {
 export const TagContextMenu: React.FunctionComponent<TagContextMenuProps> = (props) => {
   const [contextualMenuTarget, setContextualMenuTarget] = React.useState<Element | undefined>();
   const [showContextualMenu, setShowContextualMenu] = React.useState(false);
-  const [selectedTag, setSelectedTag] = useState<ITagWithChildren | undefined>();
+  const [selectedTag, setSelectedTag] = useState<Tag | undefined>();
   useEffect(() => {
     if (!showContextualMenu) {
       props.onDismiss();

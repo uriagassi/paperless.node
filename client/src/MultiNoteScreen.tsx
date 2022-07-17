@@ -1,13 +1,12 @@
 import React from "react";
 import { CommandBar, ICommandBarItemProps, Stack } from "@fluentui/react";
 import eventBus from "./EventBus";
-import { ITagWithChildren } from "./TagList";
 import { NoteCollectionChange } from "./NoteList";
-import { ServerAPI } from "./ServerAPI";
+import { Notebook, ServerAPI } from "./ServerAPI";
 
 export const MultiNoteScreen: React.FunctionComponent<{
   selectedNotes: Set<number>;
-  availableNotebooks: ITagWithChildren[] | undefined;
+  availableNotebooks: Notebook[] | undefined;
   filterId: string | undefined;
   activeNote?: number;
   api: ServerAPI | undefined;
@@ -76,7 +75,7 @@ export const MultiNoteScreen: React.FunctionComponent<{
                 items:
                   props.availableNotebooks?.map((n) => {
                     return {
-                      key: n.key,
+                      key: "" + n.key,
                       text: n.name,
                       iconProps: { iconName: "Inbox" },
                       onClick: () => {

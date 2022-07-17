@@ -14,7 +14,7 @@ import {
   Stack,
 } from "@fluentui/react";
 import eventBus from "./EventBus";
-import { Note, ServerAPI } from "./ServerAPI";
+import { Folder, isNotebook, Note, ServerAPI } from "./ServerAPI";
 
 function formatFileSize(bytes: number, decimalPoint?: number) {
   if (bytes == 0) return "0 Bytes";
@@ -74,15 +74,14 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
   };
 
   const loadNotes = async (withSetLoading = true) => {
-    if (props.selectedFolder?.filterId || props.searchTerm) {
+    if (props.selectedFolder || props.searchTerm) {
       if (withSetLoading) {
         setLoading(true);
       }
-      let filter = props.selectedFolder?.filterId ?? "";
-      if (props.searchTerm ?? "" != "") {
-        filter = "search?term=" + encodeURIComponent(props.searchTerm ?? "") + "&";
-      }
-      const data = await props.api?.loadNotes(filter, props.limit);
+      const data =
+        props.searchTerm ?? "" !== ""
+          ? await props.api?.loadNotes(props.searchTerm, props.limit)
+          : await props.api?.loadNotes(props.selectedFolder, props.limit);
       const notes: Note[] = [];
       let selectedFound = false;
       data?.notes.forEach((n) => {
@@ -108,17 +107,16 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
   };
 
   const checkChange = (data: NoteCollectionChange) => {
-    if (props.selectedFolder?.filterId?.startsWith("notebook")) {
-      if (
-        data.notebooks?.filter(
-          (n) => props.selectedFolder?.filterId == "notebooks/" + n + "?" || props.selectedFolder?.type == n
-        )
-      ) {
-        loadNotes(false);
-      }
-    } else if (props.selectedFolder?.filterId?.startsWith("tag")) {
-      if (data.tags?.filter((n) => props.selectedFolder?.filterId == "tags/" + n + "?")) {
-        loadNotes(false);
+    const folder = props.selectedFolder;
+    if (folder) {
+      if (isNotebook(folder)) {
+        if (data.notebooks?.filter((n) => folder.key === n || folder.type === n)) {
+          loadNotes(false);
+        }
+      } else {
+        if (data.tags?.filter((n) => folder.key === n)) {
+          loadNotes(false);
+        }
       }
     }
   };
@@ -132,11 +130,11 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
   const deleteNote = async (id: number) => {
     await props.api?.delete(id);
     const affectedList = { notebooks: ["D"] } as NoteCollectionChange;
-    if (props.selectedFolder?.filterId) {
-      if (props.selectedFolder?.filterId.split("/")[0] == "notebooks") {
-        affectedList.notebooks?.push(+props.selectedFolder?.filterId.split("/")[1]);
+    if (props.selectedFolder) {
+      if (isNotebook(props.selectedFolder)) {
+        affectedList.notebooks?.push(props.selectedFolder.key);
       } else {
-        affectedList.tags = [+props.selectedFolder?.filterId.split("/")[1]];
+        affectedList.tags = [props.selectedFolder.key];
       }
     }
     eventBus.dispatch("note-collection-change", affectedList);
@@ -245,12 +243,7 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
   return (
     <FocusZone className="ListView" style={props.style}>
       <Shimmer isDataLoaded={!loading} customElementsGroup={getCustomElements()} width="100%">
-        <Stack
-          tabIndex={props.tabIndex}
-          key={props.selectedFolder?.filterId}
-          horizontalAlign="start"
-          verticalAlign="start"
-        >
+        <Stack tabIndex={props.tabIndex} horizontalAlign="start" verticalAlign="start">
           {notes}
         </Stack>
       </Shimmer>
@@ -263,11 +256,6 @@ export interface KeyState {
   ctrlKey?: boolean;
   shiftKey?: boolean;
   update: number;
-}
-
-export interface Folder {
-  filterId: string | undefined;
-  type?: string | undefined;
 }
 
 interface NoteListProps {
