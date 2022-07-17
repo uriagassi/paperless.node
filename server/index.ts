@@ -125,23 +125,31 @@ app.get("/api/tags/:tagId", (req, res) => {
   });
 });
 
-const notes_by_text_query = db.prepare(
+const notes_by_text_query = prepare_many(
+  db,
   "select n.noteId as id, createTime, title, \
   GROUP_CONCAT(a.fileName) as attachments, \
   MIN(a.mime) as mime, SUM(a.size) size \
-  from NoteTags nt, Notes n left join Attachments a on id = a.noteId \
-  where (nt.tagId in (select tagId from Tags where name like ?) or title like ?) and nt.noteId = id and createTime > ? \
-  group by id order by createTime desc limit ?"
+  from Notes n left join Attachments a on id = a.noteId \
+  where title like $text or id in (#noteIds) \
+  and createTime > $createTime group by id order by createTime desc limit $limit",
+  '#noteIds'
 );
+
+const notes_by_tag_name_query = db.prepare(
+  "select distinct noteId from NoteTags where tagId in (select tagId from Tags where name like ?)"
+).raw()
 
 app.get("/api/search", (req, res) => {
   const queryText = req.query.term ? "%" + req.query.term + "%" : "nonono!";
+  const notesFromTagQuery = notes_by_tag_name_query.all(queryText).flatMap(i => i)
   res.json({
-    notes: notes_by_text_query.all(
-      queryText,
-      queryText,
-      req.query.lastItem,
-      req.query.limit
+    notes: notes_by_text_query(notesFromTagQuery.length).all(
+      {
+        text: queryText,
+        createTime: req.query.lastItem,
+        limit: req.query.limit
+      }, notesFromTagQuery
     ),
   });
 });
@@ -253,6 +261,9 @@ const update_tag = db.prepare(
 );
 
 app.post("/api/tags/:tagId", (req, res) => {
+  if (req.body.parent === 0) {
+    req.body.parent = undefined
+  }
   if (req.params.tagId === "-1") {
     res.json({ key: add_new_tag.run(req.body).lastInsertRowid });
   } else {
