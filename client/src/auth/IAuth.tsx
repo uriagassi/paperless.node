@@ -1,7 +1,5 @@
 export interface IAuth {
-  access_token: string | null;
-  login(): string;
-  authenticate(url: string): string;
+  access_token(): string;
   logout(): Promise<unknown>;
-  forceLogin(): void;
+  login(): void;
 }

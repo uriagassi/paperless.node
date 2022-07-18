@@ -1,16 +1,12 @@
-export class Auth {
-  access_token: string | null = "none";
+import { IAuth } from "./IAuth";
 
-  login(): string {
-    return this.access_token ?? "";
+export class Auth implements IAuth {
+  access_token(): string {
+    return "none";
   }
 
-  forceLogin(): void {
+  login(): void {
     throw "Unsupported Method";
-  }
-
-  authenticate(url: string): string {
-    return url;
   }
 
   logout(): Promise<unknown> {

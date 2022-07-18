@@ -4,22 +4,22 @@ import { IAuth } from "./auth/IAuth";
 export class ServerAPI {
   auth?: IAuth;
 
-  async make_call(input: string, init?: RequestInit | undefined, with_token = false): Promise<Response> {
+  async make_call(input: string, init?: RequestInit | undefined, token?: string): Promise<Response> {
     const headers = new Headers(init?.headers);
-    if (with_token && this.auth?.access_token) {
-      headers.append("x-access-token", this.auth.access_token);
+    if (token) {
+      headers.append("x-access-token", token);
     }
     const result = await fetch(input, { ...init, headers: headers });
     console.log(result);
     if (result.status === 403) {
-      if (!with_token) {
-        return this.make_call(input, init, true);
+      if (!token) {
+        return this.make_call(input, init, this.auth?.access_token());
       } else {
-        this.auth?.forceLogin();
+        this.auth?.login();
       }
     } else if (result.status == 401) {
       await this.authSetup();
-      this.auth?.forceLogin();
+      this.auth?.login();
     }
 
     return result;
@@ -73,7 +73,6 @@ export class ServerAPI {
     console.log(Auth);
     this.auth = new Auth(params);
     console.log(this.auth);
-    this.auth?.login();
   }
 
   async logout() {
