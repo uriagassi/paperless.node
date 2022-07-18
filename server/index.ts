@@ -133,23 +133,28 @@ const notes_by_text_query = prepare_many(
   from Notes n left join Attachments a on id = a.noteId \
   where title like $text or id in (#noteIds) \
   and createTime > $createTime group by id order by createTime desc limit $limit",
-  '#noteIds'
+  "#noteIds"
 );
 
-const notes_by_tag_name_query = db.prepare(
-  "select distinct noteId from NoteTags where tagId in (select tagId from Tags where name like ?)"
-).raw()
+const notes_by_tag_name_query = db
+  .prepare(
+    "select distinct noteId from NoteTags where tagId in (select tagId from Tags where name like ?)"
+  )
+  .raw();
 
 app.get("/api/search", (req, res) => {
   const queryText = req.query.term ? "%" + req.query.term + "%" : "nonono!";
-  const notesFromTagQuery = notes_by_tag_name_query.all(queryText).flatMap(i => i)
+  const notesFromTagQuery = notes_by_tag_name_query
+    .all(queryText)
+    .flatMap((i) => i);
   res.json({
     notes: notes_by_text_query(notesFromTagQuery.length).all(
       {
         text: queryText,
         createTime: req.query.lastItem,
-        limit: req.query.limit
-      }, notesFromTagQuery
+        limit: req.query.limit,
+      },
+      notesFromTagQuery
     ),
   });
 });
@@ -175,9 +180,8 @@ app.get("/api/notes/:noteId", (req, res) => {
 });
 
 app.post("/api/notes/:noteId/split", (req, res) => {
-  notes
-    .splitNote(req.user_name ?? "", +req.params.noteId)
-    .then(() => res.json("OK"));
+  notes.splitNote(req.user_name ?? "", +req.params.noteId);
+  res.json("OK");
 });
 
 app.get("/api/body/:noteId", (req, res) => {
@@ -262,7 +266,7 @@ const update_tag = db.prepare(
 
 app.post("/api/tags/:tagId", (req, res) => {
   if (req.body.parent === 0) {
-    req.body.parent = undefined
+    req.body.parent = undefined;
   }
   if (req.params.tagId === "-1") {
     res.json({ key: add_new_tag.run(req.body).lastInsertRowid });
