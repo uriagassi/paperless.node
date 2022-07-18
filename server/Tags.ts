@@ -22,34 +22,28 @@ export class Tags {
     );
   }
 
-  addTagId(
-    noteId: number | bigint,
-    tagId: number | bigint,
-    callback?: (tagId: number | bigint) => unknown
-  ) {
+  addTagId(noteId: number | bigint, tagId: number | bigint) {
     this.add_tag_to_note.run({ noteId: noteId, tagId: tagId });
-    callback?.(tagId);
   }
 
   addTag(noteId: number | bigint, tagName: string) {
-    return new Promise((resolve) => {
-      if (!tagName) resolve(undefined);
-      const r = this.find_tag_by_name.get(tagName);
-      if (r) {
-        this.addTagId(noteId, r.tagId, resolve);
-      } else {
-        console.log("adding new tag...");
-        const added_tag = this.add_tag.run(tagName);
-        if (added_tag.changes > 0) {
-          console.log("adding to note");
-          this.add_tag_to_note.run({
-            noteId: noteId,
-            tagId: added_tag.lastInsertRowid,
-          });
-        }
-        resolve(added_tag.lastInsertRowid);
+    if (!tagName) return undefined;
+    const r = this.find_tag_by_name.get(tagName);
+    if (r) {
+      this.addTagId(noteId, r.tagId);
+      return r.tagId;
+    } else {
+      console.log("adding new tag...");
+      const added_tag = this.add_tag.run(tagName);
+      if (added_tag.changes > 0) {
+        console.log("adding to note");
+        this.add_tag_to_note.run({
+          noteId: noteId,
+          tagId: added_tag.lastInsertRowid,
+        });
       }
-    });
+      return added_tag.lastInsertRowid;
+    }
   }
 
   removeTags(noteIds: (bigint | number)[]) {

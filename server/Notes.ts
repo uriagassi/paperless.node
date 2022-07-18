@@ -1,7 +1,7 @@
 import { JSDOM } from "jsdom";
 
 import { prepare_many } from "./sql_helper.js";
-import { Database, RunResult, Statement } from "better-sqlite3";
+import { Database, Statement } from "better-sqlite3";
 import {
   Attachments,
   ExistingAttachment,
@@ -90,34 +90,24 @@ export class Notes {
   insertNote(
     note: Note,
     attachments?: (ExistingAttachment | NamedAttachment)[],
-    tags?: string[],
-    attachmentCallback?: (att: RunResult) => unknown
+    tags?: string[]
   ) {
-    return new Promise((resolve, reject) => {
-      const new_note = note.notebookId
-        ? this.add_note.run(note)
-        : this.add_note_to_inbox.run(note);
-      console.log(`adding ${attachments?.length}`);
-      if (attachments || tags) {
-        if (new_note.changes !== 0) {
-          attachments?.forEach((attachment) => {
-            this.att.addAttachment(
-              attachment,
-              new_note.lastInsertRowid,
-              attachmentCallback
-            );
-          });
-          tags?.forEach((tag) => {
-            console.log(`adding ${tag}...`);
+    const new_note = note.notebookId
+      ? this.add_note.run(note)
+      : this.add_note_to_inbox.run(note);
+    console.log(`adding ${attachments?.length}`);
+    if (attachments || tags) {
+      if (new_note.changes !== 0) {
+        attachments?.forEach((attachment) => {
+          this.att.addAttachment(attachment, new_note.lastInsertRowid);
+        });
+        tags?.forEach((tag) => {
+          console.log(`adding ${tag}...`);
 
-            this.tagService.addTag(new_note.lastInsertRowid, tag);
-          });
-        } else {
-          reject(new_note);
-        }
+          this.tagService.addTag(new_note.lastInsertRowid, tag);
+        });
       }
-      resolve("OK");
-    });
+    }
   }
 
   mergeNotes(
@@ -203,7 +193,7 @@ export class Notes {
     return this.count_parts.get(noteId)?.[0];
   }
 
-  async splitNote(updateBy: string, originalNoteId: number | bigint) {
+  splitNote(updateBy: string, originalNoteId: number | bigint) {
     const originalNote = this.get_note_data(1).get(originalNoteId);
     const jsdom1 = new JSDOM(this.html(originalNote.noteData));
     const document = jsdom1.window.document.body;

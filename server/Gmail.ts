@@ -223,7 +223,7 @@ export class Gmail {
     }
     const note = await this.messageToNote(gmail, username, message, labels);
     const doneLabels = doneLabel ? [doneLabel] : [];
-    await this.notes.insertNote(
+    this.notes.insertNote(
       {
         createTime: note.createTime,
         title: note.title ?? "(no subject)",

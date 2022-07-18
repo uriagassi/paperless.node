@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import mime from "mime-types";
-import { Database, RunResult, Statement } from "better-sqlite3";
+import { Database, Statement } from "better-sqlite3";
 import config from "config";
 
 export class Attachments {
@@ -73,8 +73,7 @@ export class Attachments {
 
   addAttachment(
     attachment: NamedAttachment | ExistingAttachment,
-    noteId: number | bigint,
-    callback?: (att: RunResult) => unknown
+    noteId: number | bigint
   ) {
     if ("noteId" in attachment) {
       console.log(
@@ -83,8 +82,7 @@ export class Attachments {
       this.move_attachment.run(noteId, attachment);
     } else {
       console.log(`adding attachment ${attachment.fileName} to ${noteId}`);
-      const att = this.add_attachment.run(attachment, noteId);
-      callback?.(att);
+      this.add_attachment.run(attachment, noteId);
     }
   }
 }

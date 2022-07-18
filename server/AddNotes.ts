@@ -7,7 +7,6 @@ import { Express } from "express";
 import config from "config";
 import { Notes } from "./Notes.js";
 import { Attachment, Attachments } from "./Attachment.js";
-import { Request, Response } from "express";
 
 export class AddNotes {
   private readonly importDir: string = config.get("paperless.importDir");
@@ -28,7 +27,14 @@ export class AddNotes {
     });
 
     app.get("/api/files/import", (req, res) => {
-      this.importFiles(this.pendingFileList(), 0, req, res);
+      for (const fileName of this.pendingFileList()) {
+        this.importFromFile(
+          path.join(this.importDir, fileName),
+          fileName,
+          req.user_name ?? ""
+        );
+      }
+      res.json("OK");
     });
 
     app.post("/api/files/new", (req, res) => {
@@ -38,11 +44,9 @@ export class AddNotes {
         this.importFromFile(
           newNote.filepath,
           newNote.originalFilename ?? path.basename(newNote.filepath),
-          req.user_name ?? "",
-          0
-        ).then(() => {
-          res.json("OK");
-        });
+          req.user_name ?? ""
+        );
+        res.json("OK");
       });
     });
 
@@ -62,51 +66,30 @@ export class AddNotes {
     });
   }
 
-  importFiles(fileList: string[], i: number, req: Request, res: Response) {
-    this.importFromFile(
-      path.join(this.importDir, fileList[i]),
-      fileList[i],
-      req.user_name ?? "",
-      i
-    ).then(() => {
-      if (i < fileList.length - 1) {
-        this.importFiles(fileList, i + 1, req, res);
-      } else {
-        res.json("OK");
-      }
-    });
-  }
-
-  importFromFile(fullName: string, basename: string, user: string, i: number) {
-    return new Promise((resolve) => {
-      console.log("starting " + i);
-      const stats = fs.lstatSync(fullName);
-      if (stats.isFile()) {
-        const attachment: Attachment = {
-          fileName: basename.replaceAll(/[/:" *?<>|&=;]+/g, "_"),
-          mime: mime.lookup(basename) as string,
-          hash: md5(fs.readFileSync(fullName)),
-          size: stats.size,
-        };
-        console.log(attachment);
-        const named = this.att.setUniqueFilename(attachment);
-        fs.copyFileSync(
-          fullName,
-          path.join(this.attachmentsDir, named.uniqueFilename)
-        );
-        const newNote = {
-          createTime: stats.ctime.toISOString().replace(/T.*/, ""),
-          title: path.basename(attachment.fileName),
-          noteData: this.att.getHtmlForAttachment(named),
-          updateBy: user,
-        };
-        this.notes
-          .insertNote(newNote, [named], [], (e) => {
-            console.log(e);
-            fs.unlinkSync(fullName);
-          })
-          .then(() => resolve("OK"));
-      }
-    });
+  importFromFile(fullName: string, basename: string, user: string) {
+    const stats = fs.lstatSync(fullName);
+    if (stats.isFile()) {
+      const attachment: Attachment = {
+        fileName: basename.replaceAll(/[/:" *?<>|&=;]+/g, "_"),
+        mime: mime.lookup(basename) || "",
+        hash: md5(fs.readFileSync(fullName)),
+        size: stats.size,
+      };
+      console.log(attachment);
+      const named = this.att.setUniqueFilename(attachment);
+      fs.copyFileSync(
+        fullName,
+        path.join(this.attachmentsDir, named.uniqueFilename)
+      );
+      const newNote = {
+        createTime: stats.ctime.toISOString().replace(/T.*/, ""),
+        title: path.basename(attachment.fileName),
+        noteData: this.att.getHtmlForAttachment(named),
+        updateBy: user,
+      };
+      this.notes.insertNote(newNote, [named], []);
+      fs.unlinkSync(fullName);
+      return "OK";
+    }
   }
 }
