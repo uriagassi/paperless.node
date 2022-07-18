@@ -24,6 +24,7 @@
     "semantic-ui-react": "^2.1.2",
     "serve": "^13.0.2",
     "typescript": "^4.6.4",
+    "universal-cookie": "^4.0.4",
     "web-vitals": "^1.1.2"
   },
   "scripts": {
