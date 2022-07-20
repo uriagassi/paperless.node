@@ -15,9 +15,8 @@ import { Notes } from "./Notes.js";
 import https from "https";
 import fs from "fs";
 import cors from "cors";
-import { fileURLToPath } from "url";
-import path from "path/posix";
 import { Auth } from "./auth/Auth.js";
+import helmet from "helmet";
 
 const IS_PROXY = process.argv[process.argv.length - 1] === "proxy";
 const PORT: number =
@@ -45,6 +44,15 @@ const notebooks_query = db.prepare(
 // db.connect
 
 app.use(cookieParser());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        objectSrc: ["'self'"],
+      },
+    },
+  })
+);
 const auth = new Auth(new AuthHandler());
 app.use((req, res, next) => auth.auth(req, res, next));
 app.get("/api", (req, res) => {

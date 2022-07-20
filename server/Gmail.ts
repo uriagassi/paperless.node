@@ -35,102 +35,119 @@ export class Gmail {
   }
 
   listen(app: Express) {
-    app.get("/api/mail/auth", rateLimit({
-      windowMs: 10 * 60_000,
-      max: 10,
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: "Too many gmail requests - throttling",
-    }), (req, res) => {
-      this.authenticate(req.query.access_token as string, res);
-    });
-
-    app.get("/api/mail/pending", rateLimit({
-      windowMs: 2 * 60_000,
-      max: 2,
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: "Too many gmail requests - throttling",
-    }), async (_req, res) => {
-      try {
-        const gmail = await this.authorize(res);
-
-        const {
-          data: { emailAddress },
-        } = await gmail.users.getProfile({ userId: "me" });
-        const { mainLabel } = await this.getLabelData(gmail);
-
-        if (mainLabel) {
-          const {
-            data: { threads },
-          } = await gmail.users.threads.list({
-            userId: "me",
-            labelIds: [mainLabel],
-            includeSpamTrash: false,
-          });
-
-          res.json({
-            pendingThreads: threads?.length || 0,
-            emailAddress: emailAddress,
-          });
-        } else {
-          res.json({
-            pendingThreads: 0,
-            emailAddress: emailAddress,
-          });
-        }
-      } catch (err) {
-        console.log(err);
-        return res.status(500).json(err);
+    app.get(
+      "/api/mail/auth",
+      rateLimit({
+        windowMs: 10 * 60_000,
+        max: 10,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: "Too many gmail requests - throttling",
+      }),
+      (req, res) => {
+        this.authenticate(req.query.access_token as string, res);
       }
-    });
+    );
 
-    app.post("/api/mail/import", rateLimit({
-      windowMs: 10 * 60_000,
-      max: 10,
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: "Too many gmail requests - throttling",
-    }), async (req, res) => {
-      try {
-        const gmail = await this.authorize(res);
-        const { mainLabel, doneLabel, labels } = await this.getLabelData(gmail);
-        if (mainLabel && labels) {
+    app.get(
+      "/api/mail/pending",
+      rateLimit({
+        windowMs: 2 * 60_000,
+        max: 2,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: "Too many gmail requests - throttling",
+      }),
+      async (_req, res) => {
+        try {
+          const gmail = await this.authorize(res);
+
           const {
-            data: { threads },
-          } = await gmail.users.threads.list({
-            userId: "me",
-            labelIds: [mainLabel],
-            includeSpamTrash: false,
-          });
+            data: { emailAddress },
+          } = await gmail.users.getProfile({ userId: "me" });
+          const { mainLabel } = await this.getLabelData(gmail);
 
-          const numOfNotes = 10;
-          const messages =
-            threads?.slice(0, numOfNotes).map((thread) => {
-              if (thread.id)
-                return gmail.users.threads.get({ userId: "me", id: thread.id });
-            }) || [];
-          for (const message of messages) {
-            if (message) {
-              await this.importMessage(
-                gmail,
-                req.user_name ?? "",
-                message,
-                mainLabel,
-                doneLabel,
-                labels
-              );
-            }
+          if (mainLabel) {
+            const {
+              data: { threads },
+            } = await gmail.users.threads.list({
+              userId: "me",
+              labelIds: [mainLabel],
+              includeSpamTrash: false,
+            });
+
+            res.json({
+              pendingThreads: threads?.length || 0,
+              emailAddress: emailAddress,
+            });
+          } else {
+            res.json({
+              pendingThreads: 0,
+              emailAddress: emailAddress,
+            });
           }
-          res.json({
-            pendingThreads: (threads?.length ?? 0) - messages.length,
-          });
+        } catch (err) {
+          console.log(err);
+          return res.status(500).json(err);
         }
-      } catch (err) {
-        console.log(err);
-        return res.status(500).json(err);
       }
-    });
+    );
+
+    app.post(
+      "/api/mail/import",
+      rateLimit({
+        windowMs: 10 * 60_000,
+        max: 10,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: "Too many gmail requests - throttling",
+      }),
+      async (req, res) => {
+        try {
+          const gmail = await this.authorize(res);
+          const { mainLabel, doneLabel, labels } = await this.getLabelData(
+            gmail
+          );
+          if (mainLabel && labels) {
+            const {
+              data: { threads },
+            } = await gmail.users.threads.list({
+              userId: "me",
+              labelIds: [mainLabel],
+              includeSpamTrash: false,
+            });
+
+            const numOfNotes = 10;
+            const messages =
+              threads?.slice(0, numOfNotes).map((thread) => {
+                if (thread.id)
+                  return gmail.users.threads.get({
+                    userId: "me",
+                    id: thread.id,
+                  });
+              }) || [];
+            for (const message of messages) {
+              if (message) {
+                await this.importMessage(
+                  gmail,
+                  req.user_name ?? "",
+                  message,
+                  mainLabel,
+                  doneLabel,
+                  labels
+                );
+              }
+            }
+            res.json({
+              pendingThreads: (threads?.length ?? 0) - messages.length,
+            });
+          }
+        } catch (err) {
+          console.log(err);
+          return res.status(500).json(err);
+        }
+      }
+    );
   }
 
   async getLabelData(gmail: gmail_v1.Gmail) {
