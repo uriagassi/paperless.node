@@ -5,7 +5,7 @@ import { Database, Statement } from "better-sqlite3";
 import config from "config";
 
 export class Trash {
-  attachmentsDir = config.get("paperless.baseDir") + "/attachments/";
+  attachmentsDir = path.resolve(config.get("paperless.baseDir") + "/attachments/");
 
   private readonly delete_tags_for_note: Statement<[number | string]>;
   private readonly select_attachments: Statement<[number | string]>;
@@ -55,8 +55,13 @@ export class Trash {
     this.delete_note.run(noteId);
     // 5. delete attachments from fs
     attachmentsToDelete.forEach((a) => {
-      if (fs.existsSync(path.join(this.attachmentsDir, ...a))) {
-        fs.unlinkSync(path.join(this.attachmentsDir, ...a));
+      const attLoc = path.resolve(this.attachmentsDir, ...a);
+      if (attLoc.indexOf(this.attachmentsDir) == 0) {
+        if (fs.existsSync(attLoc)) {
+          fs.unlinkSync(attLoc);
+        }
+      } else {
+        console.log(`rejecting ${attLoc}`)
       }
     });
   }
