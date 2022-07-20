@@ -197,14 +197,8 @@ app.use("/api/body/images", express.static("server/public/images"));
 
 if (!IS_PROXY) {
   app.use(express.static("client/build"));
-  app.get("/", (req, res) => {
-    res.sendFile("client/build/index.html");
-  });
-  app.get("/gmail", (req, res) => {
-    res.sendFile("client/build/index.html", {
-      root: path.join(path.dirname(fileURLToPath(import.meta.url)), "../"),
-    });
-  });
+  app.use("/", express.static("client/build/index.html"));
+  app.use("/gmail", express.static("client/build/index.html"));
 }
 
 const update_note = db.prepare(
