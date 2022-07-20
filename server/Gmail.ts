@@ -10,6 +10,7 @@ import { NamedAttachment, Attachments, Attachment } from "./Attachment.js";
 import config from "config";
 import { OAuth2Client } from "google-auth-library";
 import { GaxiosPromise } from "googleapis-common";
+import rateLimit from "express-rate-limit";
 
 export class Gmail {
   // If modifying these scopes, delete token.json.
@@ -34,11 +35,23 @@ export class Gmail {
   }
 
   listen(app: Express) {
-    app.get("/api/mail/auth", (req, res) => {
+    app.get("/api/mail/auth", rateLimit({
+      windowMs: 10 * 60_000,
+      max: 10,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: "Too many gmail requests - throttling",
+    }), (req, res) => {
       this.authenticate(req.query.access_token as string, res);
     });
 
-    app.get("/api/mail/pending", async (_req, res) => {
+    app.get("/api/mail/pending", rateLimit({
+      windowMs: 2 * 60_000,
+      max: 2,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: "Too many gmail requests - throttling",
+    }), async (_req, res) => {
       try {
         const gmail = await this.authorize(res);
 
@@ -72,7 +85,13 @@ export class Gmail {
       }
     });
 
-    app.post("/api/mail/import", async (req, res) => {
+    app.post("/api/mail/import", rateLimit({
+      windowMs: 10 * 60_000,
+      max: 10,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: "Too many gmail requests - throttling",
+    }), async (req, res) => {
       try {
         const gmail = await this.authorize(res);
         const { mainLabel, doneLabel, labels } = await this.getLabelData(gmail);
