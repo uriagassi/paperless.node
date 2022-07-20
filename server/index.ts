@@ -144,9 +144,10 @@ const notes_by_tag_name_query = db
 
 app.get("/api/search", (req, res) => {
   const queryText = req.query.term ? "%" + req.query.term + "%" : "nonono!";
-  const notesFromTagQuery = notes_by_tag_name_query
+  let notesFromTagQuery = notes_by_tag_name_query
     .all(queryText)
     .flatMap((i) => i);
+  if (notesFromTagQuery.length == 0) notesFromTagQuery = [-1];
   res.json({
     notes: notes_by_text_query(notesFromTagQuery.length).all(
       {
