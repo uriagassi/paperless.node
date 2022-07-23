@@ -199,7 +199,7 @@ export class Notes {
     const document = jsdom1.window.document.body;
     let splitDone = false;
     document.querySelectorAll(".paperless-merged-note").forEach((d) => {
-      const tags: string[] = [];
+      const tags: Set<string> = new Set();
       const newNote: Note = {
         title: "",
         notebookId: originalNote.notebookId,
@@ -235,7 +235,7 @@ export class Notes {
                   break;
                 case "paperless-merged-note-tags":
                   data.childNodes.forEach((tag) => {
-                    this.verifyNotNullOrWhitespace(tag.textContent, tags.push);
+                    this.verifyNotNullOrWhitespace(tag.textContent, (s) => tags.add(s));
                   });
                   break;
                 case "paperless-merged-note-create-date":
@@ -249,7 +249,7 @@ export class Notes {
             break;
         }
       });
-      this.insertNote(newNote, attachments, tags);
+      this.insertNote(newNote, attachments, Array.from(tags));
       d.outerHTML = "";
       splitDone = true;
     });

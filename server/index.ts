@@ -3,7 +3,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import config from "config";
-import Sqlite3 from "better-sqlite3";
+import Sqlite3, { Statement } from "better-sqlite3";
 import cookieParser from "cookie-parser";
 import { AddNotes } from "./AddNotes.js";
 import { Gmail } from "./Gmail.js";
@@ -99,16 +99,18 @@ app.post("/api/notebooks/:name", csrfProtection, (req, res) => {
   res.json(add_notebook.run(req.params.name));
 });
 
-const notes_by_notebook_query = db.prepare(
-  "select n.noteId as id, createTime, title, \
+const notes_by_notebook_query = ['createTime', 'updateTime', 'title'].reduce((m: { [key: string]: Statement }, t: string) => {
+  m[t] = db.prepare(
+    `select n.noteId as id, createTime, title, \
   GROUP_CONCAT(a.fileName) as attachments, \
   MIN(a.mime) as mime, SUM(a.size) size from Notes n left join Attachments a on id = a.noteId \
-  where notebookId = ? and createTime > ? group by id order by createTime desc limit ?"
-);
+  where notebookId = ? and ${t} > ? group by id order by ${t} desc limit ?`);
+  return m;
+}, {});
 
 app.get("/api/notebooks/:notebookId", (req, res) => {
   res.json({
-    notes: notes_by_notebook_query.all(
+    notes: notes_by_notebook_query[`${req.query.orderBy ?? 'createTime'}`].all(
       req.params.notebookId,
       req.query.lastItem,
       req.query.limit

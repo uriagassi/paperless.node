@@ -99,8 +99,10 @@ export const CommandBar: React.FunctionComponent<CommandBarProps> = (props) => {
   }, [props.api]);
 
   async function importFiles() {
+    props.onLoadingText("Importing from Scanner...");
     await props.api?.importFiles();
     eventBus.dispatch("note-collection-change", { notebooks: ["I"] });
+    props.onLoadingText(undefined);
     refreshPendingCount(false);
   }
 

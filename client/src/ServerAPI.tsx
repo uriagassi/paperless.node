@@ -41,10 +41,13 @@ export class ServerAPI {
     };
   }
 
-  async loadNotes(filter: Folder | string | undefined, limit?: number): Promise<{ notes: Note[] }> {
+  async loadNotes(filter: Folder | string | undefined, limit?: number, order?: string): Promise<{ notes: Note[] }> {
     if (filter) {
-      const path =
+      let path =
         typeof filter === "string" ? `search?term=${encodeURIComponent(filter)}&` : `${filter.kind}s/${filter.key}?`;
+      if (order) {
+        path += `orderBy=${order}&`;
+      }
       const res = await this.make_call(`/api/${path}limit=${limit ?? 100}&lastItem=0`);
       return await res.json();
     }

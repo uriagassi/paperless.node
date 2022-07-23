@@ -81,7 +81,7 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
       const data =
         props.searchTerm ?? "" !== ""
           ? await props.api?.loadNotes(props.searchTerm, props.limit)
-          : await props.api?.loadNotes(props.selectedFolder, props.limit);
+          : await props.api?.loadNotes(props.selectedFolder, props.limit, orderBy(props.selectedFolder));
       const notes: Note[] = [];
       let selectedFound = false;
       data?.notes.forEach((n) => {
@@ -274,4 +274,7 @@ interface NoteListProps {
 export interface NoteCollectionChange {
   notebooks?: (number | string)[];
   tags?: number[];
+}
+function orderBy(selectedFolder: Folder | undefined): string | undefined {
+  return isNotebook(selectedFolder) && selectedFolder.type === "I" ? "updateTime" : "createTime";
 }
