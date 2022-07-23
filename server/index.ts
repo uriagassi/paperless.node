@@ -17,6 +17,7 @@ import fs from "fs";
 import cors from "cors";
 import { Auth } from "./auth/Auth.js";
 import helmet from "helmet";
+import csrf from "csurf";
 
 const IS_PROXY = process.argv[process.argv.length - 1] === "proxy";
 const PORT: number =
@@ -41,7 +42,8 @@ const notebooks_query = db.prepare(
   "select name as name, Notebooks.notebookId as key, type as type, count(Notes.title) as notes \
   from Notebooks left join Notes on Notes.notebookId=key group by key order by name"
 );
-// db.connect
+
+const csrfProtection = csrf({ cookie: true });
 
 app.use(cookieParser());
 app.use(
@@ -93,7 +95,7 @@ app.get("/api/notebooks_and_tags", (req, res) => {
 
 const add_notebook = db.prepare("insert into Notebooks (name) values (?)");
 
-app.post("/api/notebooks/:name", (req, res) => {
+app.post("/api/notebooks/:name", csrfProtection, (req, res) => {
   res.json(add_notebook.run(req.params.name));
 });
 
@@ -188,7 +190,7 @@ app.get("/api/notes/:noteId", (req, res) => {
   });
 });
 
-app.post("/api/notes/:noteId/split", (req, res) => {
+app.post("/api/notes/:noteId/split", csrfProtection, (req, res) => {
   notes.splitNote(req.user_name ?? "", +req.params.noteId);
   res.json("OK");
 });
@@ -213,7 +215,7 @@ const update_note = db.prepare(
   "update Notes set title = $title, createTime = $createTime, notebookId = $notebookId, updateTime = date('now'), updatedBy = $updatedBy where noteId = $noteId"
 );
 
-app.post("/api/notes/:noteId", (req, res) => {
+app.post("/api/notes/:noteId", csrfProtection, (req, res) => {
   res.json(
     update_note.run({ ...req.params, ...req.body, updatedBy: req.user_name })
   );
@@ -228,20 +230,24 @@ const find_notebook = db.prepare(
   "select notebookId from Notebooks where type=?"
 );
 
-app.post("/api/notes/:noteIds/notebook/:notebookId", (req, res) => {
-  const ids = req.params.noteIds.split(",");
-  let notebookId = req.params.notebookId;
-  if (isNaN(+req.params.notebookId)) {
-    notebookId = find_notebook.get(req.params.notebookId).notebookId;
+app.post(
+  "/api/notes/:noteIds/notebook/:notebookId",
+  csrfProtection,
+  (req, res) => {
+    const ids = req.params.noteIds.split(",");
+    let notebookId = req.params.notebookId;
+    if (isNaN(+req.params.notebookId)) {
+      notebookId = find_notebook.get(req.params.notebookId).notebookId;
+    }
+    res.json(move_notes(ids.length).run(notebookId, req.user_name, ...ids));
   }
-  res.json(move_notes(ids.length).run(notebookId, req.user_name, ...ids));
-});
+);
 
 const add_tag_to_note = db.prepare(
   "insert into NoteTags (noteId, tagId) values ($noteId, $tagId)"
 );
 
-app.post("/api/notes/:noteId/addTag", (req, res) => {
+app.post("/api/notes/:noteId/addTag", csrfProtection, (req, res) => {
   res.json(add_tag_to_note.run({ ...req.params, ...req.body }));
 });
 
@@ -249,7 +255,7 @@ const remove_tag_from_note = db.prepare(
   "delete from NoteTags where noteId=$noteId and tagId=$tagId"
 );
 
-app.delete("/api/notes/:noteId/tags/:tagId", (req, res) => {
+app.delete("/api/notes/:noteId/tags/:tagId", csrfProtection, (req, res) => {
   res.json(remove_tag_from_note.run(req.params));
 });
 
@@ -267,7 +273,7 @@ const update_tag = db.prepare(
   "update Tags set name = $name, parentId = $parent where tagId = $tagId"
 );
 
-app.post("/api/tags/:tagId", (req, res) => {
+app.post("/api/tags/:tagId", csrfProtection, (req, res) => {
   if (req.body.parent === 0) {
     req.body.parent = undefined;
   }
@@ -282,7 +288,7 @@ const update_tag_expand = db.prepare(
   "update Tags set isExpanded = $expanded where tagId = $tagId"
 );
 
-app.post("/api/tags/:tagId/expand", (req, res) => {
+app.post("/api/tags/:tagId/expand", csrfProtection, (req, res) => {
   res.json(update_tag_expand.run({ ...req.params, ...req.body }));
 });
 
@@ -308,7 +314,7 @@ const move_child_tags_to_parent = db.prepare(
   "update Tags set parentId = (select parentId from Tags where tagid=$tagId) where parentId = $tagId"
 );
 
-app.delete("/api/tags/:tagId", (req, res) => {
+app.delete("/api/tags/:tagId", csrfProtection, (req, res) => {
   empty_tag.run(req.params.tagId);
   move_child_tags_to_parent.run(req.params);
   res.json(delete_tag.run(req.params.tagId));
@@ -321,18 +327,22 @@ const empty_notebook = db.prepare(
   "update Notes set notebookId = (select notebookId from Notebooks where Type = 'I') where notebookId = ?"
 );
 
-app.delete("/api/notebooks/:notebookId", (req, res) => {
+app.delete("/api/notebooks/:notebookId", csrfProtection, (req, res) => {
   empty_notebook.run(req.params.notebookId);
   res.json(delete_notebook.run(req.params.notebookId));
 });
 
-new AddNotes(notes, att).listen(app);
+new AddNotes(notes, att, csrfProtection).listen(app);
 
 if (config.has("mail.credentials")) {
-  new Gmail(notes, att).listen(app);
+  new Gmail(notes, att, csrfProtection).listen(app);
 }
 
-new Trash(db).listen(app);
+new Trash(db, csrfProtection).listen(app);
+
+app.get("/csrf", csrfProtection, (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
 
 const hostname =
   config.get("server.localOnly") == true ? "127.0.0.1" : "0.0.0.0";

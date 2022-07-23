@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import mime from "mime-types";
 import md5 from "md5";
-import { Express } from "express";
+import { Express, RequestHandler } from "express";
 import config from "config";
 import { Notes } from "./Notes.js";
 import { Attachment, Attachments } from "./Attachment.js";
@@ -15,10 +15,12 @@ export class AddNotes {
 
   private att: Attachments;
   private notes: Notes;
+  private csrfProtection: RequestHandler;
 
-  constructor(notes: Notes, att: Attachments) {
+  constructor(notes: Notes, att: Attachments, csrfProtection: RequestHandler) {
     this.att = att;
     this.notes = notes;
+    this.csrfProtection = csrfProtection;
   }
 
   listen(app: Express) {
@@ -37,7 +39,7 @@ export class AddNotes {
       res.json("OK");
     });
 
-    app.post("/api/files/new", (req, res) => {
+    app.post("/api/files/new", this.csrfProtection, (req, res) => {
       const form = new formidable.IncomingForm();
       form.parse(req, (_err, _fields, files) => {
         const newNote = files.newNote as formidable.File;
@@ -50,7 +52,7 @@ export class AddNotes {
       });
     });
 
-    app.post("/api/notes/:toNote/merge", (req, res) => {
+    app.post("/api/notes/:toNote/merge", this.csrfProtection, (req, res) => {
       this.notes.mergeNotes(+req.params.toNote, req.body.notes, () => {
         res.json("OK");
       });

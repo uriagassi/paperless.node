@@ -3,11 +3,15 @@ import { IAuth } from "./auth/IAuth";
 
 export class ServerAPI {
   auth?: IAuth;
+  csrfToken?: string;
 
   async make_call(input: string, init?: RequestInit | undefined, token?: string): Promise<Response> {
     const headers = new Headers(init?.headers);
     if (token) {
       headers.append("x-access-token", token);
+    }
+    if (["POST", "DELETE"].includes(init?.method ?? "") && this.csrfToken) {
+      headers.append("csrf-token", this.csrfToken);
     }
     const result = await fetch(input, { ...init, headers: headers });
     console.log(result);
@@ -73,6 +77,7 @@ export class ServerAPI {
     console.log(Auth);
     this.auth = new Auth(params);
     console.log(this.auth);
+    ({ csrfToken: this.csrfToken } = await (await fetch("/csrf")).json());
   }
 
   async logout() {

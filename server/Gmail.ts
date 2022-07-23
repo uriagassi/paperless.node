@@ -4,7 +4,7 @@ import escape from "escape-html";
 import mime from "mime-types";
 import md5 from "md5";
 import path from "path";
-import { Express, Response } from "express";
+import { Express, RequestHandler, Response } from "express";
 import { Notes, Note } from "./Notes.js";
 import { NamedAttachment, Attachments, Attachment } from "./Attachment.js";
 import config from "config";
@@ -28,10 +28,12 @@ export class Gmail {
   private readonly credentials: Credentials = JSON.parse(
     fs.readFileSync(config.get("mail.credentials")).toString()
   );
+  private csrfProtection: RequestHandler;
 
-  constructor(notes: Notes, att: Attachments) {
+  constructor(notes: Notes, att: Attachments, csrfProtection: RequestHandler) {
     this.notes = notes;
     this.att = att;
+    this.csrfProtection = csrfProtection;
   }
 
   listen(app: Express) {
@@ -95,6 +97,7 @@ export class Gmail {
 
     app.post(
       "/api/mail/import",
+      this.csrfProtection,
       rateLimit({
         windowMs: 10 * 60_000,
         max: 10,

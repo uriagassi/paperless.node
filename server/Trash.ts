@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs";
-import { Express } from "express";
+import { Express, RequestHandler } from "express";
 import { Database, Statement } from "better-sqlite3";
 import config from "config";
 
@@ -14,8 +14,9 @@ export class Trash {
   private readonly delete_attachments: Statement<[number | string]>;
   private readonly delete_note: Statement<[number | string]>;
   private readonly all_notes_in_trash: Statement<[]>;
+  private readonly csrfProtection: RequestHandler;
 
-  constructor(db: Database) {
+  constructor(db: Database, csrfProtection: RequestHandler) {
     this.delete_tags_for_note = db.prepare(
       "delete from NoteTags where noteId = ?"
     );
@@ -29,17 +30,18 @@ export class Trash {
     this.all_notes_in_trash = db.prepare(
       "select noteId from Notes where notebookId = (select notebookId from Notebooks where type = 'D')"
     );
+    this.csrfProtection = csrfProtection;
   }
 
   listen(app: Express) {
-    app.delete("/api/notes/:noteId", (req, res) => {
+    app.delete("/api/notes/:noteId", this.csrfProtection, (req, res) => {
       req.params.noteId.split(",").forEach((id) => {
         this.deleteNote(id);
       });
       res.json({ result: "OK" });
     });
 
-    app.delete("/api/trash", (req, res) => {
+    app.delete("/api/trash", this.csrfProtection, (req, res) => {
       const notes = this.all_notes_in_trash.all();
       notes.forEach((i) => this.deleteNote(i.noteId));
       res.json({ deleted: notes.length });
