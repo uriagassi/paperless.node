@@ -29,6 +29,7 @@ export class Gmail {
     fs.readFileSync(config.get("mail.credentials")).toString()
   );
   private csrfProtection: RequestHandler;
+  auth?: OAuth2Client;
 
   constructor(notes: Notes, att: Attachments, csrfProtection: RequestHandler) {
     this.notes = notes;
@@ -147,7 +148,7 @@ export class Gmail {
           }
         } catch (err) {
           console.log(err);
-          return res.status(500).json(err);
+          return res.status(500).json({ err, authenticate: this.getNewToken() });
         }
       }
     );
@@ -185,7 +186,7 @@ export class Gmail {
       return Promise.reject(null);
     }
     const { client_secret, client_id } = this.credentials.web;
-    const auth = new google.auth.OAuth2(
+    this.auth = new google.auth.OAuth2(
       client_id,
       client_secret,
       config.get("mail.redirect_uri")
@@ -194,11 +195,11 @@ export class Gmail {
     try {
       // Check if we have previously stored a token.
       const token = fs.readFileSync(this.TOKEN_PATH);
-      auth.setCredentials(JSON.parse(token.toString()));
-      return google.gmail({ version: "v1", auth });
+      this.auth.setCredentials(JSON.parse(token.toString()));
+      return google.gmail({ version: "v1", auth: this.auth });
     } catch (err) {
       console.log(err);
-      return Promise.reject({ authenticate: this.getNewToken(auth) });
+      return Promise.reject({ authenticate: this.getNewToken() });
     }
   }
 
@@ -207,8 +208,8 @@ export class Gmail {
    * execute the given callback with the authorized OAuth2 client.
    * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
    */
-  getNewToken(auth: OAuth2Client) {
-    return auth.generateAuthUrl({
+  getNewToken() {
+    return this.auth?.generateAuthUrl({
       access_type: "offline",
       scope: this.SCOPES,
     });

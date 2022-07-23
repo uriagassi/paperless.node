@@ -14,7 +14,6 @@ export class ServerAPI {
       headers.append("csrf-token", this.csrfToken);
     }
     const result = await fetch(input, { ...init, headers: headers });
-    console.log(result);
     if (result.status === 403) {
       if (!token) {
         return this.make_call(input, init, this.auth?.access_token());
