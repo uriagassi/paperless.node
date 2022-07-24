@@ -79,7 +79,7 @@ export class ServerAPI {
     console.log(Auth);
     this.auth = new Auth(params);
     console.log(this.auth);
-    ({ csrfToken: this.csrfToken } = await (await fetch("/csrf")).json());
+    ({ csrfToken: this.csrfToken } = await (await this.make_call("/csrf")).json());
   }
 
   async logout() {
