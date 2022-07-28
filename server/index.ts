@@ -18,6 +18,9 @@ import cors from "cors";
 import { Auth } from "./auth/Auth.js";
 import helmet from "helmet";
 import csrf from "csurf";
+import consoleStamp from "console-stamp";
+
+consoleStamp(console)
 
 const IS_PROXY = process.argv[process.argv.length - 1] === "proxy";
 const PORT: number =

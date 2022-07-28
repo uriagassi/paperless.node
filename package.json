@@ -21,6 +21,7 @@
     "body-parser": "^1.20.0",
     "concurrently": "^7.2.1",
     "config": "^3.3.7",
+    "console-stamp": "^3.0.6",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "csurf": "^1.11.0",
