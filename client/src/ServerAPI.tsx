@@ -21,7 +21,9 @@ export class ServerAPI {
         this.auth?.login();
       }
     } else if (result.status == 401) {
-      await this.authSetup();
+      if (input !== "/csrf") {
+        await this.authSetup();
+      }
       this.auth?.login();
     }
 
