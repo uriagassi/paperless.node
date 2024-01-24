@@ -34,7 +34,8 @@ paperless.node:~$ yarn build
 paperless.node:~$ yarn setup_wizard 
 ```
 
-     Fill up the location where you want your database to be in. You can skip the rest of the wizard for now.
+Fill up the location where you want your database to be in. You can skip the rest of the wizard for now.
+
 5. Run the server
 ```console
 paperless.node:~$ yarn start_prod
