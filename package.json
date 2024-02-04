@@ -39,8 +39,8 @@
     "prettier": "^2.7.1",
     "semantic-ui-react": "^2.1.2",
     "string-sanitizer": "^2.0.2",
-    "ts-node": "^10.8.1",
     "tslib": "^2.4.0",
+    "tsx": "^4.7.0",
     "typescript": "^4.7.4"
   },
   "private": true,
@@ -54,11 +54,11 @@
     "dev": "concurrently \"yarn start\" \"cd client && HTTPS=true yarn start\"",
     "windows_dev": "concurrently \"yarn start\" \"cd client && set HTTPS=true&&yarn start\"",
     "build": "cd client && yarn run build",
-    "start": "ts-node --files server/index.ts proxy",
-    "start_prod": "ts-node --files --transpile-only server/index.ts",
-    "setup_wizard": "yarn ts-node --files --transpile-only scripts/setup_wizard.ts",
+    "start": "tsx server/index.ts proxy",
+    "start_prod": "tsx server/index.ts",
+    "setup_wizard": "yarn tsx scripts/setup_wizard.ts",
     "postinstall": "semantic-ui-css-patch",
-    "cleanup": "yarn ts-node --files --transpile-only scripts/cleanup.ts"
+    "cleanup": "yarn tsx scripts/cleanup.ts"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "latest",

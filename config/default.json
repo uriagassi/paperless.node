@@ -17,6 +17,10 @@
     "redirect_uri": "https://localhost:3000/gmail",
     "pendingLabel": "Paperless",
     "doneLabel": "Paperless/Archived",
-    "importedTag": "gmail"
+    "importedTag": "gmail",
+    "supported": false
+  },
+  "https": {
+    "use": false
   }
 }

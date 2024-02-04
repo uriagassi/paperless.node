@@ -1,12 +1,7 @@
 {
-  "extends": "ts-node/node16/tsconfig.json",
   "compilerOptions": {
     "target": "esnext",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -24,8 +19,5 @@
   "ts-node": {
     "esm": true
   },
-  "include": [
-    "./scripts/**/*",
-    "server"
-  ]
+  "include": ["./scripts/**/*", "server"]
 }
