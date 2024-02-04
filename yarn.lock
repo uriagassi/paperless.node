@@ -1884,7 +1884,7 @@
 
 "@jridgewell/resolve-uri@^3.1.0":
   version "3.1.1"
-  resolved "https://artifactory.apigee.net/artifactory/api/npm/waze-npm/@jridgewell/resolve-uri/-/@jridgewell/resolve-uri-3.1.1.tgz#c08679063f279615a3326583ba3a90d1d82cc721"
+  resolved "https://registry.yarnpkg.com/@jridgewell/resolve-uri/-/resolve-uri-3.1.1.tgz#c08679063f279615a3326583ba3a90d1d82cc721"
   integrity sha512-dSYZh7HhCDtCKm4QakX0xFpsRDqjjtZf/kjI/v3T3Nwt5r8/qz/M19F9ySyOqU94SXBmeG9ttTul+YnR4LOxFA==
 
 "@jridgewell/set-array@^1.0.1":
