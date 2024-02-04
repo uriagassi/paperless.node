@@ -7,6 +7,20 @@ export default defineConfig({
     base: '',
     plugins: [react(), viteTsconfigPaths()],
     server: {
+        proxy: {
+            '/csrf': {
+                target: 'http://localhost:3001',
+                changeOrigin: true,
+            },
+            '/auth': {
+                target: 'http://localhost:3001',
+                changeOrigin: true,
+            },
+            '/api': {
+                target: 'http://localhost:3001',
+                changeOrigin: true,
+            },
+        },
         // this ensures that the browser opens upon server start
         open: true,
         // this sets a default port to 3000

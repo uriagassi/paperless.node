@@ -211,9 +211,9 @@ app.use("/api/body/js", express.static("server/public/js"));
 app.use("/api/body/images", express.static("server/public/images"));
 
 if (!IS_PROXY) {
-  app.use(express.static("client/build"));
-  app.use("/", express.static("client/build/index.html"));
-  app.use("/gmail", express.static("client/build/index.html"));
+  app.use(express.static("client/dist"));
+  app.use("/", express.static("client/dist/index.html"));
+  app.use("/gmail", express.static("client/dist/index.html"));
 }
 
 const update_note = db.prepare(

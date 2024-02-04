@@ -77,7 +77,7 @@ export class ServerAPI {
     console.log("auth setup");
     const params = await (await this.make_call("/auth")).json();
     console.log(params);
-    const { Auth } = await import("./auth/" + (params.handler ?? "EmptyAuth") + ".tsx");
+    const { Auth } = await import(`./auth/${params.handler ?? "EmptyAuth"}.tsx`);
     console.log(Auth);
     this.auth = new Auth(params);
     console.log(this.auth);
