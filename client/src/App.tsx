@@ -59,6 +59,7 @@ export const App: React.FunctionComponent = () => {
   const [listViewWidth, setListViewWidth] = useState({ width: +(localStorage.getItem("listViewWidth") ?? 350) });
   const [listViewOffsetStart, setListViewOffsetStart] = useState<{ startValue: number; startPosition: number }>();
   const [serverAPI, setServerAPI] = useState<ServerAPI>();
+  const [limit, setLimit] = useState<number>(100);
 
   const setDark = () => {
     // 2
@@ -142,11 +143,18 @@ export const App: React.FunctionComponent = () => {
   }
 
   function doSearch(newValue: string) {
+    setLimit(100);
     setSearchTerm(newValue);
+  }
+
+  function doSetSelectedFolder(folder: Folder) {
+    setLimit(100);
+    setSelectedFolder(folder);
   }
 
   const onUpdateTagClose = (key: number | undefined) => {
     if (key && tagToUpdate?.key === -1) {
+      setLimit(100);
       setSelectedFolder({ ...tagToUpdate, key });
     }
     setTagToUpdate(undefined);
@@ -235,6 +243,7 @@ export const App: React.FunctionComponent = () => {
               onSelectedIdChanged={(key) => {
                 if (selectedFolder != key) {
                   setActiveNote(undefined);
+                  setLimit(100);
                   setSelectedFolder(key);
                 }
               }}
@@ -259,9 +268,13 @@ export const App: React.FunctionComponent = () => {
             selectedId={activeNote}
             api={serverAPI}
             selectedNotes={selectedNotes}
+            limit={limit}
             onSelectedIdChanged={(key, selectedKeys) => {
               setActiveNote(key);
               setSelectedNotes(selectedKeys);
+            }}
+            onIncreaseLimit={(amount?: number) => {
+              setLimit(limit + (amount ?? 10));
             }}
             keyState={keyState}
           />
@@ -288,7 +301,7 @@ export const App: React.FunctionComponent = () => {
               availableNotebooks={notebooks}
               updateTag={setTagToUpdate}
               api={serverAPI}
-              focusTag={setSelectedFolder}
+              focusTag={doSetSelectedFolder}
             />
           )}
         </Stack>

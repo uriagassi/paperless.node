@@ -45,7 +45,7 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
     return () => {
       eventBus.remove("note-detail-change", eventLoadNotes);
     };
-  }, [props.selectedFolder, props.searchTerm, props.selectedId, props.limit, props.onSelectedIdChanged]);
+  }, [props.selectedFolder, props.searchTerm, props.selectedId, props.onSelectedIdChanged]);
 
   useEffect(() => {
     const eventCheckChange = (e: CustomEvent<NoteCollectionChange>) => checkChange(e.detail);
@@ -57,7 +57,7 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
 
   useEffect(() => {
     loadNotes();
-  }, [props.selectedFolder, props.searchTerm]);
+  }, [props.selectedFolder, props.searchTerm, props.limit]);
 
   useEffect(() => {
     console.log("selecting note " + props.selectedId + "(" + Array.from(props.selectedNotes) + ")");
@@ -238,7 +238,7 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
     );
   }
   if (noteList.length >= (props.limit ?? 100)) {
-    notes.push(<CommandBarButton text="More..." />);
+    notes.push(<CommandBarButton text="More..." onClick={() => props.onIncreaseLimit?.(100)} />);
   }
   return (
     <FocusZone className="ListView" style={props.style}>
@@ -263,6 +263,7 @@ interface NoteListProps {
   selectedFolder: Folder | undefined;
   selectedId?: number | undefined;
   onSelectedIdChanged?: (key: number, selectedKeys: Set<number>) => void;
+  onIncreaseLimit?: (amount: number) => void;
   limit?: number;
   searchTerm: string | undefined;
   tabIndex: number | undefined;
