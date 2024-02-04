@@ -71,6 +71,14 @@
 
 .TagList .is-selected .ms-Button {
   background-color: var(--selected-color);
+  box-shadow: 3px 0 0 0 inset var(--selected-bar-color);
+}
+
+[dir="rtl"] .TagList .is-selected .ms-Button {
+  box-shadow: -3px 0 0 0 inset var(--selected-bar-color);
+}
+.TagList .ms-Button {
+  border-radius: 100vh;
 }
 
 .SideView {
@@ -134,6 +142,8 @@
   margin: 1em !important;
   width: 98%;
   height: 95%;
+  border: 1px solid var(--line-color);
+  box-shadow: 1px 1px 3px inset;
 }
 
 .ItemTags .ms-BasePicker-text {
@@ -157,6 +167,7 @@
 
 .ms-TagItem {
   background-color: var(--tag-item-color);
+  border-radius: 100vh;
 }
 
 .MainView {
@@ -168,10 +179,11 @@
 
 .SearchBox {
   flex: 1.5;
-  border-radius: 10px;
+  border-radius: 100vh;
   border: none;
   background-color: var(--line-color);
   height: 3em;
+  padding-left: 1em;
 }
 
 .Hamburger {
