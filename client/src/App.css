@@ -7,6 +7,7 @@
   --selected-color: rgb(237, 235, 233);
   --selected-focus: rgb(220, 218, 216);
   --selected-bar-color: rgb(0, 120, 212);
+  --disabled-color: rgb(115, 115, 115);
   --icon-color: rgb(16, 110, 190);
   --background-color: white;
   --hover-color: rgb(243, 242, 241);
@@ -27,10 +28,11 @@
   height: 100%;
 }
 
-[data-theme="dark"] {
+[data-theme="dark"],
+#root:has([data-theme="dark"]) ~ #fluent-default-layer-host {
   --background-color: rgb(24, 25, 27);
   --text-color: white;
-  --hover-color: rgb(22, 25, 27);
+  --hover-color: rgb(32, 35, 37);
   --line-color: rgb(54, 55, 58);
   --detail-background: rgb(36, 37, 40);
   --selected-color: rgb(28, 56, 101);
@@ -50,6 +52,15 @@
   background-position: left;
   margin: 5px 10px !important;
   color: var(--text-color);
+}
+
+.ms-ContextualMenu-link.is-disabled {
+  color: var(--disabled-color);
+}
+
+.ms-ContextualMenu-link:hover:not(.is-disabled),
+.ms-Dropdown-item:hover {
+  background-color: var(--hover-color);
 }
 
 [dir="rtl"] .App-header {
@@ -119,6 +130,9 @@
 .TitleField {
   width: 100%;
   padding: 3px;
+  input {
+    font-size: 1.5em;
+  }
 }
 .ms-TextField-fieldGroup {
   border-radius: 10px;
@@ -147,8 +161,11 @@
 }
 
 .ItemTags .ms-BasePicker-text {
-  border-color: var(--line-color);
+  border-width: 0;
   border-radius: 7px;
+  &:hover {
+    background-color: var(--hover-color);
+  }
 }
 
 .ms-Dropdown-title {
@@ -168,6 +185,10 @@
 .ms-TagItem {
   background-color: var(--tag-item-color);
   border-radius: 100vh;
+}
+
+.TagList .ms-Button:hover {
+  background-color: var(--hover-color);
 }
 
 .MainView {
@@ -210,9 +231,12 @@
 }
 
 .DateField {
-  min-width: 9em;
-  height: 38px;
+  width: 7.5em;
+  height: 30px;
   padding: 3px;
+  input {
+    font-size: 0.8em;
+  }
 }
 
 .CardRow1,
@@ -231,6 +255,12 @@
 
 .NotebookDropdown {
   width: 10em;
+  .ms-Dropdown-title {
+    border: 0;
+    &:hover {
+      background-color: var(--hover-color);
+    }
+  }
 }
 
 .TagList .ms-Button-flexContainer {
@@ -385,6 +415,13 @@
   border-radius: 10px;
   background-color: var(--line-color);
   box-shadow: 1px 1px 3px var(--drop-shadow) inset;
+}
+
+.ms-TextField-fieldGroup {
+  border-width: 0;
+  &:hover {
+    background-color: var(--hover-color);
+  }
 }
 
 .EmptyDetails > div {

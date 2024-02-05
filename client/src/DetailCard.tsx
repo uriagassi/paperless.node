@@ -376,10 +376,8 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
     <Stack className="DetailCard">
       <Shimmer className="DetailCardShimmer" isDataLoaded={note && props.noteId == note.id}>
         <CommandBar className="DetailsCommands" items={detailCommands} />
-        <Stack horizontalAlign="stretch" verticalAlign="center" horizontal className="CardRow1">
-          <span>Name:&nbsp;</span>
+        <Stack verticalAlign="center" className="CardRow1">
           <TextField value={note?.title || ""} className="TitleField" onChange={onTitleChanged} dir="auto" />
-          <span>Date:&nbsp;</span>
           <DatePicker
             componentRef={datePickerRef}
             className="DateField"
@@ -390,7 +388,12 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
             strings={defaultDatePickerStrings}
           />
         </Stack>
-        <Stack horizontal className="CardRow2" onContextMenu={onShowContextualMenu}>
+
+      </Shimmer>
+      <Shimmer isDataLoaded={note && props.noteId == note.id} className="BodyFieldShimmer">
+        <iframe className="BodyField" src={props.api?.noteBodySrc(props.noteId)} />
+      </Shimmer>
+      <Stack horizontal className="CardRow2" onContextMenu={onShowContextualMenu}>
           <Dropdown
             className="NotebookDropdown"
             options={notebooks}
@@ -414,10 +417,6 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
             focusTag={props.focusTag}
           />
         </Stack>
-      </Shimmer>
-      <Shimmer isDataLoaded={note && props.noteId == note.id} className="BodyFieldShimmer">
-        <iframe className="BodyField" src={props.api?.noteBodySrc(props.noteId)} />
-      </Shimmer>
     </Stack>
   );
 };
