@@ -76,10 +76,7 @@ if (!IS_PROXY && config.has("cors.use") && config.get("cors.use") == true) {
 }
 
 app.get("/api/tags", (req, res) => {
-  const tags = tag_query.all().map((r) => {
-    r.parent = r.parent || 0;
-    return r;
-  });
+  const tags = tag_query.all();
   res.json({ tags: tags });
 });
 
@@ -89,10 +86,7 @@ app.get("/api/notebooks", (req, res) => {
 });
 
 app.get("/api/notebooks_and_tags", (req, res) => {
-  const tags = tag_query.all().map((r) => {
-    r.parent = r.parent || 0;
-    return r;
-  });
+  const tags = tag_query.all();
   res.json({ notebooks: notebooks_query.all(), tags: tags });
 });
 

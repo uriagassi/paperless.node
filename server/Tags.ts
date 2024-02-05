@@ -28,7 +28,7 @@ export class Tags {
 
   addTag(noteId: number | bigint, tagName: string) {
     if (!tagName) return undefined;
-    const r = this.find_tag_by_name.get(tagName);
+    const r = this.find_tag_by_name.get(tagName) as {tagId: number};
     if (r) {
       this.addTagId(noteId, r.tagId);
       return r.tagId;

@@ -41,8 +41,8 @@ export class Trash {
       res.json({ result: "OK" });
     });
 
-    app.delete("/api/trash", this.csrfProtection, (req, res) => {
-      const notes = this.all_notes_in_trash.all();
+    app.delete("/api/trash", this.csrfProtection, (_req, res) => {
+      const notes = this.all_notes_in_trash.all() as { noteId: number }[];
       notes.forEach((i) => this.deleteNote(i.noteId));
       res.json({ deleted: notes.length });
     });
@@ -50,7 +50,7 @@ export class Trash {
 
   deleteNote(noteId: number | string) {
     // 1. get attachments to delete
-    const attachmentsToDelete = this.select_attachments.all(noteId);
+    const attachmentsToDelete = this.select_attachments.all(noteId) as string[][];
     // 2. delete attachments from db
     this.delete_attachments.run(noteId);
     // 3. delete tags
@@ -60,7 +60,7 @@ export class Trash {
     // 5. delete attachments from fs
     attachmentsToDelete.forEach((a) => {
       const attLoc = path.resolve(this.attachmentsDir, ...a);
-      if (attLoc.indexOf(this.attachmentsDir) == 0) {
+            if (attLoc.indexOf(this.attachmentsDir) == 0) {
         if (fs.existsSync(attLoc)) {
           fs.unlinkSync(attLoc);
         }
