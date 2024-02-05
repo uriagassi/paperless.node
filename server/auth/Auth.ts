@@ -28,7 +28,7 @@ export class Auth {
     const nonSecurePaths = [
       "/api/body/css",
       "/api/body/js",
-      "/static",
+      "/assets",
       "/manifest.json",
     ];
     if (nonSecurePaths.find((p) => req.path.startsWith(p))) return next();
