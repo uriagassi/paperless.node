@@ -30,6 +30,7 @@ export class Auth {
       "/api/body/js",
       "/assets",
       "/manifest.json",
+      "/favicon.ico"
     ];
     if (nonSecurePaths.find((p) => req.path.startsWith(p))) return next();
     if (req.path === "/") return next();

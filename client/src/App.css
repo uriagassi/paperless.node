@@ -154,8 +154,8 @@
   border-radius: 10px;
   background-color: var(--line-color);
   margin: 1em !important;
-  width: 98%;
-  height: 95%;
+  width: 100%;
+  height: 100%;
   border: 1px solid var(--line-color);
   box-shadow: 1px 1px 3px inset;
 }
