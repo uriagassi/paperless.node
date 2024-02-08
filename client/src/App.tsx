@@ -8,11 +8,13 @@ import {
   initializeIcons,
   IStackStyles,
   IStackTokens,
+  ITextField,
   PartialTheme,
   SearchBox,
   Spinner,
   SpinnerSize,
   Stack,
+  TextField,
   ThemeProvider,
 } from "@fluentui/react";
 import "./App.css";
@@ -60,6 +62,8 @@ export const App: React.FunctionComponent = () => {
   const [listViewOffsetStart, setListViewOffsetStart] = useState<{ startValue: number; startPosition: number }>();
   const [serverAPI, setServerAPI] = useState<ServerAPI>();
   const [limit, setLimit] = useState<number>(100);
+  const [tagFilter, setTagFilter] = useState<string>();
+  const tagFilterInput = React.useRef<ITextField | null>();
 
   const setDark = () => {
     // 2
@@ -188,6 +192,13 @@ export const App: React.FunctionComponent = () => {
     localStorage.setItem("listViewWidth", `${listViewWidth.width}`);
   }
 
+  function onFilterChanged(
+    _event: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,
+    newValue?: string | undefined
+  ) {
+    setTagFilter(newValue);
+  }
+
   return (
     <ThemeProvider
       applyTo="body"
@@ -251,14 +262,26 @@ export const App: React.FunctionComponent = () => {
               notebooks={notebooks}
               updateTag={setTagToUpdate}
               api={serverAPI}
+              tagFilter={tagFilter}
+              setTagFilter={setTagFilter}
+              focusOnTagFilter={() => tagFilterInput.current?.focus()}
             />
-            <ActionButton
-              text="Add Tag"
-              iconProps={{ iconName: "Tag" }}
-              className="NewTagButton"
-              name="Add Tag"
-              onClick={() => setTagToUpdate({ kind: "tag", key: -1, name: "", notes: 0, parent: 0 })}
-            />
+            <Stack horizontal className="TagActions">
+              <ActionButton
+                text="Add Tag"
+                iconProps={{ iconName: "Tag" }}
+                className="NewTagButton"
+                name="Add Tag"
+                onClick={() => setTagToUpdate({ kind: "tag", key: -1, name: "", notes: 0, parent: 0 })}
+              />
+              <TextField
+                onChange={onFilterChanged}
+                className="FilterTag"
+                placeholder="Find tag..."
+                value={tagFilter}
+                componentRef={(input) => (tagFilterInput.current = input)}
+              />
+            </Stack>
           </Stack>
           <NoteList
             style={listViewWidth}

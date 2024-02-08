@@ -25,6 +25,9 @@ interface TagListProps {
   notebooks: Notebook[] | undefined;
   updateTag: (tag: Tag) => unknown;
   api: ServerAPI | undefined;
+  tagFilter: string | undefined;
+  setTagFilter: (filter: string) => unknown;
+  focusOnTagFilter: () => void | undefined;
 }
 
 export const TagList: React.FunctionComponent<TagListProps> = (props) => {
@@ -57,6 +60,20 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
     }
   }
 
+  function highlightFilter(text: string, filter: string | undefined): JSX.Element | undefined {
+    if (!filter || !text.toLocaleLowerCase().includes(filter.toLocaleLowerCase())) {
+      return undefined;
+    }
+    const startIndex = text.toLocaleLowerCase().indexOf(filter.toLocaleLowerCase());
+    return (
+      <div>
+        {text.substring(0, startIndex)}
+        <span className="highlight">{text.substring(startIndex, startIndex + filter.length)}</span>
+        {text.substring(startIndex + filter.length)}
+      </div>
+    );
+  }
+
   useEffect(() => {
     const links: INavLink[] = [];
     const tags: { [key: string]: INavLink } = {};
@@ -78,6 +95,9 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
         links.push(current);
       } else {
         tags["" + (item.parent ?? "")]?.links?.push(current);
+        if (highlightFilter(item.name, props.tagFilter)) {
+          tags["" + (item.parent ?? "")].isExpanded = true;
+        }
       }
     });
     addToNotebooks(notebooks, "I", "Inbox");
@@ -107,7 +127,7 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
         links: links,
       },
     ]);
-  }, [props.tags, props.notebooks]);
+  }, [props.tags, props.notebooks, props.tagFilter]);
 
   const onSelect = (ev?: React.MouseEvent<HTMLElement>, item?: INavLink) => {
     props.onSelectedIdChanged(item?.itag);
@@ -246,15 +266,36 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
     eventBus.dispatch("note-collection-change", { notebooks: ["D"] });
     eventBus.dispatch("wait-screen", undefined);
   }
+  function renderLink(item?: INavLink, defaultRender?: (props?: INavLink) => JSX.Element | null): JSX.Element | null {
+    if (defaultRender) {
+      if (item) {
+        const nameWithHighlight = highlightFilter(item?.name, props.tagFilter);
+        if (nameWithHighlight) {
+          return nameWithHighlight;
+        }
+      }
+      return defaultRender(item);
+    }
+    return null;
+  }
+
+  function checkKeyDown(ev: KeyboardEventHandler<HTMLElement>) {
+    if (ev.key == "Escape") {
+      props.setTagFilter("");
+    } else {
+      props.focusOnTagFilter();
+    }
+  }
 
   return (
-    <div className="TagList" onContextMenu={onShowContextualMenu} ref={tagListRef}>
+    <div className="TagList" onContextMenu={onShowContextualMenu} ref={tagListRef} onKeyDown={checkKeyDown}>
       <Shimmer isDataLoaded={!!props.tags}>
         <Nav
           selectedKey={key(props.selectedId)}
           groups={tagList ?? []}
           onLinkClick={onSelect}
           onLinkExpandClick={onExpand}
+          onRenderLink={renderLink}
         />
       </Shimmer>
       <TagContextMenu
