@@ -279,7 +279,7 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
     return null;
   }
 
-  function checkKeyDown(ev: KeyboardEventHandler<HTMLElement>) {
+  function checkKeyDown(ev: React.KeyboardEvent<HTMLDivElement>) {
     if (ev.key == "Escape") {
       props.setTagFilter("");
     } else {
