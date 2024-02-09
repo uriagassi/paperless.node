@@ -63,10 +63,6 @@
   background-color: var(--hover-color);
 }
 
-[dir="rtl"] .App-header {
-  background-position: right;
-}
-
 .ms-CommandBar {
   padding-left: 0;
 }
@@ -85,9 +81,6 @@
   box-shadow: 3px 0 0 0 inset var(--selected-bar-color);
 }
 
-[dir="rtl"] .TagList .is-selected .ms-Button {
-  box-shadow: -3px 0 0 0 inset var(--selected-bar-color);
-}
 .TagList .ms-Button {
   border-radius: 100vh;
 }
@@ -176,10 +169,6 @@
 .ItemTags {
   flex: 1;
   padding: 0 0 0 1em;
-}
-
-[dir="rtl"] .ItemTags {
-  padding: 0 1em 0 0;
 }
 
 .ms-TagItem {
@@ -283,10 +272,6 @@
   border-color: var(--selected-bar-color);
   border-width: 0;
   border-left: 2px var(--selected-bar-color) solid;
-}
-
-[dir="rtl"] .ListItem.is-active {
-  border-width: 0 2px 0 0;
 }
 
 .ListItem.is-selected {
@@ -452,4 +437,24 @@ span.highlight {
 
 .TagActions {
   align-items: center;
+}
+
+[dir="rtl"] {
+  .App-header {
+    background-position: right;
+  }
+
+  .TagList .is-selected .ms-Button {
+    box-shadow: -3px 0 0 0 inset var(--selected-bar-color);
+  }
+  .ItemTags {
+    padding: 0 1em 0 0;
+  }
+  .ListItem.is-active {
+    border-width: 0 2px 0 0;
+  }
+  .TagList .ms-Button-flexContainer {
+    padding-right: 20px;
+    padding-left: 0px;
+  }
 }
