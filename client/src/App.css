@@ -159,6 +159,16 @@
   &:hover {
     background-color: var(--hover-color);
   }
+  ::placeholder {
+    opacity: 50%;
+    text-align: center;
+  }
+  &:has(.ms-TagItem),
+  &:focus-within {
+    ::placeholder {
+      opacity: 0;
+    }
+  }
 }
 
 .ms-Dropdown-title {
@@ -265,6 +275,7 @@
   height: 5.5em;
   unicode-bidi: plaintext;
   line-height: 2.4em;
+  text-wrap: balance;
 }
 
 .ListItem.is-active {

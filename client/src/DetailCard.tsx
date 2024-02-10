@@ -388,35 +388,38 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
             strings={defaultDatePickerStrings}
           />
         </Stack>
-
       </Shimmer>
       <Shimmer isDataLoaded={note && props.noteId == note.id} className="BodyFieldShimmer">
         <iframe className="BodyField" src={props.api?.noteBodySrc(props.noteId)} />
       </Shimmer>
       <Stack horizontal className="CardRow2" onContextMenu={onShowContextualMenu}>
-          <Dropdown
-            className="NotebookDropdown"
-            options={notebooks}
-            selectedKey={note?.notebookId}
-            onChange={onNotebookChanged}
-            onRenderOption={onRenderOption}
-          />
-          <TagPicker
-            onResolveSuggestions={filterSuggestedTags}
-            getTextFromItem={getTextFromItem}
-            pickerSuggestionsProps={pickerSuggestionsProps}
-            selectedItems={note?.tags}
-            className="ItemTags"
-            onChange={onTagsChanged}
-          />
-          <TagContextMenu
-            updateTag={props.updateTag}
-            availableTags={props.availableTags}
-            doUpdate={doUpdate}
-            onDismiss={onContextMenuDismiss}
-            focusTag={props.focusTag}
-          />
-        </Stack>
+        <Dropdown
+          className="NotebookDropdown"
+          options={notebooks}
+          selectedKey={note?.notebookId}
+          onChange={onNotebookChanged}
+          onRenderOption={onRenderOption}
+        />
+        <TagPicker
+          onResolveSuggestions={filterSuggestedTags}
+          getTextFromItem={getTextFromItem}
+          pickerSuggestionsProps={pickerSuggestionsProps}
+          selectedItems={note?.tags}
+          className="ItemTags"
+          onChange={onTagsChanged}
+          inputProps={{
+            "aria-label": "Tag Picker",
+            placeholder: "No Tags - click to add",
+          }}
+        />
+        <TagContextMenu
+          updateTag={props.updateTag}
+          availableTags={props.availableTags}
+          doUpdate={doUpdate}
+          onDismiss={onContextMenuDismiss}
+          focusTag={props.focusTag}
+        />
+      </Stack>
     </Stack>
   );
 };
