@@ -85,7 +85,7 @@ export class AddNotes {
       );
       const newNote = {
         createTime: stats.ctime.toISOString().replace(/T.*/, ""),
-        title: path.basename(attachment.fileName),
+        title: path.basename(basename.replaceAll(/_/g, " ".replace(/\..{3}$/, ""))),
         noteData: this.att.getHtmlForAttachment(named),
         updateBy: user,
       };
