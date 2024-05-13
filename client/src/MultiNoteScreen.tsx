@@ -46,6 +46,10 @@ export const MultiNoteScreen: React.FunctionComponent<{
     }
   };
 
+  const doDownloadAll = async () => {
+    await props.api?.getAllAttachments([...props.selectedNotes]).then((response) => props.api?.download(response));
+  };
+
   return (
     <>
       <div style={{ flex: 1 }} />
@@ -83,6 +87,14 @@ export const MultiNoteScreen: React.FunctionComponent<{
                       },
                     } as ICommandBarItemProps;
                   }) ?? [],
+              },
+            },
+            {
+              key: "download",
+              text: "Download All Attachments",
+              iconProps: { iconName: "Attach" },
+              onClick: () => {
+                doDownloadAll();
               },
             },
           ]}

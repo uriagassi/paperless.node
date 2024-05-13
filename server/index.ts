@@ -229,6 +229,13 @@ const find_notebook = db.prepare(
   "select notebookId from Notebooks where type=?"
 );
 
+
+const get_attachments = prepare_many(
+  db,
+  "select fileName, uniqueFilename from Attachments where noteId in (#noteIds)",
+  "#noteIds"
+)
+
 app.post(
   "/api/notes/:noteIds/notebook/:notebookId",
   csrfProtection,
@@ -241,6 +248,11 @@ app.post(
     res.json(move_notes(ids.length).run(notebookId, req.user_name, ...ids));
   }
 );
+
+app.get("/api/notes/:noteIds/attachments", csrfProtection, (req, res) => {
+  const ids = req.params.noteIds.split(",");
+  res.json(get_attachments(ids.length).all(...ids));
+})
 
 const add_tag_to_note = db.prepare(
   "insert into NoteTags (noteId, tagId) values ($noteId, $tagId)"

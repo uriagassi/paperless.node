@@ -222,6 +222,36 @@ export class ServerAPI {
     });
     return await result.json();
   }
+
+  async getAllAttachments(noteIds: number[]): Promise<[{ fileName: string; uniqueFileName: string }]> {
+    const result = await this.make_call(`/api/notes/${noteIds.join(",")}/attachments`);
+    return await result.json();
+  }
+
+  download(attachments?: [{ fileName: string; uniqueFileName: string }]) {
+    attachments?.map((a) => {
+      const url = `/api/body/attachments/${a.uniqueFileName}`;
+      const filename = a.fileName;
+      fetch(url)
+        .then((response) => response.blob())
+        .then((blob) => {
+          // Create blob link to download
+          const url = window.URL.createObjectURL(new Blob([blob]));
+          const link = document.createElement("a");
+          link.href = url;
+          link.setAttribute("download", filename);
+
+          // Append to html link element page
+          document.body.appendChild(link);
+
+          // Start download
+          link.click();
+
+          // Clean up and remove the link
+          link.parentNode?.removeChild(link);
+        });
+    });
+  }
 }
 
 interface RawNote {

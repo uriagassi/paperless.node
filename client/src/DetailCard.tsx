@@ -233,27 +233,6 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
     setDoUpdate(undefined);
   };
 
-  const download = (url: string, filename: string) => {
-    fetch(url)
-      .then((response) => response.blob())
-      .then((blob) => {
-        // Create blob link to download
-        const url = window.URL.createObjectURL(new Blob([blob]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", filename);
-
-        // Append to html link element page
-        document.body.appendChild(link);
-
-        // Start download
-        link.click();
-
-        // Clean up and remove the link
-        link.parentNode?.removeChild(link);
-      });
-  };
-
   async function split() {
     if (props.noteId) {
       await props.api?.split(props.noteId);
@@ -356,19 +335,37 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
       iconProps: { iconName: "DownloadDocument" },
       hidden: !note?.attachments.length,
       subMenuProps:
-        (note?.attachments.length ?? 0) > 0
+        (note?.attachments.length ?? 0) == 0
+          ? undefined
+          : note?.attachments.length == 1
           ? {
-              items:
-                note?.attachments.map((a) => {
+              items: [
+                {
+                  key: "download" + note?.attachments[0].fileName,
+                  text: note?.attachments[0].fileName,
+                  iconProps: { iconName: "Attach" },
+                  onClick: () => props.api?.download(note?.attachments),
+                },
+              ],
+            }
+          : {
+              items: [
+                ...(note?.attachments.map((a) => {
                   return {
                     key: "download" + a.fileName,
                     text: a.fileName,
                     iconProps: { iconName: "Attach" },
-                    onClick: () => download(`/api/body/attachments/${a.uniqueFileName}`, a.fileName),
+                    onClick: () => props.api?.download([a]),
                   };
-                }) || [],
-            }
-          : undefined,
+                }) || []),
+                {
+                  key: "download_all",
+                  text: "Download All",
+                  iconProps: { iconName: "Attach" },
+                  onClick: () => props.api?.download(note?.attachments),
+                },
+              ],
+            },
     },
   ];
 
