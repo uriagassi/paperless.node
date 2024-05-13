@@ -5,7 +5,7 @@
   "dependencies": {
     "@fluentui/react": "^8.68.2",
     "@semantic-ui-react/css-patch": "^1.0.0",
-    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^12.1.5",
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^26.0.24",
