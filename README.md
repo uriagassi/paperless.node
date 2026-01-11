@@ -20,28 +20,45 @@ the same concepts, but is cleaner, leaner, and more available to non-Microsoft-c
 ## Deployment
 The easiest way to use this application, is to install it locally on your machine
 
-1. Install [Node.js](https://nodejs.org/en/) and [yarn](https://classic.yarnpkg.com/lang/en/docs/install/)
-2. Clone this repo locally
-3. Build the server
+### Prerequisites
+- **Node.js**: Version 18 LTS or later (Tested on v24.12.0)
+- **Yarn**: Version 3.x or later
 
-```console
-paperless.node:~$ yarn install
-paperless.node:~$ yarn build
-```        
-4. Run the Setup Wizard
+1. Install [Node.js](https://nodejs.org/en/)
+2. Enable Yarn via Corepack:
+   ```console
+   corepack enable
+   ```
+3. Clone this repo locally
+4. Build the server
+   ```console
+   paperless.node:~$ yarn install
+   paperless.node:~$ yarn build
+   ```        
+5. Run the Setup Wizard
+   ```console
+   paperless.node:~$ yarn setup_wizard 
+   ```
 
-```console
-paperless.node:~$ yarn setup_wizard 
-```
+   Fill up the location where you want your database to be in. You can skip the rest of the wizard for now.
 
-Fill up the location where you want your database to be in. You can skip the rest of the wizard for now.
-
-5. Run the server
-```console
-paperless.node:~$ yarn start_prod
-```
+6. Run the server
+   ```console
+   paperless.node:~$ yarn start_prod
+   ```
 
 You can now see your database by going to http://localhost:3000
+
+## Troubleshooting
+
+### Windows Build Issues
+If you encounter errors building `better-sqlite3` or other native dependencies:
+1. Ensure you have the Windows build tools installed. You can install them via an administrative PowerShell:
+   ```ps1
+   npm install --global --production windows-build-tools
+   ```
+   Or install Visual Studio Build Tools manually.
+2. If using a very new version of Node.js (e.g., v24+), ensure you have the latest dependencies by running `yarn upgrade-interactive` or manually updating `better-sqlite3` in `package.json`.
 
 # Basic Operation
 
@@ -138,7 +155,7 @@ To do it safely - there are a couple of things you should do to contain this att
 ## HTTPS
 First and foremost - you need to make sure the server accepts only HTTPS connections. To do that, you would need to
 obtain an [ssl certificate](http://www.steves-internet-guide.com/ssl-certificates-explained/) which matches the URL your
-server will serve from. Put the cert.pem and key.pem in a place where the server can read them.
+server will serve from. Put the cert.pem and key.pem in a folder accessible to the server (e.g. `./config/`).
 
 Once you do that, run `yarn setup_wizard` again, and skip to the `Do you want to run HTTPS?` question. Type `Y`, and
 then you will be requested to point the server to your `key.pem` and `cert.pem`.
@@ -161,7 +178,7 @@ If you are lucky enough to have a Synology NAS, and you are willing to use my im
 follow the instructions to create an Application and wire it back to the paperless.node server using the `yarn
 setup_wizard` by answering Yes to `Do you want to use Synology SSO?`, and fill the requested information.
 
-Otherwise - I would strongly recomment either to implement your own robust authentication, or reconsider opening it to
+Otherwise - I would strongly recommend either implementing your own robust authentication, or reconsidering opening it to
 external connections - with Gmail integration, you can do most of the remote archiving by sending mail to yourself, and
 leave the indexing to when you are home.
 
