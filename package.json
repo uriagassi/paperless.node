@@ -1,9 +1,8 @@
 {
   "name": "paperless.node",
-  "packageManager": "yarn@3.2.1",
   "dependencies": {
     "@semantic-ui-react/css-patch": "^1.0.0",
-    "@types/better-sqlite3": "^7.5.0",
+    "@types/better-sqlite3": "^7.6.12",
     "@types/config": "^0.0.41",
     "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.12",
@@ -17,7 +16,7 @@
     "@types/mime-types": "^2.1.1",
     "@types/node": "^18.19.11",
     "axios": "^1.7.4",
-    "better-sqlite3": "^7.5.3",
+    "better-sqlite3": "^12.6.0",
     "body-parser": "^1.20.0",
     "concurrently": "^7.2.1",
     "config": "^3.3.11",
@@ -42,6 +41,9 @@
     "tslib": "^2.4.0",
     "tsx": "^4.7.1",
     "typescript": "^4.7.4"
+  },
+  "resolutions": {
+    "**/serve/ajv": "^8.17.1"
   },
   "private": true,
   "type": "module",
