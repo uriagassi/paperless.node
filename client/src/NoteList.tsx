@@ -82,6 +82,7 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
         props.searchTerm ?? "" !== ""
           ? await props.api?.loadNotes(props.searchTerm, props.limit)
           : await props.api?.loadNotes(props.selectedFolder, props.limit, orderBy(props.selectedFolder));
+
       const notes: Note[] = [];
       let selectedFound = false;
       data?.notes.forEach((n) => {
@@ -91,7 +92,12 @@ export const NoteList: React.FunctionComponent<NoteListProps> = (props) => {
           attachments = "" + (count + 1) + " attachments";
         }
         selectedFound = selectedFound || props.selectedId == n.id;
-        notes.push({ ...n, attachments: attachments, active: props.selectedId == n.id });
+        notes.push({
+          ...n,
+          attachments: attachments,
+          active: props.selectedId == n.id,
+          selected: props.selectedNotes?.has(n.id)
+        });
       });
       setNoteList(notes);
       if (withSetLoading) {

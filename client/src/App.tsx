@@ -1,4 +1,5 @@
 import React, { createRef, useEffect, useState } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 import {
   ActionButton,
   css,
@@ -108,8 +109,47 @@ export const App: React.FunctionComponent = () => {
 
   function loadNotebooks() {
     serverAPI?.loadNotebooks().then((data) => {
-      setNotebooks(data.notebooks);
-      setTags(data.tags);
+      const params = new URLSearchParams(window.location.search);
+      const noteId = params.get("noteId");
+      const folderKind = params.get("folderKind");
+      const folderKey = params.get("folderKey");
+
+      let folder: Folder | undefined;
+      let noteIdToSet: number | undefined;
+
+      if (noteId && folderKind && folderKey) {
+        const parsedFolderKey = Number(folderKey);
+        if (folderKind === "notebook") {
+          folder = data.notebooks.find((n) => n.key === parsedFolderKey);
+        } else if (folderKind === "tag") {
+          folder = data.tags.find((t) => t.key === parsedFolderKey);
+        }
+
+        if (folder) {
+          noteIdToSet = Number(noteId);
+        }
+      }
+
+      // If we don't have a specific folder from the URL and we don't have one selected yet, default to Inbox
+      // so we set everything together and avoid TagList setting it asynchronously
+      if (!folder && !selectedFolder && data.notebooks.length > 0) {
+        folder = data.notebooks.find(n => n.type === "I") ?? data.notebooks[0];
+      } else if (!folder) {
+        folder = selectedFolder;
+      }
+
+      unstable_batchedUpdates(() => {
+        if (folder && folder !== selectedFolder) {
+          setSelectedFolder(folder);
+        }
+        if (noteIdToSet !== undefined) {
+          setActiveNote(noteIdToSet);
+          setSelectedNotes(new Set([noteIdToSet]));
+        }
+
+        setNotebooks(data.notebooks);
+        setTags(data.tags);
+      });
     });
   }
 
@@ -320,6 +360,7 @@ export const App: React.FunctionComponent = () => {
           ) : (
             <DetailCard
               noteId={activeNote}
+              selectedFolder={selectedFolder}
               availableTags={tags}
               availableNotebooks={notebooks}
               updateTag={setTagToUpdate}

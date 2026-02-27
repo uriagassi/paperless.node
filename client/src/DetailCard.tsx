@@ -17,15 +17,18 @@ import {
   Stack,
   TagPicker,
   TextField,
+  MessageBar,
+  MessageBarType,
 } from "@fluentui/react";
 import { TagContextMenu } from "./TagContextMenu";
-import { Notebook, ServerAPI, Tag } from "./ServerAPI";
+import { Folder, Notebook, ServerAPI, Tag } from "./ServerAPI";
 
 export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
   const datePickerRef = React.createRef<IDatePicker>();
   const [note, setNote] = useState<Note | undefined>();
   const [notebooks, setNotebooks] = useState<IDropdownOption[]>([]);
   const [modified, setModified] = useState<boolean>(false);
+  const [showMessageBar, setShowMessageBar] = useState<boolean>(false);
 
   useEffect(() => {
     loadNote();
@@ -199,12 +202,12 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
     }
     return filterText
       ? [
-          ...(props.availableTags?.filter(
-            (tag) =>
-              tag.name.toLowerCase().indexOf(filterText.toLowerCase()) === 0 && !listContainsTagList(tag, tagList)
-          ) || []),
-          ...newTagList,
-        ]
+        ...(props.availableTags?.filter(
+          (tag) =>
+            tag.name.toLowerCase().indexOf(filterText.toLowerCase()) === 0 && !listContainsTagList(tag, tagList)
+        ) || []),
+        ...newTagList,
+      ]
       : [];
   };
 
@@ -302,6 +305,26 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
       disabled: true,
     },
     {
+      key: "share",
+      text: "Share",
+      iconProps: { iconName: "Share" },
+      disabled: !props.noteId || !props.selectedFolder,
+      onClick: () => {
+        if (props.noteId && props.selectedFolder) {
+          const url = new URL(window.location.origin);
+          url.searchParams.set("noteId", props.noteId.toString());
+          url.searchParams.set("folderKind", props.selectedFolder.kind);
+          url.searchParams.set("folderKey", props.selectedFolder.key.toString());
+          navigator.clipboard.writeText(url.toString())
+            .then(() => {
+              setShowMessageBar(true);
+              setTimeout(() => setShowMessageBar(false), 3000);
+            })
+            .catch((err) => console.error("Could not copy link:", err));
+        }
+      },
+    },
+    {
       key: "moveNotebook",
       text: "Move",
       iconProps: { iconName: "FabricMovetoFolder" },
@@ -338,7 +361,7 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
         (note?.attachments.length ?? 0) == 0
           ? undefined
           : note?.attachments.length == 1
-          ? {
+            ? {
               items: [
                 {
                   key: "download" + note?.attachments[0].fileName,
@@ -348,7 +371,7 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
                 },
               ],
             }
-          : {
+            : {
               items: [
                 ...(note?.attachments.map((a) => {
                   return {
@@ -371,6 +394,17 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
 
   return (
     <Stack className="DetailCard">
+      {showMessageBar && (
+        <MessageBar
+          messageBarType={MessageBarType.success}
+          isMultiline={false}
+          onDismiss={() => setShowMessageBar(false)}
+          dismissButtonAriaLabel="Close"
+          styles={{ root: { position: 'absolute', top: 10, right: 10, zIndex: 1000 } }}
+        >
+          Link copied to clipboard!
+        </MessageBar>
+      )}
       <Shimmer className="DetailCardShimmer" isDataLoaded={note && props.noteId == note.id}>
         <CommandBar className="DetailsCommands" items={detailCommands} />
         <Stack verticalAlign="center" className="CardRow1">
@@ -435,6 +469,7 @@ interface Note {
 
 interface DetailCardProps {
   noteId: number | undefined;
+  selectedFolder?: Folder;
   availableTags: Tag[] | undefined;
   availableNotebooks: Notebook[] | undefined;
   updateTag: (tag: Tag) => unknown;
