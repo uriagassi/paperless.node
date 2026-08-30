@@ -9,6 +9,10 @@ export class Auth implements IAuth {
       const queryParams = new URLSearchParams(window.location.hash.replace(/^#/, "?"));
       console.log(queryParams);
       this.access_token_from_path = queryParams.get("access_token");
+      if (this.access_token_from_path) {
+        // Clear the single-use token from the URL once read.
+        history.replaceState(null, "", window.location.pathname + window.location.search);
+      }
     }
   }
 
@@ -20,12 +24,17 @@ export class Auth implements IAuth {
     return this.access_token_from_path ?? "";
   }
 
+  available_token(): string | null {
+    return this.access_token_from_path;
+  }
+
   login() {
     const cookies = new Cookies();
     const loggedInTheLastMinutes = cookies.get("loggenInTheLastMinute");
     if (loggedInTheLastMinutes) {
       console.log("throttling login");
     } else {
+      cookies.remove("x-access-token", { path: "/" });
       cookies.set("loggenInTheLastMinute", true, { maxAge: 60 });
       window.location.href = this.oauth_params.login_href;
     }
