@@ -19,12 +19,16 @@ export class ServerAPI {
         return this.make_call(input, init, this.auth?.access_token());
       } else {
         this.auth?.login();
+        // Redirecting; never resolve rather than handing back a failed
+        // response for the caller to blindly .json().
+        return new Promise<Response>(() => {});
       }
     } else if (result.status == 401) {
       if (input !== "/csrf") {
         await this.authSetup();
       }
       this.auth?.login();
+      return new Promise<Response>(() => {});
     }
 
     return result;
@@ -62,7 +66,7 @@ export class ServerAPI {
   }
 
   async user(): Promise<{ user_id: string; user_name: string }> {
-    const res = await this.make_call("api/user");
+    const res = await this.make_call("api/user", undefined, this.auth?.available_token() ?? undefined);
     return await res.json();
   }
 

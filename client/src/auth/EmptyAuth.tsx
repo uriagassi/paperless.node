@@ -5,6 +5,10 @@ export class Auth implements IAuth {
     return "none";
   }
 
+  available_token(): string | null {
+    return null;
+  }
+
   login(): void {
     throw "Unsupported Method";
   }
