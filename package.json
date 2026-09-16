@@ -42,7 +42,26 @@
     "typescript": "^4.7.4"
   },
   "resolutions": {
-    "**/serve/ajv": "^8.17.1"
+    "**/eslint-plugin-react/**/minimatch": "^3.1.5",
+    "**/http-proxy-middleware/**/follow-redirects": "^1.16.0",
+    "**/http-proxy-middleware/**/picomatch": "^2.3.2",
+    "**/minimatch/brace-expansion": "^1.1.21",
+    "**/serve-handler/minimatch": "^3.1.5",
+    "**/serve/ajv": "^8.17.1",
+    "**/vite/picomatch": "^4.0.7",
+    "@babel/core": "^7.29.6",
+    "@typescript-eslint/**/brace-expansion": "^2.1.7",
+    "@typescript-eslint/**/minimatch": "^9.0.8",
+    "@typescript-eslint/**/picomatch": "^4.0.7",
+    "baseline-browser-mapping": "^2.11.24",
+    "browserslist": "^4.29.0",
+    "eslint/**/minimatch": "^3.1.5",
+    "fast-uri": "^3.1.7",
+    "form-data": "^4.0.6",
+    "lodash": "^4.18.1",
+    "lodash-es": "^4.18.1",
+    "qs": "^6.16.0",
+    "uuid": "^11.1.1"
   },
   "private": true,
   "type": "module",
