@@ -59,10 +59,17 @@ export class AddNotes {
     });
   }
 
+  private static readonly ignoredFileNames = new Set([
+    "thumbs.db",
+    "ehthumbs.db",
+    "desktop.ini",
+  ]);
+
   pendingFileList() {
     return fs.readdirSync(this.importDir).filter((f) => {
       return (
         !f.startsWith(".") &&
+        !AddNotes.ignoredFileNames.has(f.toLowerCase()) &&
         fs.lstatSync(path.join(this.importDir, f)).isFile()
       );
     });
