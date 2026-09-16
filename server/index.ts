@@ -58,6 +58,31 @@ app.use(
     },
   })
 );
+
+const LOOPBACK_ADDRESSES = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+
+export function isLoopbackAddress(address: string | undefined): boolean {
+  return address !== undefined && LOOPBACK_ADDRESSES.has(address);
+}
+
+// Ahead of auth on purpose: a deploy/control script curls this,
+// unauthenticated, to ask an already-running instance to exit itself before
+// a new one starts. The `agent` SSH account used to pull deploys can't send
+// a signal to this app's root-owned process tree to restart it (see
+// nas-deployment memory notes) — but a process asking itself to exit always
+// works, unlike a kill from outside trying to reach the right PID through
+// forever/tsx's wrapper processes. Loopback-only so this is never reachable
+// off-box. Mirrors turnado's `/internal/die` (server/src/app.ts there).
+app.post("/internal/die", (req, res) => {
+  if (!isLoopbackAddress(req.socket.remoteAddress)) {
+    console.warn(`Rejected /internal/die from non-loopback address: ${req.socket.remoteAddress}`);
+    res.status(403).end();
+    return;
+  }
+  console.log(`/internal/die: exiting pid ${process.pid} so a new instance can take the port`);
+  res.status(200).end(() => process.exit(0));
+});
+
 const auth = new Auth(new AuthHandler());
 app.use((req, res, next) => auth.auth(req, res, next));
 app.get("/api", (req, res) => {
