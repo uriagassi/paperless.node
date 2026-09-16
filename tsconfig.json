@@ -16,8 +16,5 @@
     "outDir": "./built",
     "types": ["node"]
   },
-  "ts-node": {
-    "esm": true
-  },
   "include": ["./scripts/**/*", "server"]
 }
