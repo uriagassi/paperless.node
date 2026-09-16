@@ -47,16 +47,12 @@ const notebooks_query = db.prepare(
   from Notebooks left join Notes on Notes.notebookId=key group by key order by name"
 );
 
-// csurf is unmaintained (last publish years ago, flagged for a vulnerable
-// transitive `cookie` dependency); csrf-csrf is its maintained double-submit-
-// cookie replacement. There's no server-side session here to bind the token
-// to (this app is single-user/local by design, see README), so the session
-// identifier is a constant - equivalent to csurf's plain double-submit mode.
 const csrfSecret = randomBytes(32).toString("hex");
 const useHttps = config.has("https.use") && config.get("https.use") == true;
+const NO_SERVER_SESSION_TO_BIND_CSRF_TO = "paperless";
 const { doubleCsrfProtection: csrfProtection } = doubleCsrf({
   getSecret: () => csrfSecret,
-  getSessionIdentifier: () => "paperless",
+  getSessionIdentifier: () => NO_SERVER_SESSION_TO_BIND_CSRF_TO,
   cookieName: "psifi.x-csrf-token",
   cookieOptions: {
     sameSite: "lax",
