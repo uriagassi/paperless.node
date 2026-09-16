@@ -17,7 +17,8 @@ import fs from "fs";
 import cors from "cors";
 import { Auth } from "./auth/Auth.js";
 import helmet from "helmet";
-import csrf from "csurf";
+import { doubleCsrf } from "csrf-csrf";
+import { randomBytes } from "crypto";
 import consoleStamp from "console-stamp";
 
 consoleStamp(console)
@@ -46,7 +47,24 @@ const notebooks_query = db.prepare(
   from Notebooks left join Notes on Notes.notebookId=key group by key order by name"
 );
 
-const csrfProtection = csrf({ cookie: true });
+// csurf is unmaintained (last publish years ago, flagged for a vulnerable
+// transitive `cookie` dependency); csrf-csrf is its maintained double-submit-
+// cookie replacement. There's no server-side session here to bind the token
+// to (this app is single-user/local by design, see README), so the session
+// identifier is a constant - equivalent to csurf's plain double-submit mode.
+const csrfSecret = randomBytes(32).toString("hex");
+const useHttps = config.has("https.use") && config.get("https.use") == true;
+const { doubleCsrfProtection: csrfProtection } = doubleCsrf({
+  getSecret: () => csrfSecret,
+  getSessionIdentifier: () => "paperless",
+  cookieName: "psifi.x-csrf-token",
+  cookieOptions: {
+    sameSite: "lax",
+    secure: useHttps,
+    httpOnly: true,
+  },
+  getCsrfTokenFromRequest: (req) => req.headers["csrf-token"] as string | undefined,
+});
 
 app.use(cookieParser());
 app.use(
