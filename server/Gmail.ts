@@ -8,7 +8,7 @@ import { Express, RequestHandler, Response } from "express";
 import { Notes, Note } from "./Notes.js";
 import { NamedAttachment, Attachments, Attachment } from "./Attachment.js";
 import config from "config";
-import { OAuth2Client } from "google-auth-library";
+import { OAuth2Client, Credentials as GoogleToken } from "google-auth-library";
 import { GaxiosPromise } from "googleapis-common";
 import rateLimit from "express-rate-limit";
 
@@ -19,9 +19,6 @@ export class Gmail {
     "https://www.googleapis.com/auth/gmail.labels",
     "https://www.googleapis.com/auth/gmail.modify",
   ];
-  // The file token.json stores the user's access and refresh tokens, and is
-  // created automatically when the authorization flow completes for the first
-  // time.
   TOKEN_PATH = "token.json";
   private notes: Notes;
   private att: Attachments;
@@ -92,7 +89,7 @@ export class Gmail {
         } catch (err) {
           console.log(err);
           if (!res.headersSent) {
-            return res.status(500).json({ err, authenticate: this.getNewToken() });
+            return res.status(500).json({ err, authenticate: this.getAuthUrl() });
           }
         }
       }
@@ -150,7 +147,7 @@ export class Gmail {
           }
         } catch (err) {
           console.log(err);
-          return res.status(500).json({ err, authenticate: this.getNewToken() });
+          return res.status(500).json({ err, authenticate: this.getAuthUrl() });
         }
       }
     );
@@ -194,27 +191,33 @@ export class Gmail {
       config.get("mail.redirect_uri")
     );
 
+    const token = this.readStoredToken();
+    if (!token) return Promise.reject({ authenticate: this.getAuthUrl() });
+    this.auth.setCredentials(token);
+    return google.gmail({ version: "v1", auth: this.auth });
+  }
+
+  getAuthUrl() {
+    return this.auth?.generateAuthUrl({
+      access_type: "offline",
+      prompt: "consent",
+      scope: this.SCOPES,
+    });
+  }
+
+  readStoredToken(): GoogleToken | null {
     try {
-      // Check if we have previously stored a token.
-      const token = fs.readFileSync(this.TOKEN_PATH);
-      this.auth.setCredentials(JSON.parse(token.toString()));
-      return google.gmail({ version: "v1", auth: this.auth });
+      return JSON.parse(fs.readFileSync(this.TOKEN_PATH).toString());
     } catch (err) {
       console.log(err);
-      return Promise.reject({ authenticate: this.getNewToken() });
+      return null;
     }
   }
 
-  /**
-   * Get and store new token after prompting for user authorization, and then
-   * execute the given callback with the authorized OAuth2 client.
-   * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
-   */
-  getNewToken() {
-    return this.auth?.generateAuthUrl({
-      access_type: "offline",
-      scope: this.SCOPES,
-    });
+  preserveExistingRefreshToken(token: GoogleToken) {
+    if (token.refresh_token) return;
+    const existing = this.readStoredToken();
+    if (existing?.refresh_token) token.refresh_token = existing.refresh_token;
   }
 
   authenticate(code: string, res: Response) {
@@ -227,8 +230,10 @@ export class Gmail {
     oAuth2Client.getToken(code, (err, token) => {
       if (err)
         return res.status(401).json({ "Error retrieving access token": err });
-      if (token) oAuth2Client.setCredentials(token);
-      // Store the token to disk for later program executions
+      if (token) {
+        this.preserveExistingRefreshToken(token);
+        oAuth2Client.setCredentials(token);
+      }
       fs.writeFile(this.TOKEN_PATH, JSON.stringify(token), (err) => {
         if (err) return res.status(401).json(err);
       });
@@ -306,7 +311,6 @@ export class Gmail {
       note.tags.push(config.get("mail.importedTag"));
     }
 
-    //loop through the headers to get from,date,subject, body
     message.payload?.headers?.forEach((mParts) => {
       switch (mParts.name) {
         case "Date":
