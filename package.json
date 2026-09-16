@@ -18,7 +18,7 @@
     "axios": "^1.15.0",
     "better-sqlite3": "^12.6.0",
     "body-parser": "^2.1.0",
-    "concurrently": "^7.2.1",
+    "concurrently": "^10.0.5",
     "config": "^3.3.11",
     "console-stamp": "^3.0.6",
     "cookie-parser": "^1.4.6",
@@ -59,6 +59,7 @@
     "dev": "concurrently \"yarn start\" \"cd client && HTTPS=true yarn start\"",
     "windows_dev": "concurrently \"yarn start\" \"cd client && set HTTPS=true&&yarn start\"",
     "build": "cd client && yarn run build",
+    "lint": "eslint .",
     "start": "tsx server/index.ts proxy",
     "start_prod": "tsx server/index.ts",
     "setup_wizard": "yarn tsx scripts/setup_wizard.ts",
@@ -66,8 +67,10 @@
     "cleanup": "yarn tsx scripts/cleanup.ts"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@typescript-eslint/eslint-plugin": "latest",
     "@typescript-eslint/parser": "latest",
-    "eslint": "^8.19.0"
+    "eslint": "^9.39.5",
+    "globals": "^17.12.0"
   }
 }
