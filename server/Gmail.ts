@@ -318,7 +318,7 @@ export class Gmail {
             note.createTime = new Date(mParts.value ?? 0)
               .toISOString()
               .replace(/T.*/, "");
-          } catch (err) {
+          } catch {
             console.log(
               `could not parse date ${mParts.value} - falling back on received`
             );

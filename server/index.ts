@@ -17,7 +17,8 @@ import fs from "fs";
 import cors from "cors";
 import { Auth } from "./auth/Auth.js";
 import helmet from "helmet";
-import csrf from "csurf";
+import { doubleCsrf } from "csrf-csrf";
+import { randomBytes } from "crypto";
 import consoleStamp from "console-stamp";
 
 consoleStamp(console)
@@ -46,7 +47,20 @@ const notebooks_query = db.prepare(
   from Notebooks left join Notes on Notes.notebookId=key group by key order by name"
 );
 
-const csrfProtection = csrf({ cookie: true });
+const csrfSecret = randomBytes(32).toString("hex");
+const useHttps = config.has("https.use") && config.get("https.use") == true;
+const NO_SERVER_SESSION_TO_BIND_CSRF_TO = "paperless";
+const { doubleCsrfProtection: csrfProtection } = doubleCsrf({
+  getSecret: () => csrfSecret,
+  getSessionIdentifier: () => NO_SERVER_SESSION_TO_BIND_CSRF_TO,
+  cookieName: "psifi.x-csrf-token",
+  cookieOptions: {
+    sameSite: "lax",
+    secure: useHttps,
+    httpOnly: true,
+  },
+  getCsrfTokenFromRequest: (req) => req.headers["csrf-token"] as string | undefined,
+});
 
 app.use(cookieParser());
 app.use(
