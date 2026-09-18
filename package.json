@@ -35,7 +35,7 @@
     "md5": "^2.3.0",
     "mime-types": "^2.1.35",
     "prettier": "^2.7.1",
-    "semantic-ui-react": "^2.1.2",
+    "semantic-ui-react": "^2.1.5",
     "string-sanitizer": "^2.0.2",
     "tslib": "^2.4.0",
     "tsx": "^4.22.0",
