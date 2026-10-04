@@ -15,8 +15,9 @@ export class ServerAPI {
     }
     const result = await fetch(input, { ...init, headers: headers });
     if (result.status === 403) {
-      if (!token) {
-        return this.make_call(input, init, this.auth?.access_token());
+      const retryToken = token === undefined ? this.auth?.access_token() : undefined;
+      if (retryToken) {
+        return this.make_call(input, init, retryToken);
       } else {
         this.auth?.login();
         // Redirecting; never resolve rather than handing back a failed
