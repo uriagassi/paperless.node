@@ -178,6 +178,10 @@ If you are lucky enough to have a Synology NAS, and you are willing to use my im
 follow the instructions to create an Application and wire it back to the paperless.node server using the `yarn
 setup_wizard` by answering Yes to `Do you want to use Synology SSO?`, and fill the requested information.
 
+The browser is sent to `synology.hostname` to log in, but the server's own token-exchange call can use a different
+address. Set `synology.internalHostname` (e.g. `127.0.0.1` when running on the NAS) in your config to keep that call off
+the router and public DNS; certificate verification is skipped for it, since the certificate won't match that name.
+
 Otherwise - I would strongly recommend either implementing your own robust authentication, or reconsidering opening it to
 external connections - with Gmail integration, you can do most of the remote archiving by sending mail to yourself, and
 leave the indexing to when you are home.
