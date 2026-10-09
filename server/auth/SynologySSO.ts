@@ -20,8 +20,14 @@ export class AuthHandler extends SimpleOAuth {
     };
   }
 
+  private serverSideHostname(): string {
+    return config.has("synology.internalHostname")
+      ? config.get("synology.internalHostname")
+      : config.get("synology.hostname");
+  }
+
   oAuthUrl(token: string): string {
-    return `https://${config.get("synology.hostname")}:${config.get(
+    return `https://${this.serverSideHostname()}:${config.get(
       "synology.port"
     )}/webman/sso/SSOAccessToken.cgi?action=exchange&app_id=${config.get(
       "synology.appId"
@@ -29,6 +35,7 @@ export class AuthHandler extends SimpleOAuth {
   }
 
   shouldRejectUnauthorized(): boolean {
+    if (config.has("synology.internalHostname")) return false;
     return !(
       config.has("synology.self_signed") &&
       config.get("synology.self_signed") === "Y"
