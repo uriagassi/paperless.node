@@ -295,6 +295,7 @@ export interface BaseTag extends ITag {
 export interface Tag extends BaseTag {
   kind: "tag";
   parent?: number;
+  agent?: boolean;
 }
 
 export interface Notebook extends BaseTag {

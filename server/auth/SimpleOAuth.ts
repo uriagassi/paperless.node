@@ -39,7 +39,8 @@ export abstract class SimpleOAuth implements IAuthHandler {
         callback(res1.data.data);
       })
       .catch((error) => {
-        console.error(error);
+        // the axios error carries the exchange URL, which contains the token
+        console.error("Token exchange failed:", error?.code ?? error?.message);
         return res.status(401).send("Invalid Token");
       });
   }

@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import { AddNotes } from "./AddNotes.js";
 import { Gmail } from "./Gmail.js";
 import { prepare_many } from "./sql_helper.js";
+import { BadSearchRequest, parseSearchParams, searchNotes } from "./Search.js";
 import { Trash } from "./Trash.js";
 import { Attachments } from "./Attachment.js";
 import { Tags } from "./Tags.js";
@@ -16,22 +17,24 @@ import cors from "cors";
 import { Auth } from "./auth/Auth.js";
 import { AgentKeys } from "./auth/AgentKeys.js";
 import { agentAllowlist } from "./auth/AgentAllowlist.js";
-import {
-  agentNoteListRow,
-  agentNoteAttachments,
-} from "./auth/AgentView.js";
+import { AgentTags, AgentTagError } from "./auth/AgentTags.js";
+import { agentView } from "./auth/AgentView.js";
+import { registerAgentApiRoutes } from "./AgentApi.js";
+import { logRequests, runWithRole } from "./Logging.js";
 import helmet from "helmet";
 import { doubleCsrf } from "csrf-csrf";
 import { randomBytes } from "crypto";
 
 export const IS_PROXY = process.argv[process.argv.length - 1] === "proxy";
 const baseDir = config.get("paperless.baseDir");
-const db = new Sqlite3(baseDir + "/paperless.sqlite", { verbose: console.log });
+const db = new Sqlite3(baseDir + "/paperless.sqlite", { verbose: (...args: unknown[]) => console.log(...args) });
 export const app = express();
 const { AuthHandler } = await import(config.get("auth.handler"));
 const att = new Attachments(db);
 const tagservice = new Tags(db);
 const notes = new Notes(db, att, tagservice);
+const agentTags = new AgentTags(db);
+agentTags.rootId();
 
 const tag_query = db.prepare(
   "select name, tags.tagId as key, ifnull(parentId, 0) as parent, \
@@ -62,6 +65,12 @@ const { doubleCsrfProtection: userCsrfProtection } = doubleCsrf({
 export const csrfProtection: express.RequestHandler = (req, res, next) =>
   req.level === "agent" ? next() : userCsrfProtection(req, res, next);
 
+app.set(
+  "trust proxy",
+  config.has("server.trustProxy")
+    ? config.get("server.trustProxy")
+    : "loopback, linklocal, uniquelocal"
+);
 const cookieSecret = randomBytes(32).toString("hex");
 app.use(cookieParser(cookieSecret));
 app.use(
@@ -98,13 +107,18 @@ app.post("/internal/die", (req, res) => {
   res.status(200).end(() => process.exit(0));
 });
 
+// Public on purpose: it is the instruction page an agent reads before it has a key.
+registerAgentApiRoutes(app);
+
 const auth = new Auth(
   new AuthHandler(),
   AgentKeys.fromConfig(
     config.has("auth.agentKeys") ? config.get("auth.agentKeys") : undefined
   )
 );
+app.use(logRequests);
 app.use((req, res, next) => auth.auth(req, res, next));
+app.use(runWithRole);
 app.use(agentAllowlist);
 app.get("/api", (req, res) => {
   res.json({ message: "Hello from server!" });
@@ -121,11 +135,23 @@ if (!IS_PROXY && config.has("cors.use") && config.get("cors.use") == true) {
   }
 }
 
+const agentNote = agentView(db);
+
 const forLevel = (req: express.Request, rows: unknown[]) =>
-  req.level === "agent" ? rows.map(agentNoteListRow) : rows;
+  req.level === "agent"
+    ? (rows as { id: number }[]).flatMap((r) => agentNote(r.id) ?? [])
+    : rows;
+
+const flagAgentTags = (rows: unknown[]) => {
+  const agentIds = agentTags.agentTagIds();
+  return (rows as { key: number }[]).map((r) => ({
+    ...r,
+    agent: agentIds.has(r.key),
+  }));
+};
 
 app.get("/api/tags", (req, res) => {
-  const tags = tag_query.all();
+  const tags = flagAgentTags(tag_query.all());
   res.json({ tags: tags });
 });
 
@@ -135,7 +161,7 @@ app.get("/api/notebooks", (req, res) => {
 });
 
 app.get("/api/notebooks_and_tags", (req, res) => {
-  const tags = tag_query.all();
+  const tags = flagAgentTags(tag_query.all());
   res.json({ notebooks: notebooks_query.all(), tags: tags });
 });
 
@@ -149,7 +175,7 @@ const notes_by_notebook_query = ['createTime', 'updateTime', 'title'].reduce((m:
   m[t] = db.prepare(
     `select n.noteId as id, createTime, title, \
   GROUP_CONCAT(a.fileName) as attachments, \
-  MIN(a.mime) as mime, SUM(a.size) size, count(a.attachmentId) as attachmentCount from Notes n left join Attachments a on id = a.noteId \
+  MIN(a.mime) as mime, SUM(a.size) size from Notes n left join Attachments a on id = a.noteId \
   where notebookId = ? and ${t} > ? group by id order by ${t} desc limit ?`);
   return m;
 }, {});
@@ -170,7 +196,7 @@ app.get("/api/notebooks/:notebookId", (req, res) => {
 const notes_by_tag_query = db.prepare(
   "select n.noteId as id, createTime, title, \
   GROUP_CONCAT(a.fileName) as attachments, \
-  MIN(a.mime) as mime, SUM(a.size) size, count(a.attachmentId) as attachmentCount \
+  MIN(a.mime) as mime, SUM(a.size) size \
   from NoteTags nt, Notes n left join Attachments a on id = a.noteId \
   where nt.tagId = ? and nt.noteId = id and createTime > ? \
   group by id order by createTime desc limit ?"
@@ -189,42 +215,18 @@ app.get("/api/tags/:tagId", (req, res) => {
   });
 });
 
-const notes_by_text_query = prepare_many(
-  db,
-  "select n.noteId as id, createTime, title, \
-  GROUP_CONCAT(a.fileName) as attachments, \
-  MIN(a.mime) as mime, SUM(a.size) size, count(a.attachmentId) as attachmentCount \
-  from Notes n left join Attachments a on id = a.noteId \
-  where title like $text or id in (#noteIds) \
-  and createTime > $createTime group by id order by createTime desc limit $limit",
-  "#noteIds"
-);
-
-const notes_by_tag_name_query = db
-  .prepare(
-    "select distinct noteId from NoteTags where tagId in (select tagId from Tags where name like ?)"
-  )
-  .raw();
-
 app.get("/api/search", (req, res) => {
-  const queryText = req.query.term ? "%" + req.query.term + "%" : "nonono!";
-  let notesFromTagQuery = notes_by_tag_name_query
-    .all(queryText)
-    .flatMap((i) => i);
-  if (notesFromTagQuery.length == 0) notesFromTagQuery = [-1];
-  res.json({
-    notes: forLevel(
-      req,
-      notes_by_text_query(notesFromTagQuery.length).all(
-        {
-          text: queryText,
-          createTime: req.query.lastItem,
-          limit: req.query.limit,
-        },
-        notesFromTagQuery
-      )
-    ),
-  });
+  try {
+    res.json({
+      notes: forLevel(req, searchNotes(db, parseSearchParams(req.query))),
+    });
+  } catch (e) {
+    if (e instanceof BadSearchRequest) {
+      res.status(400).json({ error: e.message });
+    } else {
+      throw e;
+    }
+  }
 });
 
 const select_note = db.prepare(
@@ -240,12 +242,13 @@ from Attachments where noteId = ?"
 );
 
 app.get("/api/notes/:noteId", (req, res) => {
+  if (req.level === "agent") {
+    const note = agentNote(req.params.noteId);
+    return note ? res.json(note) : res.status(404).send("Not Found");
+  }
   res.json({
     ...select_note.get(req.params.noteId),
-    attachments: agentNoteAttachments(
-      req,
-      select_attachments.all(req.params.noteId) as { id: number }[]
-    ),
+    attachments: select_attachments.all(req.params.noteId),
     parts: notes.parts(req.params.noteId),
   });
 });
@@ -319,7 +322,28 @@ const add_tag_to_note = db.prepare(
   "insert into NoteTags (noteId, tagId) values ($noteId, $tagId)"
 );
 
+const note_exists = db.prepare("select 1 from Notes where noteId = ?");
+const add_tag_to_note_if_missing = db.prepare(
+  "insert or ignore into NoteTags (noteId, tagId) values ($noteId, $tagId)"
+);
+
+const denyOutsideAgentTree = (res: express.Response, tagId: number) => {
+  if (agentTags.isStrictlyUnderRoot(tagId)) return true;
+  res.status(403).send("Tag is not in the agent tag tree");
+  return false;
+};
+
 app.post("/api/notes/:noteId/addTag", csrfProtection, (req, res) => {
+  if (req.level === "agent") {
+    const tagId = Number(req.body?.tagId);
+    if (!denyOutsideAgentTree(res, tagId)) return;
+    if (!note_exists.get(req.params.noteId)) {
+      return res.status(404).send("No such note");
+    }
+    return res.json(
+      add_tag_to_note_if_missing.run({ noteId: req.params.noteId, tagId })
+    );
+  }
   res.json(add_tag_to_note.run({ ...req.params, ...req.body }));
 });
 
@@ -328,6 +352,9 @@ const remove_tag_from_note = db.prepare(
 );
 
 app.delete("/api/notes/:noteId/tags/:tagId", csrfProtection, (req, res) => {
+  if (req.level === "agent" && !denyOutsideAgentTree(res, Number(req.params.tagId))) {
+    return;
+  }
   res.json(remove_tag_from_note.run(req.params));
 });
 
@@ -339,6 +366,16 @@ app.put("/api/tags/new", (req, res) => {
   const r = add_new_tag.run({ parent: undefined, ...req.body });
   console.log(r);
   res.json({ key: r.lastInsertRowid });
+});
+
+app.post("/api/agent/tags", csrfProtection, (req, res) => {
+  if (req.level !== "agent") return res.status(403).send("Agents only");
+  try {
+    res.json({ key: agentTags.createTag(req.body?.name, req.body?.parent) });
+  } catch (e) {
+    if (e instanceof AgentTagError) return res.status(e.status).send(e.message);
+    throw e;
+  }
 });
 
 const update_tag = db.prepare(
@@ -373,8 +410,9 @@ app.get("/api/user", (req, res) => {
 });
 
 app.get("/api/logout", (req, res) => {
-  console.log(req.cookies);
-  for (const c in { ...req.cookies, ...req.signedCookies }) {
+  const cookies = { ...req.cookies, ...req.signedCookies };
+  console.log(Object.keys(cookies));
+  for (const c in cookies) {
     console.log("clearing cookie " + c);
     res.clearCookie(c);
   }

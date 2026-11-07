@@ -21,7 +21,7 @@ the same concepts, but is cleaner, leaner, and more available to non-Microsoft-c
 The easiest way to use this application, is to install it locally on your machine
 
 ### Prerequisites
-- **Node.js**: Version 18 LTS or later (Tested on v24.12.0)
+- **Node.js**: Version 22 or later (Tested on v24.12.0)
 - **Yarn**: Version 3.x or later
 
 1. Install [Node.js](https://nodejs.org/en/)
@@ -143,6 +143,34 @@ waiting to be imported to your server. Press `Import...` to import them
 3. Note that nothing is deleted in your gmail account - processed mail have their `Paperless` removed, and
 `Paperless/Archived` added, so you can retrace these items if anything does not go according to plan.
 
+# Development
+`yarn dev` runs the API (port 3001) and the Vite client (port 3000) together; `yarn test` runs the server tests.
+
+## Configuration
+Settings live in `config/default.json` and are overridden by `config/local.json` (gitignored, written by `yarn
+setup_wizard` and `yarn agent_key`). Relevant to the agent API:
+
+- `auth.agentKeys`: list of `{ "name", "keyHash" }` (or `{ "name", "key" }`). Use `yarn agent_key` instead of editing it.
+- `server.publicBaseUrl` (optional): the public address (e.g. `https://notes.example.com`) substituted for `{BASE_URL}`
+  in the agent page. Usually you leave it unset and the address comes from the request.
+- `server.trustProxy` (optional): Express `trust proxy` value, by default `loopback, linklocal, uniquelocal`, so
+  `X-Forwarded-Proto`/`X-Forwarded-Host` from a reverse proxy on the same machine or LAN are honored. If your proxy is
+  elsewhere, widen this or set `server.publicBaseUrl`.
+
+## The agent allowlist
+Agents are denied everything except what `AGENT_ROUTES` in `server/auth/AgentAllowlist.ts` lists. To expose a new route
+to agents:
+
+1. Add its method and path pattern to `AGENT_ROUTES`. If it returns notes, run them through `agentNote` so no bodies or
+   file names leak, and if it writes, restrict what an agent may touch.
+2. Document it in `docs/agent-api.md` (the endpoint table and an example). A test fails if the table and the allowlist
+   disagree.
+3. Add a test in `server/app.test.ts`, and keep the default-deny table there passing.
+
+## Rotating agent keys
+To rotate a key: `yarn agent_key add <new-name>`, give the new key to the agent, then `yarn agent_key revoke <old-name>`
+and restart the server.
+
 # Security Concerns
 As long as the server listens only to the local machine, you can use it locally like any other desktop application, and
 it is as safe as any desktop application. _This is the recommended way to use it_.
@@ -166,8 +194,8 @@ the Origin and Redirect URIs (in the Gmail OAuth configuration, and in the `setu
 ## Authentication
 Serving HTTPS will keep away snoops from looking at your requests and responses, but it won't prevent anyone from
 connecting to your server themselves. The way to keep them away, is to only allow authenticated users (ones that you
-authorized to use the server) to actually get to it. I have not implemented a full authentication and authorization
-system.
+authorized to use the server) to actually get to it. The server itself only authenticates; it has no user roles or
+permissions beyond the restricted agent keys described under [Agent keys](#agent-keys).
 
 I have, however, created a pluggable system, where you can easily implement an authorization middleware and wire it into
 the server. I have also implemented a reference implementation which integrates with Synology's NAS [SSO
@@ -191,7 +219,7 @@ one](https://www.section.io/engineering-education/how-to-build-authentication-ap
 contributing it to the source code via a Pull Request :)
 
 ### Agent keys
-Automated callers (e.g. an AI agent) can be given a read-only key instead of a user login. Manage them with:
+Automated callers (e.g. an AI agent) can be given a restricted key instead of a user login. Manage them with:
 
 ```
 yarn agent_key add <name>      # prints a new key once; only its SHA-256 hash is stored in config/local.json
@@ -199,11 +227,10 @@ yarn agent_key list            # names only
 yarn agent_key revoke <name>
 ```
 
-Restart the server after any change. The agent sends `Authorization: Bearer <key>` and is authenticated as
-`agent:<name>` with `level: "agent"`. Agents are default-denied everywhere except search, tag/notebook listings and
-single-note metadata (plus `GET /api/user`); they can't read note bodies or attachments, change anything, or use
-mail, import or trash. Attachment file names are not exposed to agents. A key can also be configured by hand under
-`auth.agentKeys` as `{ "name": ..., "keyHash": ... }` (or, less safely, `{ "name": ..., "key": ... }`).
+Restart the server after any change. The agent sends `Authorization: Bearer <key>`. Agents can search, list tags and
+notebooks, read note metadata, and manage tags under their own root tag. They cannot read note bodies, attachment files
+or attachment file names, and everything else is `403`. The full agent-facing
+documentation is served by the app itself at `/agent-api` (avatar menu, then "Agent API"). It needs no login, so you can hand an agent that URL as is.
 
 ## Server Outside Traffic
 Once you've handled both considerations above, you can direct the server to listen to outside traffic. Again run `yarn
