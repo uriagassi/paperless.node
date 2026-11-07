@@ -30,6 +30,11 @@ beforeAll(async () => {
       values (1, 'tax-2023-john-doe.pdf', 'tax-2023-john-doe-1.pdf', 'application/pdf', 10);
     insert into Tags (tagId, name, isExpanded) values (1, 'taxes', 0);
     insert into NoteTags (noteId, tagId) values (1, 1);
+    insert into Notes (noteId, notebookId, createTime, updateTime, title, noteData) values
+      (10, 1, '2023-05-01', '2023-09-01', 'Range old', ''),
+      (11, 1, '2023-06-10', '2023-06-10', 'Range mid A', ''),
+      (12, 1, '2023-06-10', '2023-07-01', 'Range mid B', ''),
+      (13, 1, '2023-07-20', '2023-05-02', 'Range new', '');
   `);
   seed.close();
 
@@ -116,6 +121,51 @@ describe("authentication", () => {
   });
 });
 
+describe("date-range search", () => {
+  const titles = (res: request.Response) => res.body.notes.map((n: { title: string }) => n.title);
+  const search = (qs: string) => agent(request(app).get(`/api/search?${qs}`));
+
+  it("lists notes in range newest first without a term, bounds inclusive", async () => {
+    const res = await search("from=2023-06-10&to=2023-07-20");
+    expect(res.status).toBe(200);
+    expect(titles(res)).toEqual(["Range new", "Range mid B", "Range mid A"]);
+  });
+
+  it("filters and sorts on updateTime when asked", async () => {
+    const res = await search("dateField=updateTime&from=2023-05-01&to=2023-07-01");
+    expect(titles(res)).toEqual(["Range mid B", "Range mid A", "Range new"]);
+  });
+
+  it("pages with the date|noteId cursor across same-day notes", async () => {
+    const first = await search("from=2023-01-01&to=2023-12-31&limit=2&lastItem=0");
+    expect(titles(first)).toEqual(["Range new", "Range mid B"]);
+    const last = first.body.notes[1];
+    const next = await search(
+      `from=2023-01-01&to=2023-12-31&limit=2&lastItem=${last.createTime.slice(0, 10)}|${last.id}`
+    );
+    expect(titles(next)).toEqual(["Range mid A", "Range old"]);
+  });
+
+  it("combines a term with a range", async () => {
+    expect(titles(await search("term=Range&from=2023-06-01&to=2023-06-30"))).toEqual(["Range mid B", "Range mid A"]);
+  });
+
+  it("returns nothing for an empty term with no bounds", async () => {
+    const res = await search("lastItem=0&limit=10");
+    expect(res.status).toBe(200);
+    expect(res.body.notes).toEqual([]);
+  });
+
+  it.each(["from=yesterday", "to=2023-13-40", "from=2023-01-01&dateField=title", "from=2023-01-01&limit=abc"])(
+    "rejects %s with 400",
+    async (qs) => {
+      const res = await search(qs);
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty("error");
+    }
+  );
+});
+
 describe("allowlisted read routes for agents", () => {
   it.each([
     "/api/tags",
@@ -124,35 +174,76 @@ describe("allowlisted read routes for agents", () => {
     "/api/user",
     "/api/tags/1?lastItem=2000-01-01&limit=10",
     "/api/notebooks/2?lastItem=2000-01-01&limit=10",
-    "/api/search?term=tax&lastItem=2000-01-01&limit=10",
+    "/api/search?term=tax&lastItem=0&limit=10",
     "/api/notes/1",
   ])("GET %s works", async (route) => {
     const res = await agent(request(app).get(route));
     expect(res.status).toBe(200);
   });
 
-  it("hides attachment file names in note listings", async () => {
+  const expectedNote = {
+    id: 1,
+    title: "Tax return",
+    notebook: { id: 2, name: expect.any(String) },
+    tags: ["taxes"],
+    createTime: "2024-01-01",
+    updateTime: "2024-01-01",
+    attachments: [{ mime: "application/pdf" }],
+    link: "/?noteId=1",
+  };
+
+  it("returns metadata only in note listings and search", async () => {
     for (const route of [
       "/api/notebooks/2?lastItem=2000-01-01&limit=10",
       "/api/tags/1?lastItem=2000-01-01&limit=10",
-      "/api/search?term=tax&lastItem=2000-01-01&limit=10",
+      "/api/search?term=tax&lastItem=0&limit=10",
     ]) {
       const res = await agent(request(app).get(route));
-      expect(res.body.notes).toHaveLength(1);
-      expect(res.body.notes[0]).not.toHaveProperty("attachments");
-      expect(res.body.notes[0]).toMatchObject({
-        title: "Tax return",
-        mime: "application/pdf",
-        attachmentCount: 1,
-      });
+      expect(res.body.notes).toEqual([expectedNote]);
       expect(JSON.stringify(res.body)).not.toContain("john-doe");
+      expect(JSON.stringify(res.body)).not.toContain("secret body");
     }
   });
 
-  it("hides attachment file names in note metadata", async () => {
+  it("returns metadata only for a single note", async () => {
     const res = await agent(request(app).get("/api/notes/1"));
-    expect(res.body.attachments).toEqual([{ id: 1 }]);
+    expect(res.body).toEqual(expectedNote);
     expect(JSON.stringify(res.body)).not.toContain("john-doe");
+  });
+
+  it("returns 404 for a missing note", async () => {
+    const res = await agent(request(app).get("/api/notes/999"));
+    expect(res.status).toBe(404);
+  });
+
+  it("returns empty tags and attachments for a bare note", async () => {
+    const res = await agent(request(app).get("/api/notes/11"));
+    expect(res.body).toMatchObject({
+      id: 11,
+      tags: [],
+      attachments: [],
+      link: "/?noteId=11",
+    });
+  });
+
+  it("paginates and orders listings the same way for agents", async () => {
+    const byUpdate = await agent(
+      request(app).get(
+        "/api/notebooks/1?orderBy=updateTime&lastItem=2023-06-30&limit=10"
+      )
+    );
+    expect(byUpdate.body.notes.map((n: { id: number }) => n.id)).toEqual([10, 12]);
+
+    const limited = await agent(
+      request(app).get("/api/notebooks/1?lastItem=2023-06-01&limit=1")
+    );
+    expect(limited.body.notes).toHaveLength(1);
+    expect(limited.body.notes[0].link).toBe(`/?noteId=${limited.body.notes[0].id}`);
+  });
+
+  it("links are relative /?noteId=<id> paths", async () => {
+    const res = await agent(request(app).get("/api/notes/1"));
+    expect(res.body.link).toBe("/?noteId=1");
   });
 
   it("keeps file names for users", async () => {

@@ -28,6 +28,7 @@ import { MultiNoteScreen } from "./MultiNoteScreen";
 import { UpdateTagDialog } from "./UpdateTagDialog";
 import "semantic-ui-css/semantic.css";
 import { Folder, Notebook, ServerAPI, Tag } from "./ServerAPI";
+import { resolveDeepLink } from "./deepLink";
 import { themeDark, themeLight } from "./themes";
 
 initializeIcons();
@@ -108,27 +109,13 @@ export const App: React.FunctionComponent = () => {
   }, [serverAPI]);
 
   function loadNotebooks() {
-    serverAPI?.loadNotebooks().then((data) => {
-      const params = new URLSearchParams(window.location.search);
-      const noteId = params.get("noteId");
-      const folderKind = params.get("folderKind");
-      const folderKey = params.get("folderKey");
-
-      let folder: Folder | undefined;
-      let noteIdToSet: number | undefined;
-
-      if (noteId && folderKind && folderKey) {
-        const parsedFolderKey = Number(folderKey);
-        if (folderKind === "notebook") {
-          folder = data.notebooks.find((n) => n.key === parsedFolderKey);
-        } else if (folderKind === "tag") {
-          folder = data.tags.find((t) => t.key === parsedFolderKey);
-        }
-
-        if (folder) {
-          noteIdToSet = Number(noteId);
-        }
-      }
+    serverAPI?.loadNotebooks().then(async (data) => {
+      const { folder: linkedFolder, noteId: noteIdToSet } = await resolveDeepLink(
+        window.location.search,
+        data,
+        async (id) => await serverAPI.loadNote(id)
+      );
+      let folder: Folder | undefined = linkedFolder;
 
       // If we don't have a specific folder from the URL and we don't have one selected yet, default to Inbox
       // so we set everything together and avoid TagList setting it asynchronously

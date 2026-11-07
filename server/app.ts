@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import { AddNotes } from "./AddNotes.js";
 import { Gmail } from "./Gmail.js";
 import { prepare_many } from "./sql_helper.js";
+import { BadSearchRequest, parseSearchParams, searchNotes } from "./Search.js";
 import { Trash } from "./Trash.js";
 import { Attachments } from "./Attachment.js";
 import { Tags } from "./Tags.js";
@@ -17,10 +18,7 @@ import { Auth } from "./auth/Auth.js";
 import { AgentKeys } from "./auth/AgentKeys.js";
 import { agentAllowlist } from "./auth/AgentAllowlist.js";
 import { AgentTags, AgentTagError } from "./auth/AgentTags.js";
-import {
-  agentNoteListRow,
-  agentNoteAttachments,
-} from "./auth/AgentView.js";
+import { agentView } from "./auth/AgentView.js";
 import helmet from "helmet";
 import { doubleCsrf } from "csrf-csrf";
 import { randomBytes } from "crypto";
@@ -123,8 +121,12 @@ if (!IS_PROXY && config.has("cors.use") && config.get("cors.use") == true) {
   }
 }
 
+const agentNote = agentView(db);
+
 const forLevel = (req: express.Request, rows: unknown[]) =>
-  req.level === "agent" ? rows.map(agentNoteListRow) : rows;
+  req.level === "agent"
+    ? (rows as { id: number }[]).flatMap((r) => agentNote(r.id) ?? [])
+    : rows;
 
 const flagAgentTags = (rows: unknown[]) => {
   const agentIds = agentTags.agentTagIds();
@@ -159,7 +161,7 @@ const notes_by_notebook_query = ['createTime', 'updateTime', 'title'].reduce((m:
   m[t] = db.prepare(
     `select n.noteId as id, createTime, title, \
   GROUP_CONCAT(a.fileName) as attachments, \
-  MIN(a.mime) as mime, SUM(a.size) size, count(a.attachmentId) as attachmentCount from Notes n left join Attachments a on id = a.noteId \
+  MIN(a.mime) as mime, SUM(a.size) size from Notes n left join Attachments a on id = a.noteId \
   where notebookId = ? and ${t} > ? group by id order by ${t} desc limit ?`);
   return m;
 }, {});
@@ -180,7 +182,7 @@ app.get("/api/notebooks/:notebookId", (req, res) => {
 const notes_by_tag_query = db.prepare(
   "select n.noteId as id, createTime, title, \
   GROUP_CONCAT(a.fileName) as attachments, \
-  MIN(a.mime) as mime, SUM(a.size) size, count(a.attachmentId) as attachmentCount \
+  MIN(a.mime) as mime, SUM(a.size) size \
   from NoteTags nt, Notes n left join Attachments a on id = a.noteId \
   where nt.tagId = ? and nt.noteId = id and createTime > ? \
   group by id order by createTime desc limit ?"
@@ -199,42 +201,18 @@ app.get("/api/tags/:tagId", (req, res) => {
   });
 });
 
-const notes_by_text_query = prepare_many(
-  db,
-  "select n.noteId as id, createTime, title, \
-  GROUP_CONCAT(a.fileName) as attachments, \
-  MIN(a.mime) as mime, SUM(a.size) size, count(a.attachmentId) as attachmentCount \
-  from Notes n left join Attachments a on id = a.noteId \
-  where title like $text or id in (#noteIds) \
-  and createTime > $createTime group by id order by createTime desc limit $limit",
-  "#noteIds"
-);
-
-const notes_by_tag_name_query = db
-  .prepare(
-    "select distinct noteId from NoteTags where tagId in (select tagId from Tags where name like ?)"
-  )
-  .raw();
-
 app.get("/api/search", (req, res) => {
-  const queryText = req.query.term ? "%" + req.query.term + "%" : "nonono!";
-  let notesFromTagQuery = notes_by_tag_name_query
-    .all(queryText)
-    .flatMap((i) => i);
-  if (notesFromTagQuery.length == 0) notesFromTagQuery = [-1];
-  res.json({
-    notes: forLevel(
-      req,
-      notes_by_text_query(notesFromTagQuery.length).all(
-        {
-          text: queryText,
-          createTime: req.query.lastItem,
-          limit: req.query.limit,
-        },
-        notesFromTagQuery
-      )
-    ),
-  });
+  try {
+    res.json({
+      notes: forLevel(req, searchNotes(db, parseSearchParams(req.query))),
+    });
+  } catch (e) {
+    if (e instanceof BadSearchRequest) {
+      res.status(400).json({ error: e.message });
+    } else {
+      throw e;
+    }
+  }
 });
 
 const select_note = db.prepare(
@@ -250,12 +228,13 @@ from Attachments where noteId = ?"
 );
 
 app.get("/api/notes/:noteId", (req, res) => {
+  if (req.level === "agent") {
+    const note = agentNote(req.params.noteId);
+    return note ? res.json(note) : res.status(404).send("Not Found");
+  }
   res.json({
     ...select_note.get(req.params.noteId),
-    attachments: agentNoteAttachments(
-      req,
-      select_attachments.all(req.params.noteId) as { id: number }[]
-    ),
+    attachments: select_attachments.all(req.params.noteId),
     parts: notes.parts(req.params.noteId),
   });
 });
