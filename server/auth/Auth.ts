@@ -78,7 +78,7 @@ export class Auth {
         return next();
       });
     } catch (err) {
-      console.log(err);
+      console.log("Authorization failed:", err instanceof Error ? err.message : err);
       return res.status(401).send("Invalid Token");
     }
   }
