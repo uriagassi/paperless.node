@@ -78,6 +78,7 @@
     "windows_dev": "concurrently \"yarn start\" \"cd client && set HTTPS=true&&yarn start\"",
     "build": "cd client && yarn run build",
     "lint": "eslint .",
+    "test:server": "node --import tsx --test server/Search.test.ts",
     "start": "tsx server/index.ts proxy",
     "start_prod": "tsx server/index.ts",
     "setup_wizard": "yarn tsx scripts/setup_wizard.ts",

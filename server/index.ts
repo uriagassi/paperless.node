@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import { AddNotes } from "./AddNotes.js";
 import { Gmail } from "./Gmail.js";
 import { prepare_many } from "./sql_helper.js";
+import { BadSearchRequest, parseSearchParams, searchNotes } from "./Search.js";
 import { Trash } from "./Trash.js";
 import { Attachments } from "./Attachment.js";
 import { Tags } from "./Tags.js";
@@ -173,39 +174,16 @@ app.get("/api/tags/:tagId", (req, res) => {
   });
 });
 
-const notes_by_text_query = prepare_many(
-  db,
-  "select n.noteId as id, createTime, title, \
-  GROUP_CONCAT(a.fileName) as attachments, \
-  MIN(a.mime) as mime, SUM(a.size) size \
-  from Notes n left join Attachments a on id = a.noteId \
-  where title like $text or id in (#noteIds) \
-  and createTime > $createTime group by id order by createTime desc limit $limit",
-  "#noteIds"
-);
-
-const notes_by_tag_name_query = db
-  .prepare(
-    "select distinct noteId from NoteTags where tagId in (select tagId from Tags where name like ?)"
-  )
-  .raw();
-
 app.get("/api/search", (req, res) => {
-  const queryText = req.query.term ? "%" + req.query.term + "%" : "nonono!";
-  let notesFromTagQuery = notes_by_tag_name_query
-    .all(queryText)
-    .flatMap((i) => i);
-  if (notesFromTagQuery.length == 0) notesFromTagQuery = [-1];
-  res.json({
-    notes: notes_by_text_query(notesFromTagQuery.length).all(
-      {
-        text: queryText,
-        createTime: req.query.lastItem,
-        limit: req.query.limit,
-      },
-      notesFromTagQuery
-    ),
-  });
+  try {
+    res.json({ notes: searchNotes(db, parseSearchParams(req.query)) });
+  } catch (e) {
+    if (e instanceof BadSearchRequest) {
+      res.status(400).json({ error: e.message });
+    } else {
+      throw e;
+    }
+  }
 });
 
 const select_note = db.prepare(
