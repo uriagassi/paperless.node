@@ -1,38 +1,33 @@
 # paperless.node Agent API
 
-This page tells an automated agent how to talk to a paperless.node server. Everything below is relative to the base
-URL `{BASE_URL}`.
+Base URL: `{BASE_URL}`. Every path below hangs off it.
 
-> If the examples below show bare paths such as `/api/search` (no `http://...` in front), the server could not work out
-> its own public address. Ask the user for the server's public URL and put it in front of every path, including the
-> `link` values the API returns.
+> Examples showing bare paths such as `/api/search` mean the server could not work out its public address. Ask the
+> user for it and put it in front of every path, including the `link` values the API returns.
 
-## Authentication
+## Start here
 
-Send a key on every request:
-
-```
-Authorization: Bearer <key>
-```
-
-A missing or unknown key is rejected with `401 Invalid Token`. No CSRF token and no cookies are needed.
+1. Hold a key. Without one, ask the user for it (see "Getting a key").
+2. Send `Authorization: Bearer <key>` on every request. Cookies and CSRF tokens play no part. A missing or unknown key
+   gets `401 Invalid Token`.
+3. Call only the endpoints in the next section. Anything else answers `403 Not available to agents`, which is the
+   expected, permanent answer. Move on rather than retrying.
 
 ### Getting a key
 
-Keys are created by a human on the machine running the server, not through the API. Ask the user to run:
+A human creates keys on the machine running the server. Ask the user to run:
 
 ```
 yarn agent_key add <name>
 ```
 
-It prints the key once and stores only a hash, so a lost key means a new one. The user then has to restart the server
-and send you the key. Other commands: `yarn agent_key list` (names only) and
-`yarn agent_key revoke <name>` (also needs a restart).
+The key prints once and only its hash is stored, so a lost key means a new one. The user restarts the server and sends
+you the key. `yarn agent_key list` shows names and `yarn agent_key revoke <name>` removes one (restart again).
 
 ## What you may call
 
-Everything not listed here answers `403 Not available to agents`. That is expected. Agents cannot read note bodies or
-attachments, change notes, or use mail, import or trash. Attachment file names are never exposed, only MIME types.
+Agents see note metadata (title, notebook, tags, dates, attachment MIME types and a link). Bodies, attachment files and
+file names stay out of reach.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -43,7 +38,7 @@ attachments, change notes, or use mail, import or trash. Attachment file names a
 | GET | `/api/notebooks/:id` | Notes in a notebook (paged) |
 | GET | `/api/tags/:id` | Notes with a tag (paged) |
 | GET | `/api/notes/:id` | Metadata of one note |
-| GET | `/api/user` | Who you are authenticated as |
+| GET | `/api/user` | Your identity: `{ "user_id": "agent:<name>", "user_name": "agent:<name>", "level": "agent" }` |
 | POST | `/api/agent/tags` | Create a tag under the agent root |
 | POST | `/api/notes/:id/addTag` | Add an agent tag to a note |
 | DELETE | `/api/notes/:id/tags/:tagId` | Remove an agent tag from a note |
@@ -67,14 +62,14 @@ Every note an agent sees has this shape:
 }
 ```
 
-`notebook` is `null` if the note has none. `link` is a path that opens the note in the web UI for a human; prefix it
-with `{BASE_URL}` to give the user a clickable URL, e.g. `{BASE_URL}/?noteId=42`.
+`notebook` is `null` if the note has none. `link` opens the note in the web UI for a human. Give the user `{BASE_URL}` plus the link, e.g.
+`{BASE_URL}/?noteId=42`.
 
 ```
 GET {BASE_URL}/api/notes/42
 ```
 
-returns the object above (`404` if there is no such note).
+returns the object above, or `404` for an unknown id.
 
 ## Searching and paging
 
@@ -96,7 +91,7 @@ GET {BASE_URL}/api/search?term=electricity&from=2024-01-01&to=2024-03-31&dateFie
 
 Results are newest first (by the chosen date, then note id). To get the next page, pass `lastItem` set to the day of the
 last note you received followed by `|` and its id, e.g. `lastItem=2024-03-02|42`; the id keeps notes from the same day
-from being skipped. Stop when a page returns fewer than `limit` notes. Bad dates or cursors return `400` with
+from being skipped. A page with fewer than `limit` notes is the last one. Bad dates or cursors return `400` with
 `{ "error": "..." }`.
 
 Notebook and tag listings page the same way, but with plain dates:
@@ -106,7 +101,7 @@ GET {BASE_URL}/api/notebooks/3?lastItem=0&limit=50
 GET {BASE_URL}/api/tags/7?lastItem=0&limit=50
 ```
 
-Always send both `lastItem` and `limit` here (`lastItem=0` means from the start). For the next page set `lastItem` to the
+Send both `lastItem` and `limit` here (`lastItem=0` starts from the beginning). For the next page set `lastItem` to the
 `createTime` of the last note received. `/api/notebooks/:id` also accepts `orderBy` (`createTime`, `updateTime` or
 `title`); the cursor then applies to that field.
 
@@ -123,16 +118,16 @@ GET {BASE_URL}/api/notebooks
 GET {BASE_URL}/api/tags
 ```
 ```json
-{ "tags": [ { "name": "agents", "key": 9, "agent": true, "...": "..." } ] }
+{ "tags": [ { "name": "agents", "key": 9, "parent": 0, "agent": true, "notes": 0 } ] }
 ```
 
 `key` is the id to use in other calls. `agent: true` marks tags inside the agent tag tree.
 
 ## Writing tags
 
-Agents can organise notes with tags of their own, and only those. The server keeps a root tag (named `agents`, or
-`agents-N` if that name was taken; find it in `GET /api/tags` as the tag with `agent: true` whose parent is none of the
-other agent tags) and you may only touch tags strictly beneath it.
+Agents organise notes with tags of their own. The server keeps a root tag (`agents`, or `agents-N` if that name was
+taken) and you work with the tags strictly beneath it. `GET /api/tags` marks the root and its descendants with
+`agent: true`. The root is the one whose `parent` is not itself an agent tag.
 
 Create a tag; `parent` is the id of the root or of any tag below it:
 
@@ -158,29 +153,13 @@ Content-Type: application/json
 DELETE {BASE_URL}/api/notes/42/tags/57
 ```
 
-Rules and errors:
+Rules:
 
-- Tags outside the agent tree, and the root itself, answer `403 Tag is not in the agent tag tree`
-  (`403 Parent is not in the agent tag tree` when creating).
-- Names are 1-100 characters (`400`) and must be unique among all tags, ignoring case (`409`).
+- Tags outside the agent tree, and the root itself, answer `403 Tag is not in the agent tag tree` (on create, `403
+  Parent is not in the agent tag tree`).
+- A name is 1-100 characters (`400`) and unique among all tags, ignoring case (`409`).
 - The agent tree holds at most 500 tags (`409`).
-- Adding a tag to a note that does not exist is `404`.
-- You cannot rename, move or delete tags.
+- An unknown note id is `404`.
+- Tags are created, attached and detached. Renaming, moving and deleting belong to the user.
 
-## Who am I
-
-```
-GET {BASE_URL}/api/user
-```
-
-returns `{ "user_id": "agent:<name>", "user_name": "agent:<name>", "level": "agent" }`.
-
-## Errors at a glance
-
-| Status | Meaning |
-| --- | --- |
-| 400 | Bad parameter (dates, cursor, tag name or parent) |
-| 401 | Missing or invalid key |
-| 403 | Not available to agents, or a tag outside the agent tree. Expected, not a fault |
-| 404 | Note not found |
-| 409 | Tag name taken, or the agent tree is full |
+Other errors: `400` with `{ "error": "..." }` for a bad date or cursor.
