@@ -71,7 +71,8 @@ app.set(
     ? config.get("server.trustProxy")
     : "loopback, linklocal, uniquelocal"
 );
-app.use(cookieParser());
+const cookieSecret = randomBytes(32).toString("hex");
+app.use(cookieParser(cookieSecret));
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -409,8 +410,9 @@ app.get("/api/user", (req, res) => {
 });
 
 app.get("/api/logout", (req, res) => {
-  console.log(Object.keys(req.cookies ?? {}));
-  for (const c in req.cookies) {
+  const cookies = { ...req.cookies, ...req.signedCookies };
+  console.log(Object.keys(cookies));
+  for (const c in cookies) {
     console.log("clearing cookie " + c);
     res.clearCookie(c);
   }
