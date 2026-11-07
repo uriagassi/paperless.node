@@ -5,7 +5,9 @@ import { BadSearchRequest, parseSearchParams, searchNotes } from "./Search.js";
 let db: Database;
 
 function search(query: Record<string, string>) {
-  return searchNotes(db, parseSearchParams(query)).map((n) => (n as { title: string }).title);
+  return searchNotes(db, parseSearchParams(query)).map(
+    (n) => (n as { title: string }).title
+  );
 }
 
 beforeEach(() => {
@@ -16,12 +18,16 @@ beforeEach(() => {
     create table Tags (tagId integer primary key, name text);
     create table NoteTags (noteId int, tagId int);
   `);
-  const insert = db.prepare("insert into Notes (title, createTime, updateTime) values (?, ?, ?)");
+  const insert = db.prepare(
+    "insert into Notes (title, createTime, updateTime) values (?, ?, ?)"
+  );
   insert.run("a", "2024-01-01", "2024-03-01");
   insert.run("b", "2024-01-15T13:00:00Z", "2024-02-01");
   insert.run("c", "2024-02-01", "2024-01-10");
   insert.run("d", "2024-03-01", "2024-01-20");
-  db.exec("insert into Tags (name) values ('red'); insert into NoteTags values (1, 1), (4, 1)");
+  db.exec(
+    "insert into Tags (name) values ('red'); insert into NoteTags values (1, 1), (4, 1)"
+  );
 });
 
 test("empty term without dates returns nothing", () => {
@@ -37,11 +43,15 @@ test("date range lists newest first with inclusive bounds", () => {
 
 test("datetime values count as their date for the bounds", () => {
   expect(search({ from: "2024-01-15", to: "2024-01-15" })).toEqual(["b"]);
-  expect(search({ from: "2024-01-15T23:59:59Z", to: "2024-01-15T00:00:00Z" })).toEqual(["b"]);
+  expect(
+    search({ from: "2024-01-15T23:59:59Z", to: "2024-01-15T00:00:00Z" })
+  ).toEqual(["b"]);
 });
 
 test("updateTime is filtered and sorted on its own", () => {
-  expect(search({ dateField: "updateTime", from: "2024-01-10", to: "2024-02-01" })).toEqual(["b", "d", "c"]);
+  expect(
+    search({ dateField: "updateTime", from: "2024-01-10", to: "2024-02-01" })
+  ).toEqual(["b", "d", "c"]);
 });
 
 test("from after to is an empty range", () => {
@@ -49,12 +59,44 @@ test("from after to is an empty range", () => {
 });
 
 test("paging walks older notes with lastItem and limit", () => {
-  expect(search({ from: "2024-01-01", limit: "2", lastItem: "0" })).toEqual(["d", "c"]);
-  expect(search({ from: "2024-01-01", limit: "2", lastItem: "2024-02-01" })).toEqual(["b", "a"]);
-  expect(search({ dateField: "updateTime", from: "2024-01-01", limit: "2", lastItem: "2024-02-01" })).toEqual([
+  expect(search({ from: "2024-01-01", limit: "2", lastItem: "0" })).toEqual([
     "d",
     "c",
   ]);
+  expect(
+    search({ from: "2024-01-01", limit: "2", lastItem: "2024-02-01" })
+  ).toEqual(["b", "a"]);
+  expect(
+    search({
+      dateField: "updateTime",
+      from: "2024-01-01",
+      limit: "2",
+      lastItem: "2024-02-01",
+    })
+  ).toEqual(["d", "c"]);
+});
+
+test("date|noteId cursor pages through notes sharing a day without skips", () => {
+  db.exec(
+    "insert into Notes (title, createTime, updateTime) values ('e', '2024-03-01', '2024-03-01'), ('f', '2024-03-01T08:00:00Z', '2024-03-01')"
+  );
+  const titles = [];
+  let lastItem = "0";
+  for (;;) {
+    const page = searchNotes(
+      db,
+      parseSearchParams({ from: "2024-01-01", limit: "2", lastItem })
+    ) as {
+      id: number;
+      title: string;
+      createTime: string;
+    }[];
+    if (!page.length) break;
+    titles.push(...page.map((n) => n.title));
+    const last = page[page.length - 1];
+    lastItem = `${last.createTime.slice(0, 10)}|${last.id}`;
+  }
+  expect(titles).toEqual(["f", "e", "d", "c", "b", "a"]);
 });
 
 test("term combines with the range for title and tag matches", () => {
@@ -64,8 +106,17 @@ test("term combines with the range for title and tag matches", () => {
 });
 
 test("invalid input is rejected", () => {
-  for (const q of [{ from: "yesterday" }, { to: "2024-13-40" }, { dateField: "title" }, { limit: "abc" }]) {
-    expect(() => parseSearchParams({ term: "x", ...q })).toThrow(BadSearchRequest);
+  for (const q of [
+    { from: "yesterday" },
+    { to: "2024-13-40" },
+    { dateField: "title" },
+    { limit: "abc" },
+    { lastItem: "2024-01-01|x" },
+    { lastItem: "2024-01-01|1|2" },
+  ]) {
+    expect(() => parseSearchParams({ term: "x", ...q })).toThrow(
+      BadSearchRequest
+    );
   }
 });
 

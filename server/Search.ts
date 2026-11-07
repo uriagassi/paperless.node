@@ -7,7 +7,7 @@ export interface SearchParams {
   from?: string;
   to?: string;
   dateField: DateField;
-  lastItem?: string;
+  cursor?: { day: string; id?: number };
   limit: number;
 }
 
@@ -18,35 +18,58 @@ const MAX_LIMIT = 500;
 
 function single(value: unknown, name: string): string | undefined {
   if (value === undefined) return undefined;
-  if (typeof value !== "string") throw new BadSearchRequest(`${name} must be a single value`);
+  if (typeof value !== "string")
+    throw new BadSearchRequest(`${name} must be a single value`);
   return value;
 }
 
-function parseDate(value: string | undefined, name: string): string | undefined {
+function parseDate(
+  value: string | undefined,
+  name: string
+): string | undefined {
   if (!value) return undefined;
   const day = value.slice(0, 10);
   const parsed = new Date(day);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== day) {
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(day) ||
+    isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== day
+  ) {
     throw new BadSearchRequest(`${name} must be an ISO date`);
   }
   return day;
 }
 
-export function parseSearchParams(query: Record<string, unknown>): SearchParams {
+function parseCursor(value: string | undefined): SearchParams["cursor"] {
+  if (!value || value === "0") return undefined;
+  const [day, id, ...rest] = value.split("|");
+  const parsedDay = parseDate(day, "lastItem");
+  if (rest.length || (id !== undefined && !/^[1-9]\d*$/.test(id))) {
+    throw new BadSearchRequest("lastItem must be a date or date|noteId");
+  }
+  return {
+    day: parsedDay as string,
+    id: id === undefined ? undefined : Number(id),
+  };
+}
+
+export function parseSearchParams(
+  query: Record<string, unknown>
+): SearchParams {
   const dateField = single(query.dateField, "dateField") || "createTime";
   if (dateField !== "createTime" && dateField !== "updateTime") {
     throw new BadSearchRequest("dateField must be createTime or updateTime");
   }
   const rawLimit = single(query.limit, "limit");
   const limit = rawLimit ? Number(rawLimit) : DEFAULT_LIMIT;
-  if (!Number.isInteger(limit)) throw new BadSearchRequest("limit must be an integer");
-  const rawLastItem = single(query.lastItem, "lastItem");
+  if (!Number.isInteger(limit))
+    throw new BadSearchRequest("limit must be an integer");
   return {
     term: single(query.term, "term") ?? "",
     from: parseDate(single(query.from, "from"), "from"),
     to: parseDate(single(query.to, "to"), "to"),
     dateField,
-    lastItem: rawLastItem && rawLastItem !== "0" ? parseDate(rawLastItem, "lastItem") : undefined,
+    cursor: parseCursor(single(query.lastItem, "lastItem")),
     limit: Math.min(Math.max(limit, 1), MAX_LIMIT),
   };
 }
@@ -73,9 +96,15 @@ export function searchNotes(db: Database, params: SearchParams) {
     conditions.push(`${column} <= ?`);
     args.push(params.to);
   }
-  if (params.lastItem) {
-    conditions.push(`${column} < ?`);
-    args.push(params.lastItem);
+  if (params.cursor) {
+    const { day, id } = params.cursor;
+    if (id === undefined) {
+      conditions.push(`${column} < ?`);
+      args.push(day);
+    } else {
+      conditions.push(`(${column} < ? or (${column} = ? and n.noteId < ?))`);
+      args.push(day, day, id);
+    }
   }
   args.push(params.limit);
 
@@ -86,7 +115,7 @@ export function searchNotes(db: Database, params: SearchParams) {
       MIN(a.mime) as mime, SUM(a.size) size, count(a.attachmentId) as attachmentCount \
       from Notes n left join Attachments a on n.noteId = a.noteId \
       where ${conditions.join(" and ")} \
-      group by n.noteId order by n.${params.dateField} desc, n.noteId desc limit ?`
+      group by n.noteId order by ${column} desc, n.noteId desc limit ?`
     )
     .all(...args);
 }
