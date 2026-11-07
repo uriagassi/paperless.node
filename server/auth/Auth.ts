@@ -18,6 +18,21 @@ export interface IUserData {
 }
 
 const BEARER = /^Bearer\s+(\S+)$/i;
+const USER_COOKIE = "x-token-user";
+const USER_COOKIE_MAX_AGE_MS = 50000;
+
+function sessionCookieValue(userName: string) {
+  return `${Date.now() + USER_COOKIE_MAX_AGE_MS}|${userName}`;
+}
+
+function userFromSessionCookie(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const separator = value.indexOf("|");
+  if (separator < 0 || Number(value.slice(0, separator)) <= Date.now()) {
+    return undefined;
+  }
+  return value.slice(separator + 1) || undefined;
+}
 
 export class Auth {
   private readonly authHandler: IAuthHandler;
@@ -59,8 +74,9 @@ export class Auth {
       return next();
     }
 
-    if (req.signedCookies?.["x-token-user"] && req.path !== "/api/user") {
-      req.user_name = req.signedCookies["x-token-user"];
+    const cookieUser = userFromSessionCookie(req.signedCookies?.[USER_COOKIE]);
+    if (cookieUser && req.path !== "/api/user") {
+      req.user_name = cookieUser;
       return next();
     }
 
@@ -69,8 +85,8 @@ export class Auth {
         req.user_id = data.user_id;
         req.user_name = data.user_name;
         req.level = data.level ?? "user";
-        res.cookie("x-token-user", data.user_name, {
-          maxAge: 50000,
+        res.cookie(USER_COOKIE, sessionCookieValue(data.user_name), {
+          maxAge: USER_COOKIE_MAX_AGE_MS,
           secure: true,
           httpOnly: true,
           sameSite: "lax",
