@@ -268,13 +268,15 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
   }
   function renderLink(item?: INavLink, defaultRender?: (props?: INavLink) => JSX.Element | null): JSX.Element | null {
     if (defaultRender) {
-      if (item) {
-        const nameWithHighlight = highlightFilter(item?.name, props.tagFilter);
-        if (nameWithHighlight) {
-          return nameWithHighlight;
-        }
-      }
-      return defaultRender(item);
+      const nameWithHighlight = item && highlightFilter(item.name, props.tagFilter);
+      const rendered = nameWithHighlight || defaultRender(item);
+      return (item?.itag as Tag | undefined)?.agent ? (
+        <span className="AgentTag" title="Created by an agent">
+          {rendered}
+        </span>
+      ) : (
+        rendered
+      );
     }
     return null;
   }

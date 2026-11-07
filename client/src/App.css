@@ -16,6 +16,8 @@
   --drop-shadow: gray;
   --button-color: white;
   --tag-item-color: rgb(243, 242, 241);
+  --agent-tag-color: rgb(223, 236, 249);
+  --agent-tag-line-color: rgb(43, 136, 216);
 }
 
 .MainWindow {
@@ -39,6 +41,7 @@
   --drop-shadow: black;
   --button-color: rgb(39, 41, 44);
   --tag-item-color: var(--button-color);
+  --agent-tag-color: rgb(30, 52, 78);
   background-color: var(--background-color);
   color: var(--text-color);
 }
@@ -179,6 +182,16 @@
 .ItemTags {
   flex: 1;
   padding: 0 0 0 1em;
+}
+
+.AgentTag::before {
+  content: "\1F916";
+  margin-right: 0.3em;
+}
+
+.ms-TagItem.AgentTag {
+  background-color: var(--agent-tag-color);
+  box-shadow: 0 0 0 1px var(--agent-tag-line-color) inset;
 }
 
 .ms-TagItem {

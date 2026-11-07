@@ -16,6 +16,7 @@ import cors from "cors";
 import { Auth } from "./auth/Auth.js";
 import { AgentKeys } from "./auth/AgentKeys.js";
 import { agentAllowlist } from "./auth/AgentAllowlist.js";
+import { AgentTags, AgentTagError } from "./auth/AgentTags.js";
 import {
   agentNoteListRow,
   agentNoteAttachments,
@@ -32,6 +33,8 @@ const { AuthHandler } = await import(config.get("auth.handler"));
 const att = new Attachments(db);
 const tagservice = new Tags(db);
 const notes = new Notes(db, att, tagservice);
+const agentTags = new AgentTags(db);
+agentTags.rootId();
 
 const tag_query = db.prepare(
   "select name, tags.tagId as key, ifnull(parentId, 0) as parent, \
@@ -123,8 +126,16 @@ if (!IS_PROXY && config.has("cors.use") && config.get("cors.use") == true) {
 const forLevel = (req: express.Request, rows: unknown[]) =>
   req.level === "agent" ? rows.map(agentNoteListRow) : rows;
 
+const flagAgentTags = (rows: unknown[]) => {
+  const agentIds = agentTags.agentTagIds();
+  return (rows as { key: number }[]).map((r) => ({
+    ...r,
+    agent: agentIds.has(r.key),
+  }));
+};
+
 app.get("/api/tags", (req, res) => {
-  const tags = tag_query.all();
+  const tags = flagAgentTags(tag_query.all());
   res.json({ tags: tags });
 });
 
@@ -134,7 +145,7 @@ app.get("/api/notebooks", (req, res) => {
 });
 
 app.get("/api/notebooks_and_tags", (req, res) => {
-  const tags = tag_query.all();
+  const tags = flagAgentTags(tag_query.all());
   res.json({ notebooks: notebooks_query.all(), tags: tags });
 });
 
@@ -318,7 +329,28 @@ const add_tag_to_note = db.prepare(
   "insert into NoteTags (noteId, tagId) values ($noteId, $tagId)"
 );
 
+const note_exists = db.prepare("select 1 from Notes where noteId = ?");
+const add_tag_to_note_if_missing = db.prepare(
+  "insert or ignore into NoteTags (noteId, tagId) values ($noteId, $tagId)"
+);
+
+const denyOutsideAgentTree = (res: express.Response, tagId: number) => {
+  if (agentTags.isStrictlyUnderRoot(tagId)) return true;
+  res.status(403).send("Tag is not in the agent tag tree");
+  return false;
+};
+
 app.post("/api/notes/:noteId/addTag", csrfProtection, (req, res) => {
+  if (req.level === "agent") {
+    const tagId = Number(req.body?.tagId);
+    if (!denyOutsideAgentTree(res, tagId)) return;
+    if (!note_exists.get(req.params.noteId)) {
+      return res.status(404).send("No such note");
+    }
+    return res.json(
+      add_tag_to_note_if_missing.run({ noteId: req.params.noteId, tagId })
+    );
+  }
   res.json(add_tag_to_note.run({ ...req.params, ...req.body }));
 });
 
@@ -327,6 +359,9 @@ const remove_tag_from_note = db.prepare(
 );
 
 app.delete("/api/notes/:noteId/tags/:tagId", csrfProtection, (req, res) => {
+  if (req.level === "agent" && !denyOutsideAgentTree(res, Number(req.params.tagId))) {
+    return;
+  }
   res.json(remove_tag_from_note.run(req.params));
 });
 
@@ -338,6 +373,16 @@ app.put("/api/tags/new", (req, res) => {
   const r = add_new_tag.run({ parent: undefined, ...req.body });
   console.log(r);
   res.json({ key: r.lastInsertRowid });
+});
+
+app.post("/api/agent/tags", csrfProtection, (req, res) => {
+  if (req.level !== "agent") return res.status(403).send("Agents only");
+  try {
+    res.json({ key: agentTags.createTag(req.body?.name, req.body?.parent) });
+  } catch (e) {
+    if (e instanceof AgentTagError) return res.status(e.status).send(e.message);
+    throw e;
+  }
 });
 
 const update_tag = db.prepare(
