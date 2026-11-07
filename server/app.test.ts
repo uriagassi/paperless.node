@@ -131,28 +131,44 @@ describe("allowlisted read routes for agents", () => {
     expect(res.status).toBe(200);
   });
 
-  it("hides attachment file names in note listings", async () => {
+  const expectedNote = {
+    id: 1,
+    title: "Tax return",
+    notebook: { id: 2, name: expect.any(String) },
+    tags: ["taxes"],
+    createTime: "2024-01-01",
+    updateTime: "2024-01-01",
+    attachments: [{ mime: "application/pdf" }],
+    link: "/?noteId=1",
+  };
+
+  it("returns metadata only in note listings and search", async () => {
     for (const route of [
       "/api/notebooks/2?lastItem=2000-01-01&limit=10",
       "/api/tags/1?lastItem=2000-01-01&limit=10",
       "/api/search?term=tax&lastItem=2000-01-01&limit=10",
     ]) {
       const res = await agent(request(app).get(route));
-      expect(res.body.notes).toHaveLength(1);
-      expect(res.body.notes[0]).not.toHaveProperty("attachments");
-      expect(res.body.notes[0]).toMatchObject({
-        title: "Tax return",
-        mime: "application/pdf",
-        attachmentCount: 1,
-      });
+      expect(res.body.notes).toEqual([expectedNote]);
       expect(JSON.stringify(res.body)).not.toContain("john-doe");
+      expect(JSON.stringify(res.body)).not.toContain("secret body");
     }
   });
 
-  it("hides attachment file names in note metadata", async () => {
+  it("returns metadata only for a single note", async () => {
     const res = await agent(request(app).get("/api/notes/1"));
-    expect(res.body.attachments).toEqual([{ id: 1 }]);
+    expect(res.body).toEqual(expectedNote);
     expect(JSON.stringify(res.body)).not.toContain("john-doe");
+  });
+
+  it("returns 404 for a missing note", async () => {
+    const res = await agent(request(app).get("/api/notes/999"));
+    expect(res.status).toBe(404);
+  });
+
+  it("links are relative /?noteId=<id> paths", async () => {
+    const res = await agent(request(app).get("/api/notes/1"));
+    expect(res.body.link).toBe("/?noteId=1");
   });
 
   it("keeps file names for users", async () => {
