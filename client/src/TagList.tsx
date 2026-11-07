@@ -271,9 +271,12 @@ export const TagList: React.FunctionComponent<TagListProps> = (props) => {
       const nameWithHighlight = item && highlightFilter(item.name, props.tagFilter);
       const rendered = nameWithHighlight || defaultRender(item);
       return (item?.itag as Tag | undefined)?.agent ? (
-        <span className="AgentTag" title="Created by an agent">
+        <>
           {rendered}
-        </span>
+          <span className="AgentMark" title="Created by an agent" role="img" aria-label="Created by an agent">
+            🤖
+          </span>
+        </>
       ) : (
         rendered
       );
