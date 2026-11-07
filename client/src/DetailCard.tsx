@@ -15,6 +15,7 @@ import {
   ITag,
   Shimmer,
   Stack,
+  TagItem,
   TagPicker,
   TextField,
   MessageBar,
@@ -436,6 +437,14 @@ export const DetailCard: React.FunctionComponent<DetailCardProps> = (props) => {
           getTextFromItem={getTextFromItem}
           pickerSuggestionsProps={pickerSuggestionsProps}
           selectedItems={note?.tags}
+          onRenderItem={(itemProps) => (
+            <TagItem
+              {...itemProps}
+              className={props.availableTags?.find((t) => t.key == itemProps.item.key)?.agent ? "AgentTag" : undefined}
+            >
+              {itemProps.item.name}
+            </TagItem>
+          )}
           className="ItemTags"
           onChange={onTagsChanged}
           inputProps={{

@@ -181,28 +181,69 @@ describe("allowlisted read routes for agents", () => {
     expect(res.status).toBe(200);
   });
 
-  it("hides attachment file names in note listings", async () => {
+  const expectedNote = {
+    id: 1,
+    title: "Tax return",
+    notebook: { id: 2, name: expect.any(String) },
+    tags: ["taxes"],
+    createTime: "2024-01-01",
+    updateTime: "2024-01-01",
+    attachments: [{ mime: "application/pdf" }],
+    link: "/?noteId=1",
+  };
+
+  it("returns metadata only in note listings and search", async () => {
     for (const route of [
       "/api/notebooks/2?lastItem=2000-01-01&limit=10",
       "/api/tags/1?lastItem=2000-01-01&limit=10",
       "/api/search?term=tax&lastItem=0&limit=10",
     ]) {
       const res = await agent(request(app).get(route));
-      expect(res.body.notes).toHaveLength(1);
-      expect(res.body.notes[0]).not.toHaveProperty("attachments");
-      expect(res.body.notes[0]).toMatchObject({
-        title: "Tax return",
-        mime: "application/pdf",
-        attachmentCount: 1,
-      });
+      expect(res.body.notes).toEqual([expectedNote]);
       expect(JSON.stringify(res.body)).not.toContain("john-doe");
+      expect(JSON.stringify(res.body)).not.toContain("secret body");
     }
   });
 
-  it("hides attachment file names in note metadata", async () => {
+  it("returns metadata only for a single note", async () => {
     const res = await agent(request(app).get("/api/notes/1"));
-    expect(res.body.attachments).toEqual([{ id: 1 }]);
+    expect(res.body).toEqual(expectedNote);
     expect(JSON.stringify(res.body)).not.toContain("john-doe");
+  });
+
+  it("returns 404 for a missing note", async () => {
+    const res = await agent(request(app).get("/api/notes/999"));
+    expect(res.status).toBe(404);
+  });
+
+  it("returns empty tags and attachments for a bare note", async () => {
+    const res = await agent(request(app).get("/api/notes/11"));
+    expect(res.body).toMatchObject({
+      id: 11,
+      tags: [],
+      attachments: [],
+      link: "/?noteId=11",
+    });
+  });
+
+  it("paginates and orders listings the same way for agents", async () => {
+    const byUpdate = await agent(
+      request(app).get(
+        "/api/notebooks/1?orderBy=updateTime&lastItem=2023-06-30&limit=10"
+      )
+    );
+    expect(byUpdate.body.notes.map((n: { id: number }) => n.id)).toEqual([10, 12]);
+
+    const limited = await agent(
+      request(app).get("/api/notebooks/1?lastItem=2023-06-01&limit=1")
+    );
+    expect(limited.body.notes).toHaveLength(1);
+    expect(limited.body.notes[0].link).toBe(`/?noteId=${limited.body.notes[0].id}`);
+  });
+
+  it("links are relative /?noteId=<id> paths", async () => {
+    const res = await agent(request(app).get("/api/notes/1"));
+    expect(res.body.link).toBe("/?noteId=1");
   });
 
   it("keeps file names for users", async () => {
@@ -227,8 +268,6 @@ describe("default-deny for agents", () => {
     ["note update", "post", "/api/notes/1"],
     ["note split", "post", "/api/notes/1/split"],
     ["note move", "post", "/api/notes/1/notebook/1"],
-    ["add tag to note", "post", "/api/notes/1/addTag"],
-    ["remove tag from note", "delete", "/api/notes/1/tags/1"],
     ["new notebook", "post", "/api/notebooks/foo"],
     ["delete notebook", "delete", "/api/notebooks/1"],
     ["new tag (put)", "put", "/api/tags/new"],
@@ -270,6 +309,86 @@ describe("default-deny for agents", () => {
     const res = await request(app).get("/api/body/1");
     expect(res.status).toBe(200);
     expect(res.text).toContain("secret body");
+  });
+});
+
+describe("agent tag sandbox", () => {
+  const post = (path: string, body: object) =>
+    agent(request(app).post(path)).send(body);
+  const create = (name: string, parent?: number) =>
+    post("/api/agent/tags", { name, parent });
+  const rootId = async () => {
+    const { body } = await agent(request(app).get("/api/tags"));
+    const root = body.tags.find(
+      (t: { name: string; agent: boolean }) => t.agent && /^agents(-\d+)?$/.test(t.name)
+    );
+    return root.key as number;
+  };
+
+  it("has a root tag from startup, flagged as agent", async () => {
+    const { body } = await agent(request(app).get("/api/tags"));
+    const agentTags = body.tags.filter((t: { agent: boolean }) => t.agent);
+    expect(agentTags).toHaveLength(1);
+    expect(agentTags[0].name).toMatch(/^agents(-\d+)?$/);
+    expect(body.tags.find((t: { name: string }) => t.name === "taxes").agent).toBe(false);
+  });
+
+  it("creates nested tags and flags them", async () => {
+    const root = await rootId();
+    const a = await create("nested-a", root);
+    expect(a.status).toBe(200);
+    const b = await create("nested-b", a.body.key);
+    expect(b.status).toBe(200);
+    const { body } = await request(app).get("/api/tags");
+    const flagged = body.tags.filter((t: { agent: boolean }) => t.agent).map((t: { key: number }) => t.key);
+    expect(flagged).toEqual(expect.arrayContaining([root, a.body.key, b.body.key]));
+  });
+
+  it("adds and removes sandbox tags on notes", async () => {
+    const tag = (await create("for-notes", await rootId())).body.key;
+    const add = await post("/api/notes/1/addTag", { tagId: tag });
+    expect(add.status).toBe(200);
+    expect((await post("/api/notes/1/addTag", { tagId: tag })).status).toBe(200);
+    const del = await agent(request(app).delete(`/api/notes/1/tags/${tag}`));
+    expect(del.status).toBe(200);
+  });
+
+  it("returns 404 for adding to a missing note", async () => {
+    const tag = (await create("for-missing-note", await rootId())).body.key;
+    expect((await post("/api/notes/999/addTag", { tagId: tag })).status).toBe(404);
+  });
+
+  it("rejects the root and tags outside the subtree with 403", async () => {
+    const root = await rootId();
+    expect((await create("outside", 1)).status).toBe(403);
+    expect((await create("no-parent")).status).toBe(403);
+    expect((await post("/api/notes/1/addTag", { tagId: 1 })).status).toBe(403);
+    expect((await post("/api/notes/1/addTag", { tagId: root })).status).toBe(403);
+    expect((await agent(request(app).delete("/api/notes/1/tags/1"))).status).toBe(403);
+    expect((await agent(request(app).delete(`/api/notes/1/tags/${root}`))).status).toBe(403);
+  });
+
+  it("rejects duplicate names with 409", async () => {
+    const root = await rootId();
+    expect((await create("dup", root)).status).toBe(200);
+    expect((await create("DUP", root)).status).toBe(409);
+    expect((await create("Taxes", root)).status).toBe(409);
+  });
+
+  it("rejects bad names with 400", async () => {
+    expect((await create("  ", await rootId())).status).toBe(400);
+  });
+
+  it("keeps rename, move and delete denied", async () => {
+    const tag = (await create("fixed", await rootId())).body.key;
+    expect((await post(`/api/tags/${tag}`, { name: "x", parent: 1 })).status).toBe(403);
+    expect((await post("/api/tags/-1", { name: "x" })).status).toBe(403);
+    expect((await agent(request(app).delete(`/api/tags/${tag}`))).status).toBe(403);
+    expect((await agent(request(app).put("/api/tags/new")).send({ name: "x" })).status).toBe(403);
+  });
+
+  it("is for agents only, and needs no CSRF for them", async () => {
+    expect((await request(app).post("/api/agent/tags").send({ name: "x" })).status).toBe(403);
   });
 });
 

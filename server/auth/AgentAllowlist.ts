@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 
 const ID = "[^/]+";
-const READ_ROUTES = [
+const compile = (paths: string[]) =>
+  paths.map((p) => new RegExp(`^${p}/?$`, "i"));
+
+const READ_ROUTES = compile([
   "/api/search",
   "/api/tags",
   "/api/notebooks",
@@ -10,11 +13,18 @@ const READ_ROUTES = [
   `/api/tags/${ID}`,
   `/api/notebooks/${ID}`,
   `/api/notes/${ID}`,
-].map((p) => new RegExp(`^${p}/?$`, "i"));
+]);
+
+const TAG_WRITE_MATCHERS: Record<string, RegExp[]> = {
+  POST: compile([`/api/agent/tags`, `/api/notes/${ID}/addTag`]),
+  DELETE: compile([`/api/notes/${ID}/tags/${ID}`]),
+};
 
 export function isAgentAllowed(method: string, path: string): boolean {
-  if (method !== "GET" && method !== "HEAD") return false;
-  return READ_ROUTES.some((r) => r.test(path));
+  if (method === "GET" || method === "HEAD") {
+    return READ_ROUTES.some((r) => r.test(path));
+  }
+  return (TAG_WRITE_MATCHERS[method] ?? []).some((r) => r.test(path));
 }
 
 export function agentAllowlist(

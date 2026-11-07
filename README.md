@@ -201,9 +201,23 @@ yarn agent_key revoke <name>
 
 Restart the server after any change. The agent sends `Authorization: Bearer <key>` and is authenticated as
 `agent:<name>` with `level: "agent"`. Agents are default-denied everywhere except search, tag/notebook listings and
-single-note metadata (plus `GET /api/user`); they can't read note bodies or attachments, change anything, or use
+single-note metadata (plus `GET /api/user`); they can't read note bodies or attachments, change anything (other than their own tags, below), or use
 mail, import or trash. Attachment file names are not exposed to agents. A key can also be configured by hand under
 `auth.agentKeys` as `{ "name": ..., "keyHash": ... }` (or, less safely, `{ "name": ..., "key": ... }`).
+
+#### Agent tag sandbox
+The one thing agents can write is their own tags. The server keeps a root tag (created as `agents`, or `agents-N` with the lowest free
+N if that name is taken, and remembered by id, so renaming it is fine) and agents may only touch tags strictly under it. No CSRF token
+is needed for agent requests.
+
+- `POST /api/agent/tags` with `{ "name": ..., "parent": <id of the root or a descendant> }` creates a tag and returns
+  `{ "key": <id> }`.
+- `POST /api/notes/:noteId/addTag` with `{ "tagId": ... }` and `DELETE /api/notes/:noteId/tags/:tagId` add and remove
+  sandbox tags on a note.
+
+Tags outside the subtree and the root itself get `403`; agents can't rename, move or delete tags. Names must be 1-100
+characters and unique among all tags, ignoring case (`400` / `409`). The subtree is capped at 500 tags (`409`). Agent
+tags show with a robot icon and a blue pill in the UI.
 
 ## Server Outside Traffic
 Once you've handled both considerations above, you can direct the server to listen to outside traffic. Again run `yarn
