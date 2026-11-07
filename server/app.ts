@@ -122,7 +122,7 @@ const agentNote = agentView(db);
 
 const forLevel = (req: express.Request, rows: unknown[]) =>
   req.level === "agent"
-    ? (rows as { id: number }[]).map((r) => agentNote(r.id))
+    ? (rows as { id: number }[]).flatMap((r) => agentNote(r.id) ?? [])
     : rows;
 
 app.get("/api/tags", (req, res) => {

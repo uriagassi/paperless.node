@@ -3,7 +3,7 @@ import { Database } from "better-sqlite3";
 export interface AgentNote {
   id: number;
   title: string;
-  notebook: { id: number; name: string };
+  notebook: { id: number; name: string } | null;
   tags: string[];
   createTime: string;
   updateTime: string;
@@ -40,14 +40,17 @@ export function agentView(db: Database) {
           createTime: string;
           updateTime: string;
           notebookId: number;
-          notebookName: string;
+          notebookName: string | null;
         }
       | undefined;
     if (!row) return undefined;
     return {
       id: row.id,
       title: row.title,
-      notebook: { id: row.notebookId, name: row.notebookName },
+      notebook:
+        row.notebookName === null
+          ? null
+          : { id: row.notebookId, name: row.notebookName },
       tags: select_tags.all(noteId) as string[],
       createTime: row.createTime,
       updateTime: row.updateTime,
