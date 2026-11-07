@@ -16,7 +16,11 @@ let lines: string[] = [];
 
 const output = new Writable({
   write(chunk, _enc, done) {
-    lines.push(...chunk.toString().split("\n").filter(Boolean));
+    // a multi-line message is stamped once, on its first line
+    for (const line of chunk.toString().split("\n").filter(Boolean)) {
+      if (/^\[\d/.test(line) || lines.length === 0) lines.push(line);
+      else lines[lines.length - 1] += `\n${line}`;
+    }
     done();
   },
 });
