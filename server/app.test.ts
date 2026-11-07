@@ -30,6 +30,11 @@ beforeAll(async () => {
       values (1, 'tax-2023-john-doe.pdf', 'tax-2023-john-doe-1.pdf', 'application/pdf', 10);
     insert into Tags (tagId, name, isExpanded) values (1, 'taxes', 0);
     insert into NoteTags (noteId, tagId) values (1, 1);
+    insert into Notes (noteId, notebookId, createTime, updateTime, title, noteData) values
+      (10, 1, '2023-05-01', '2023-09-01', 'Range old', ''),
+      (11, 1, '2023-06-10', '2023-06-10', 'Range mid A', ''),
+      (12, 1, '2023-06-10', '2023-07-01', 'Range mid B', ''),
+      (13, 1, '2023-07-20', '2023-05-02', 'Range new', '');
   `);
   seed.close();
 
@@ -116,6 +121,51 @@ describe("authentication", () => {
   });
 });
 
+describe("date-range search", () => {
+  const titles = (res: request.Response) => res.body.notes.map((n: { title: string }) => n.title);
+  const search = (qs: string) => agent(request(app).get(`/api/search?${qs}`));
+
+  it("lists notes in range newest first without a term, bounds inclusive", async () => {
+    const res = await search("from=2023-06-10&to=2023-07-20");
+    expect(res.status).toBe(200);
+    expect(titles(res)).toEqual(["Range new", "Range mid B", "Range mid A"]);
+  });
+
+  it("filters and sorts on updateTime when asked", async () => {
+    const res = await search("dateField=updateTime&from=2023-05-01&to=2023-07-01");
+    expect(titles(res)).toEqual(["Range mid B", "Range mid A", "Range new"]);
+  });
+
+  it("pages with the date|noteId cursor across same-day notes", async () => {
+    const first = await search("from=2023-01-01&to=2023-12-31&limit=2&lastItem=0");
+    expect(titles(first)).toEqual(["Range new", "Range mid B"]);
+    const last = first.body.notes[1];
+    const next = await search(
+      `from=2023-01-01&to=2023-12-31&limit=2&lastItem=${last.createTime.slice(0, 10)}|${last.id}`
+    );
+    expect(titles(next)).toEqual(["Range mid A", "Range old"]);
+  });
+
+  it("combines a term with a range", async () => {
+    expect(titles(await search("term=Range&from=2023-06-01&to=2023-06-30"))).toEqual(["Range mid B", "Range mid A"]);
+  });
+
+  it("returns nothing for an empty term with no bounds", async () => {
+    const res = await search("lastItem=0&limit=10");
+    expect(res.status).toBe(200);
+    expect(res.body.notes).toEqual([]);
+  });
+
+  it.each(["from=yesterday", "to=2023-13-40", "from=2023-01-01&dateField=title", "from=2023-01-01&limit=abc"])(
+    "rejects %s with 400",
+    async (qs) => {
+      const res = await search(qs);
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty("error");
+    }
+  );
+});
+
 describe("allowlisted read routes for agents", () => {
   it.each([
     "/api/tags",
@@ -124,7 +174,7 @@ describe("allowlisted read routes for agents", () => {
     "/api/user",
     "/api/tags/1?lastItem=2000-01-01&limit=10",
     "/api/notebooks/2?lastItem=2000-01-01&limit=10",
-    "/api/search?term=tax&lastItem=2000-01-01&limit=10",
+    "/api/search?term=tax&lastItem=0&limit=10",
     "/api/notes/1",
   ])("GET %s works", async (route) => {
     const res = await agent(request(app).get(route));
@@ -135,7 +185,7 @@ describe("allowlisted read routes for agents", () => {
     for (const route of [
       "/api/notebooks/2?lastItem=2000-01-01&limit=10",
       "/api/tags/1?lastItem=2000-01-01&limit=10",
-      "/api/search?term=tax&lastItem=2000-01-01&limit=10",
+      "/api/search?term=tax&lastItem=0&limit=10",
     ]) {
       const res = await agent(request(app).get(route));
       expect(res.body.notes).toHaveLength(1);
