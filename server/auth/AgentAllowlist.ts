@@ -22,7 +22,10 @@ export function agentAllowlist(
   res: Response,
   next: NextFunction
 ) {
-  if (req.level !== "agent" || isAgentAllowed(req.method, req.path)) {
+  if (
+    req.level === "user" ||
+    (req.level === "agent" && isAgentAllowed(req.method, req.path))
+  ) {
     return next();
   }
   return res.status(403).send("Not available to agents");

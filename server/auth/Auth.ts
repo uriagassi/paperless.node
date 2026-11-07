@@ -34,6 +34,7 @@ export class Auth {
     if (req.path === "/auth") {
       return res.json(this.authHandler.clientData());
     }
+    req.level = "user";
     const nonSecurePaths = [
       "/api/body/css",
       "/api/body/js",
@@ -58,7 +59,6 @@ export class Auth {
       return next();
     }
 
-    req.level = "user";
     if (req.cookies?.["x-token-user"] && req.path !== "/api/user") {
       req.user_name = req.cookies?.["x-token-user"];
       return next();
@@ -68,6 +68,7 @@ export class Auth {
       this.authHandler.authorize(req, res, (data) => {
         req.user_id = data.user_id;
         req.user_name = data.user_name;
+        req.level = data.level ?? "user";
         res.cookie("x-token-user", data.user_name, {
           maxAge: 50000,
           secure: true,
