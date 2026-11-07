@@ -17,10 +17,7 @@ import cors from "cors";
 import { Auth } from "./auth/Auth.js";
 import { AgentKeys } from "./auth/AgentKeys.js";
 import { agentAllowlist } from "./auth/AgentAllowlist.js";
-import {
-  agentNoteListRow,
-  agentNoteAttachments,
-} from "./auth/AgentView.js";
+import { agentView } from "./auth/AgentView.js";
 import helmet from "helmet";
 import { doubleCsrf } from "csrf-csrf";
 import { randomBytes } from "crypto";
@@ -121,8 +118,12 @@ if (!IS_PROXY && config.has("cors.use") && config.get("cors.use") == true) {
   }
 }
 
+const agentNote = agentView(db);
+
 const forLevel = (req: express.Request, rows: unknown[]) =>
-  req.level === "agent" ? rows.map(agentNoteListRow) : rows;
+  req.level === "agent"
+    ? (rows as { id: number }[]).flatMap((r) => agentNote(r.id) ?? [])
+    : rows;
 
 app.get("/api/tags", (req, res) => {
   const tags = tag_query.all();
@@ -149,7 +150,7 @@ const notes_by_notebook_query = ['createTime', 'updateTime', 'title'].reduce((m:
   m[t] = db.prepare(
     `select n.noteId as id, createTime, title, \
   GROUP_CONCAT(a.fileName) as attachments, \
-  MIN(a.mime) as mime, SUM(a.size) size, count(a.attachmentId) as attachmentCount from Notes n left join Attachments a on id = a.noteId \
+  MIN(a.mime) as mime, SUM(a.size) size from Notes n left join Attachments a on id = a.noteId \
   where notebookId = ? and ${t} > ? group by id order by ${t} desc limit ?`);
   return m;
 }, {});
@@ -170,7 +171,7 @@ app.get("/api/notebooks/:notebookId", (req, res) => {
 const notes_by_tag_query = db.prepare(
   "select n.noteId as id, createTime, title, \
   GROUP_CONCAT(a.fileName) as attachments, \
-  MIN(a.mime) as mime, SUM(a.size) size, count(a.attachmentId) as attachmentCount \
+  MIN(a.mime) as mime, SUM(a.size) size \
   from NoteTags nt, Notes n left join Attachments a on id = a.noteId \
   where nt.tagId = ? and nt.noteId = id and createTime > ? \
   group by id order by createTime desc limit ?"
@@ -216,12 +217,13 @@ from Attachments where noteId = ?"
 );
 
 app.get("/api/notes/:noteId", (req, res) => {
+  if (req.level === "agent") {
+    const note = agentNote(req.params.noteId);
+    return note ? res.json(note) : res.status(404).send("Not Found");
+  }
   res.json({
     ...select_note.get(req.params.noteId),
-    attachments: agentNoteAttachments(
-      req,
-      select_attachments.all(req.params.noteId) as { id: number }[]
-    ),
+    attachments: select_attachments.all(req.params.noteId),
     parts: notes.parts(req.params.noteId),
   });
 });
