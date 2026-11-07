@@ -152,7 +152,7 @@ setup_wizard` and `yarn agent_key`). Relevant to the agent API:
 
 - `auth.agentKeys`: list of `{ "name", "keyHash" }` (or `{ "name", "key" }`). Use `yarn agent_key` instead of editing it.
 - `server.publicBaseUrl` (optional): the public address (e.g. `https://notes.example.com`) substituted for `{BASE_URL}`
-  in the agent page. Normally unset: the address is taken from the request.
+  in the agent page. Usually you leave it unset and the address comes from the request.
 - `server.trustProxy` (optional): Express `trust proxy` value, by default `loopback, linklocal, uniquelocal`, so
   `X-Forwarded-Proto`/`X-Forwarded-Host` from a reverse proxy on the same machine or LAN are honored. If your proxy is
   elsewhere, widen this or set `server.publicBaseUrl`.
@@ -195,7 +195,7 @@ the Origin and Redirect URIs (in the Gmail OAuth configuration, and in the `setu
 Serving HTTPS will keep away snoops from looking at your requests and responses, but it won't prevent anyone from
 connecting to your server themselves. The way to keep them away, is to only allow authenticated users (ones that you
 authorized to use the server) to actually get to it. The server itself only authenticates; it has no user roles or
-permissions beyond the read-mostly agent keys described under [Agent keys](#agent-keys).
+permissions beyond the restricted agent keys described under [Agent keys](#agent-keys).
 
 I have, however, created a pluggable system, where you can easily implement an authorization middleware and wire it into
 the server. I have also implemented a reference implementation which integrates with Synology's NAS [SSO
@@ -229,8 +229,7 @@ yarn agent_key revoke <name>
 
 Restart the server after any change. The agent sends `Authorization: Bearer <key>`. Agents can search, list tags and
 notebooks, read note metadata, and manage tags under their own root tag; everything else is `403`. The full agent-facing
-documentation is served by the app itself at `/agent-api` (menu: your avatar, then "Agent API"), publicly and without a
-login, so you can simply give an agent that URL.
+documentation is served by the app itself at `/agent-api` (avatar menu, then "Agent API"). It needs no login, so you can hand an agent that URL as is.
 
 ## Server Outside Traffic
 Once you've handled both considerations above, you can direct the server to listen to outside traffic. Again run `yarn

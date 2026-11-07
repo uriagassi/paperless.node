@@ -25,13 +25,13 @@ Keys are created by a human on the machine running the server, not through the A
 yarn agent_key add <name>
 ```
 
-It prints the key once; only a hash is stored, so a lost key means creating a new one. The user must then **restart
-the server** and send you the key. Other commands: `yarn agent_key list` (names only) and
+It prints the key once and stores only a hash, so a lost key means a new one. The user then has to restart the server
+and send you the key. Other commands: `yarn agent_key list` (names only) and
 `yarn agent_key revoke <name>` (also needs a restart).
 
 ## What you may call
 
-Everything not listed here answers `403 Not available to agents`. That is expected: agents cannot read note bodies or
+Everything not listed here answers `403 Not available to agents`. That is expected. Agents cannot read note bodies or
 attachments, change notes, or use mail, import or trash. Attachment file names are never exposed, only MIME types.
 
 | Method | Path | Purpose |
