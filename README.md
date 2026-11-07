@@ -190,6 +190,21 @@ Also, if you implement a robust authentication (either by integrating with anoth
 one](https://www.section.io/engineering-education/how-to-build-authentication-api-with-jwt-token-in-nodejs/)) - consider
 contributing it to the source code via a Pull Request :)
 
+### Agent keys
+Automated callers (e.g. an AI agent) can be given a read-only key instead of a user login. Manage them with:
+
+```
+yarn agent_key add <name>      # prints a new key once; only its SHA-256 hash is stored in config/local.json
+yarn agent_key list            # names only
+yarn agent_key revoke <name>
+```
+
+Restart the server after any change. The agent sends `Authorization: Bearer <key>` and is authenticated as
+`agent:<name>` with `level: "agent"`. Agents are default-denied everywhere except search, tag/notebook listings and
+single-note metadata (plus `GET /api/user`); they can't read note bodies or attachments, change anything, or use
+mail, import or trash. Attachment file names are not exposed to agents. A key can also be configured by hand under
+`auth.agentKeys` as `{ "name": ..., "keyHash": ... }` (or, less safely, `{ "name": ..., "key": ... }`).
+
 ## Server Outside Traffic
 Once you've handled both considerations above, you can direct the server to listen to outside traffic. Again run `yarn
 setup_wizard` and skip to `Is this server going to be used outside this computer?`, which you can now answer `Y`. You

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { AgentKeys } from "./AgentKeys.js";
 
 export interface IAuthHandler {
   clientData(): { handler: string };
@@ -13,12 +14,20 @@ export interface IAuthHandler {
 export interface IUserData {
   user_id: string;
   user_name: string;
+  level?: "user" | "agent";
 }
+
+const BEARER = /^Bearer\s+(\S+)$/i;
 
 export class Auth {
   private readonly authHandler: IAuthHandler;
-  constructor(authHandler: IAuthHandler) {
+  private readonly agentKeys: AgentKeys;
+  constructor(
+    authHandler: IAuthHandler,
+    agentKeys: AgentKeys = AgentKeys.fromConfig([])
+  ) {
     this.authHandler = authHandler;
+    this.agentKeys = agentKeys;
   }
 
   auth(req: Request, res: Response, next: NextFunction) {
@@ -35,6 +44,21 @@ export class Auth {
     if (nonSecurePaths.find((p) => req.path.startsWith(p))) return next();
     if (req.path === "/") return next();
 
+    const authorization = req.headers.authorization;
+    if (authorization !== undefined && /^Bearer\b/i.test(authorization)) {
+      const name = this.agentKeys.match(
+        BEARER.exec(authorization)?.[1] ?? ""
+      );
+      if (name === undefined) {
+        return res.status(401).send("Invalid Token");
+      }
+      req.user_id = `agent:${name}`;
+      req.user_name = `agent:${name}`;
+      req.level = "agent";
+      return next();
+    }
+
+    req.level = "user";
     if (req.cookies?.["x-token-user"] && req.path !== "/api/user") {
       req.user_name = req.cookies?.["x-token-user"];
       return next();
