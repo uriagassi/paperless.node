@@ -78,18 +78,22 @@
     "windows_dev": "concurrently \"yarn start\" \"cd client && set HTTPS=true&&yarn start\"",
     "build": "cd client && yarn run build",
     "lint": "eslint .",
-    "test:server": "node --import tsx --test server/Search.test.ts",
     "start": "tsx server/index.ts proxy",
     "start_prod": "tsx server/index.ts",
     "setup_wizard": "yarn tsx scripts/setup_wizard.ts",
     "postinstall": "semantic-ui-css-patch",
-    "cleanup": "yarn tsx scripts/cleanup.ts"
+    "cleanup": "yarn tsx scripts/cleanup.ts",
+    "agent_key": "yarn tsx scripts/SetupAgentKey.ts",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@types/supertest": "^7.2.1",
     "@typescript-eslint/eslint-plugin": "latest",
     "@typescript-eslint/parser": "latest",
     "eslint": "^9.39.5",
-    "globals": "^17.12.0"
+    "globals": "^17.12.0",
+    "supertest": "^7.3.2",
+    "vitest": "^5.1.0"
   }
 }

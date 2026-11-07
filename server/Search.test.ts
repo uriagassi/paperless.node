@@ -1,5 +1,4 @@
-import { test, beforeEach } from "node:test";
-import assert from "node:assert/strict";
+import { test, beforeEach, expect } from "vitest";
 import Sqlite3, { Database } from "better-sqlite3";
 import { BadSearchRequest, parseSearchParams, searchNotes } from "./Search.js";
 
@@ -26,52 +25,52 @@ beforeEach(() => {
 });
 
 test("empty term without dates returns nothing", () => {
-  assert.deepEqual(search({}), []);
-  assert.deepEqual(search({ lastItem: "0", limit: "10" }), []);
+  expect(search({})).toEqual([]);
+  expect(search({ lastItem: "0", limit: "10" })).toEqual([]);
 });
 
 test("date range lists newest first with inclusive bounds", () => {
-  assert.deepEqual(search({ from: "2024-01-15", to: "2024-02-01" }), ["c", "b"]);
-  assert.deepEqual(search({ from: "2024-02-01" }), ["d", "c"]);
-  assert.deepEqual(search({ to: "2024-01-01" }), ["a"]);
+  expect(search({ from: "2024-01-15", to: "2024-02-01" })).toEqual(["c", "b"]);
+  expect(search({ from: "2024-02-01" })).toEqual(["d", "c"]);
+  expect(search({ to: "2024-01-01" })).toEqual(["a"]);
 });
 
 test("datetime values count as their date for the bounds", () => {
-  assert.deepEqual(search({ from: "2024-01-15", to: "2024-01-15" }), ["b"]);
-  assert.deepEqual(search({ from: "2024-01-15T23:59:59Z", to: "2024-01-15T00:00:00Z" }), ["b"]);
+  expect(search({ from: "2024-01-15", to: "2024-01-15" })).toEqual(["b"]);
+  expect(search({ from: "2024-01-15T23:59:59Z", to: "2024-01-15T00:00:00Z" })).toEqual(["b"]);
 });
 
 test("updateTime is filtered and sorted on its own", () => {
-  assert.deepEqual(search({ dateField: "updateTime", from: "2024-01-10", to: "2024-02-01" }), ["b", "d", "c"]);
+  expect(search({ dateField: "updateTime", from: "2024-01-10", to: "2024-02-01" })).toEqual(["b", "d", "c"]);
 });
 
 test("from after to is an empty range", () => {
-  assert.deepEqual(search({ from: "2024-03-01", to: "2024-01-01" }), []);
+  expect(search({ from: "2024-03-01", to: "2024-01-01" })).toEqual([]);
 });
 
 test("paging walks older notes with lastItem and limit", () => {
-  assert.deepEqual(search({ from: "2024-01-01", limit: "2", lastItem: "0" }), ["d", "c"]);
-  assert.deepEqual(search({ from: "2024-01-01", limit: "2", lastItem: "2024-02-01" }), ["b", "a"]);
-  assert.deepEqual(search({ dateField: "updateTime", from: "2024-01-01", limit: "2", lastItem: "2024-02-01" }), [
+  expect(search({ from: "2024-01-01", limit: "2", lastItem: "0" })).toEqual(["d", "c"]);
+  expect(search({ from: "2024-01-01", limit: "2", lastItem: "2024-02-01" })).toEqual(["b", "a"]);
+  expect(search({ dateField: "updateTime", from: "2024-01-01", limit: "2", lastItem: "2024-02-01" })).toEqual([
     "d",
     "c",
   ]);
 });
 
 test("term combines with the range for title and tag matches", () => {
-  assert.deepEqual(search({ term: "red", from: "2024-02-01" }), ["d"]);
-  assert.deepEqual(search({ term: "b" }), ["b"]);
-  assert.deepEqual(search({ term: "red" }), ["d", "a"]);
+  expect(search({ term: "red", from: "2024-02-01" })).toEqual(["d"]);
+  expect(search({ term: "b" })).toEqual(["b"]);
+  expect(search({ term: "red" })).toEqual(["d", "a"]);
 });
 
 test("invalid input is rejected", () => {
   for (const q of [{ from: "yesterday" }, { to: "2024-13-40" }, { dateField: "title" }, { limit: "abc" }]) {
-    assert.throws(() => parseSearchParams({ term: "x", ...q }), BadSearchRequest);
+    expect(() => parseSearchParams({ term: "x", ...q })).toThrow(BadSearchRequest);
   }
 });
 
 test("limit defaults and is clamped", () => {
-  assert.equal(parseSearchParams({ term: "x" }).limit, 100);
-  assert.equal(parseSearchParams({ term: "x", limit: "9999" }).limit, 500);
-  assert.equal(parseSearchParams({ term: "x", limit: "0" }).limit, 1);
+  expect(parseSearchParams({ term: "x" }).limit).toBe(100);
+  expect(parseSearchParams({ term: "x", limit: "9999" }).limit).toBe(500);
+  expect(parseSearchParams({ term: "x", limit: "0" }).limit).toBe(1);
 });

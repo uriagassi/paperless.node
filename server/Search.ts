@@ -83,7 +83,7 @@ export function searchNotes(db: Database, params: SearchParams) {
     .prepare(
       `select n.noteId as id, n.createTime, n.updateTime, n.title, \
       GROUP_CONCAT(a.fileName) as attachments, \
-      MIN(a.mime) as mime, SUM(a.size) size \
+      MIN(a.mime) as mime, SUM(a.size) size, count(a.attachmentId) as attachmentCount \
       from Notes n left join Attachments a on n.noteId = a.noteId \
       where ${conditions.join(" and ")} \
       group by n.noteId order by n.${params.dateField} desc, n.noteId desc limit ?`
