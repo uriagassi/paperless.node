@@ -20,13 +20,14 @@ import { agentAllowlist } from "./auth/AgentAllowlist.js";
 import { AgentTags, AgentTagError } from "./auth/AgentTags.js";
 import { agentView } from "./auth/AgentView.js";
 import { registerAgentApiRoutes } from "./AgentApi.js";
+import { logRequests, runWithRole } from "./Logging.js";
 import helmet from "helmet";
 import { doubleCsrf } from "csrf-csrf";
 import { randomBytes } from "crypto";
 
 export const IS_PROXY = process.argv[process.argv.length - 1] === "proxy";
 const baseDir = config.get("paperless.baseDir");
-const db = new Sqlite3(baseDir + "/paperless.sqlite", { verbose: console.log });
+const db = new Sqlite3(baseDir + "/paperless.sqlite", { verbose: (...args: unknown[]) => console.log(...args) });
 export const app = express();
 const { AuthHandler } = await import(config.get("auth.handler"));
 const att = new Attachments(db);
@@ -114,7 +115,9 @@ const auth = new Auth(
     config.has("auth.agentKeys") ? config.get("auth.agentKeys") : undefined
   )
 );
+app.use(logRequests);
 app.use((req, res, next) => auth.auth(req, res, next));
+app.use(runWithRole);
 app.use(agentAllowlist);
 app.get("/api", (req, res) => {
   res.json({ message: "Hello from server!" });
@@ -406,7 +409,7 @@ app.get("/api/user", (req, res) => {
 });
 
 app.get("/api/logout", (req, res) => {
-  console.log(req.cookies);
+  console.log(Object.keys(req.cookies ?? {}));
   for (const c in req.cookies) {
     console.log("clearing cookie " + c);
     res.clearCookie(c);

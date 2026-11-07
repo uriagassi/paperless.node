@@ -3,10 +3,10 @@
 import config from "config";
 import https from "https";
 import fs from "fs";
-import consoleStamp from "console-stamp";
 import { app, IS_PROXY } from "./app.js";
+import { installLogging } from "./Logging.js";
 
-consoleStamp(console);
+installLogging(console);
 
 const PORT: number =
   process.env.PORT || IS_PROXY
