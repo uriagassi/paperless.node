@@ -19,6 +19,7 @@ import { AgentKeys } from "./auth/AgentKeys.js";
 import { agentAllowlist } from "./auth/AgentAllowlist.js";
 import { AgentTags, AgentTagError } from "./auth/AgentTags.js";
 import { agentView } from "./auth/AgentView.js";
+import { listenAgentApi } from "./AgentApi.js";
 import helmet from "helmet";
 import { doubleCsrf } from "csrf-csrf";
 import { randomBytes } from "crypto";
@@ -63,6 +64,12 @@ const { doubleCsrfProtection: userCsrfProtection } = doubleCsrf({
 export const csrfProtection: express.RequestHandler = (req, res, next) =>
   req.level === "agent" ? next() : userCsrfProtection(req, res, next);
 
+app.set(
+  "trust proxy",
+  config.has("server.trustProxy")
+    ? config.get("server.trustProxy")
+    : "loopback, linklocal, uniquelocal"
+);
 app.use(cookieParser());
 app.use(
   helmet({
@@ -97,6 +104,9 @@ app.post("/internal/die", (req, res) => {
   console.log(`/internal/die: exiting pid ${process.pid} so a new instance can take the port`);
   res.status(200).end(() => process.exit(0));
 });
+
+// Public on purpose: it is the instruction page an agent reads before it has a key.
+listenAgentApi(app);
 
 const auth = new Auth(
   new AuthHandler(),

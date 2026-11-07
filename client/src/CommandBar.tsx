@@ -210,7 +210,16 @@ export const CommandBar: React.FunctionComponent<CommandBarProps> = (props) => {
         onClick={() => setRTL(!getRTL(), true)}
       />
       <ContextualMenu
-        items={[{ key: "logout", text: "Logout", onClick: () => logout() }]}
+        items={[
+          {
+            key: "agentApi",
+            text: "Agent API",
+            href: "/agent-api",
+            target: "_blank",
+            rel: "noopener",
+          },
+          { key: "logout", text: "Logout", onClick: () => logout() },
+        ]}
         hidden={!personaCMElement}
         target={personaCMElement}
         onDismiss={() => setPersonaCMElement(undefined)}
