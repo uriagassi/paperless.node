@@ -228,7 +228,8 @@ yarn agent_key revoke <name>
 ```
 
 Restart the server after any change. The agent sends `Authorization: Bearer <key>`. Agents can search, list tags and
-notebooks, read note metadata, and manage tags under their own root tag; everything else is `403`. The full agent-facing
+notebooks, read note metadata, and manage tags under their own root tag. They cannot read note bodies, attachment files
+or attachment file names, and everything else is `403`. The full agent-facing
 documentation is served by the app itself at `/agent-api` (avatar menu, then "Agent API"). It needs no login, so you can hand an agent that URL as is.
 
 ## Server Outside Traffic

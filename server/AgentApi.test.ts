@@ -11,7 +11,6 @@ let baseConfig: object;
 let app: Express;
 let baseUrl: typeof import("./AgentApi.js").baseUrl;
 
-
 beforeAll(async () => {
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), "paperless-agentapi-"));
   const baseDir = path.join(tmp, "base");
@@ -25,6 +24,7 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
+  vi.restoreAllMocks();
   try {
     fs.rmSync(tmp, { recursive: true, force: true });
   } catch {
@@ -43,14 +43,12 @@ describe("GET /agent-api", () => {
   });
 
   it.each([
-    ["Accept header", (r: request.Test) => r.set("Accept", "text/markdown")],
-    ["browser-style Accept", (r: request.Test) => r.set("Accept", "text/html")],
-  ])("negotiates Markdown vs HTML with %s", async (label, set) => {
-    const res = await set(request(app).get("/agent-api"));
-    const isMarkdown = label === "Accept header";
-    expect(res.headers["content-type"]).toMatch(
-      isMarkdown ? /text\/markdown/ : /text\/html/
-    );
+    ["text/markdown", /text\/markdown/],
+    ["text/html", /text\/html/],
+    ["*/*", /text\/html/],
+  ])("answers Accept: %s with %s", async (accept, contentType) => {
+    const res = await request(app).get("/agent-api").set("Accept", accept);
+    expect(res.headers["content-type"]).toMatch(contentType);
   });
 
   it("serves raw Markdown at /agent-api.md", async () => {
@@ -96,8 +94,7 @@ describe("GET /agent-api", () => {
 
   it("does not make other paths public", async () => {
     const res = await request(app).get("/agent-api/extra");
-    expect(res.status).not.toBe(200);
-    expect((await request(app).get("/api/user")).status).toBe(200);
+    expect(res.status).toBe(404);
   });
 });
 
@@ -108,14 +105,8 @@ describe("docs/agent-api.md coverage", () => {
       (m) => `${m[1]} ${m[2]}`
     )
   );
-  const toDocPath = (p: string) =>
-    p.replace(/^\/api\/tags\/\[\^\/\]\+$/, "/api/tags/:id")
-      .replace("/api/notebooks/[^/]+", "/api/notebooks/:id")
-      .replace("/api/notes/[^/]+/tags/[^/]+", "/api/notes/:id/tags/:tagId")
-      .replace("/api/notes/[^/]+", "/api/notes/:id");
-
   const allowed = Object.entries(AGENT_ROUTES).flatMap(([method, paths]) =>
-    paths.map((p) => `${method} ${toDocPath(p)}`)
+    paths.map((p) => `${method} ${p}`)
   );
 
   it.each(allowed)("documents %s", (route) => {

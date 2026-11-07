@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 
-const ID = "[^/]+";
 const compile = (paths: string[]) =>
-  paths.map((p) => new RegExp(`^${p}/?$`, "i"));
+  paths.map(
+    (p) => new RegExp(`^${p.replace(/:\w+/g, "[^/]+")}/?$`, "i")
+  );
 
 export const AGENT_ROUTES: Record<"GET" | "POST" | "DELETE", string[]> = {
   GET: [
@@ -11,12 +12,12 @@ export const AGENT_ROUTES: Record<"GET" | "POST" | "DELETE", string[]> = {
     "/api/notebooks",
     "/api/notebooks_and_tags",
     "/api/user",
-    `/api/tags/${ID}`,
-    `/api/notebooks/${ID}`,
-    `/api/notes/${ID}`,
+    "/api/tags/:id",
+    "/api/notebooks/:id",
+    "/api/notes/:id",
   ],
-  POST: [`/api/agent/tags`, `/api/notes/${ID}/addTag`],
-  DELETE: [`/api/notes/${ID}/tags/${ID}`],
+  POST: ["/api/agent/tags", "/api/notes/:id/addTag"],
+  DELETE: ["/api/notes/:id/tags/:tagId"],
 };
 
 const READ_ROUTES = compile(AGENT_ROUTES.GET);

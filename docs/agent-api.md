@@ -8,8 +8,8 @@ Base URL: `{BASE_URL}`. Every path below hangs off it.
 ## Start here
 
 1. Hold a key. Without one, ask the user for it (see "Getting a key").
-2. Send `Authorization: Bearer <key>` on every request. Cookies and CSRF tokens play no part. A missing or unknown key
-   gets `401 Invalid Token`.
+2. Send `Authorization: Bearer <key>` on every request. Cookies and CSRF tokens play no part. A Bearer key the server
+   does not know gets `401 Invalid Token`.
 3. Call only the endpoints in the next section. Anything else answers `403 Not available to agents`, which is the
    expected, permanent answer. Move on rather than retrying.
 
@@ -94,16 +94,18 @@ last note you received followed by `|` and its id, e.g. `lastItem=2024-03-02|42`
 from being skipped. A page with fewer than `limit` notes is the last one. Bad dates or cursors return `400` with
 `{ "error": "..." }`.
 
-Notebook and tag listings page the same way, but with plain dates:
+Notebook and tag listings take `lastItem` and `limit` too:
 
 ```
 GET {BASE_URL}/api/notebooks/3?lastItem=0&limit=50
 GET {BASE_URL}/api/tags/7?lastItem=0&limit=50
 ```
 
-Send both `lastItem` and `limit` here (`lastItem=0` starts from the beginning). For the next page set `lastItem` to the
-`createTime` of the last note received. `/api/notebooks/:id` also accepts `orderBy` (`createTime`, `updateTime` or
-`title`); the cursor then applies to that field.
+Send both parameters every time (`lastItem=0` starts from the beginning); leaving one out gives a `500`. The server does
+not clamp `limit` here. These two endpoints return the newest notes first and cannot reach older pages, so treat the
+result as "the newest `limit` notes". To walk everything, page `/api/search` with `from`, `to` and `lastItem` instead,
+and filter by notebook or tag on your side using the `notebook` and `tags` fields. `/api/notebooks/:id` also accepts
+`orderBy` (`createTime`, `updateTime` or `title`); any other value gives a `500`.
 
 ## Listings
 
@@ -162,4 +164,4 @@ Rules:
 - An unknown note id is `404`.
 - Tags are created, attached and detached. Renaming, moving and deleting belong to the user.
 
-Other errors: `400` with `{ "error": "..." }` for a bad date or cursor.
+Tag errors arrive as plain text, not JSON. Search errors (a bad date or cursor) are `400` with `{ "error": "..." }`.

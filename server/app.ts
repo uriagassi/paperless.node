@@ -19,7 +19,7 @@ import { AgentKeys } from "./auth/AgentKeys.js";
 import { agentAllowlist } from "./auth/AgentAllowlist.js";
 import { AgentTags, AgentTagError } from "./auth/AgentTags.js";
 import { agentView } from "./auth/AgentView.js";
-import { listenAgentApi } from "./AgentApi.js";
+import { registerAgentApiRoutes } from "./AgentApi.js";
 import helmet from "helmet";
 import { doubleCsrf } from "csrf-csrf";
 import { randomBytes } from "crypto";
@@ -106,7 +106,7 @@ app.post("/internal/die", (req, res) => {
 });
 
 // Public on purpose: it is the instruction page an agent reads before it has a key.
-listenAgentApi(app);
+registerAgentApiRoutes(app);
 
 const auth = new Auth(
   new AuthHandler(),

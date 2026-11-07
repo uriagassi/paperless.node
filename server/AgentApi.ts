@@ -1,4 +1,4 @@
-import { Express, Request } from "express";
+import { Express, Request, Response } from "express";
 import { marked } from "marked";
 import config from "config";
 import fs from "fs";
@@ -50,8 +50,8 @@ table{border-collapse:collapse}td,th{border:1px solid #8886;padding:.25rem .5rem
 blockquote{margin-left:0;padding-left:1rem;border-left:4px solid #8886}
 </style></head><body>${body}</body></html>`;
 
-export function listenAgentApi(app: Express) {
-  const serve = (forceMarkdown: boolean) => (req: Request, res: any) => {
+export function registerAgentApiRoutes(app: Express) {
+  const serve = (forceMarkdown: boolean) => (req: Request, res: Response) => {
     const markdown = renderAgentApiMarkdown(baseUrl(req));
     res.vary("Accept");
     const wantsMarkdown =
