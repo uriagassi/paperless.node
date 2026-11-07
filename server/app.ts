@@ -62,7 +62,8 @@ const { doubleCsrfProtection: userCsrfProtection } = doubleCsrf({
 export const csrfProtection: express.RequestHandler = (req, res, next) =>
   req.level === "agent" ? next() : userCsrfProtection(req, res, next);
 
-app.use(cookieParser());
+const cookieSecret = randomBytes(32).toString("hex");
+app.use(cookieParser(cookieSecret));
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -373,7 +374,7 @@ app.get("/api/user", (req, res) => {
 
 app.get("/api/logout", (req, res) => {
   console.log(req.cookies);
-  for (const c in req.cookies) {
+  for (const c in { ...req.cookies, ...req.signedCookies }) {
     console.log("clearing cookie " + c);
     res.clearCookie(c);
   }

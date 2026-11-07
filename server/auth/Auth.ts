@@ -59,8 +59,8 @@ export class Auth {
       return next();
     }
 
-    if (req.cookies?.["x-token-user"] && req.path !== "/api/user") {
-      req.user_name = req.cookies?.["x-token-user"];
+    if (req.signedCookies?.["x-token-user"] && req.path !== "/api/user") {
+      req.user_name = req.signedCookies["x-token-user"];
       return next();
     }
 
@@ -74,6 +74,7 @@ export class Auth {
           secure: true,
           httpOnly: true,
           sameSite: "lax",
+          signed: true,
         });
         return next();
       });
