@@ -17,13 +17,21 @@ export function runWithRole(req: Request, res: Response, next: NextFunction) {
   return label ? requestRole.run(label, next) : next();
 }
 
+const QUIET_ROUTES = new Set(["GET /api/files/checkStatus"]);
+
+function isRoutineSuccess(req: Request, res: Response, label?: string) {
+  const ok = (res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 304;
+  return ok && !!label && QUIET_ROUTES.has(`${req.method} ${req.path}`);
+}
+
 export function logRequests(req: Request, res: Response, next: NextFunction) {
   if (!req.path.startsWith("/api/")) return next();
   const start = process.hrtime.bigint();
   res.on("finish", () => {
+    const label = roleLabel(req);
+    if (isRoutineSuccess(req, res, label)) return;
     const ms = Math.round(Number(process.hrtime.bigint() - start) / 1e6);
     const line = `${req.method} ${req.path} ${res.statusCode} ${ms}ms`;
-    const label = roleLabel(req);
     if (label) requestRole.run(label, () => console.log(line));
     else console.log(line);
   });
