@@ -101,6 +101,30 @@ describe("per-request line", () => {
   });
 });
 
+describe("quiet polling route", () => {
+  const statusLines = () => lines.filter((l) => /\/api\/files\/checkStatus/.test(l));
+
+  it("does not log successful checkStatus polls", async () => {
+    await request(app).get("/api/files/checkStatus");
+    expect(statusLines()).toEqual([]);
+  });
+
+  it("still logs checkStatus requests denied by the agent allowlist", async () => {
+    await request(app).get("/api/files/checkStatus").set("Authorization", `Bearer ${AGENT_KEY}`);
+    expect(statusLines().some((l) => /403 \d+ms$/.test(l))).toBe(true);
+  });
+
+  it("still logs checkStatus requests rejected by auth", async () => {
+    await request(app).get("/api/files/checkStatus").set("Authorization", "Bearer wrong");
+    expect(statusLines().some((l) => /401 \d+ms$/.test(l))).toBe(true);
+  });
+
+  it("still logs other successful api requests", async () => {
+    await request(app).get("/api/tags");
+    expect(lines.some((l) => /GET \/api\/tags 200 \d+ms$/.test(l))).toBe(true);
+  });
+});
+
 describe("redaction", () => {
   const everything = () => lines.join("\n");
 
